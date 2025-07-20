@@ -110,20 +110,7 @@ export default function Home() {
                   <div key={`${note}-${index}`} className="relative">
                     {/* Tree Container */}
                     <div className="relative flex flex-col items-center">
-                      {/* Tree Title */}
-                      <div className="text-center mb-6">
-                        <h4 className="text-xl font-bold text-gray-900">{noteLabels[index]}</h4>
-                      </div>
-
-                      {/* Root Note (Trunk) */}
-                      <div className="relative z-10 mb-8">
-                        <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
-                          <span className="text-2xl font-bold text-white">{note}</span>
-                        </div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-8 bg-gradient-to-b from-amber-600 to-amber-800"></div>
-                      </div>
-
-                      {/* Chord Selector with Tree Layout */}
+                      {/* Chord Selector with Tree Layout - includes center note */}
                       <div className="relative">
                         <ChordSkillSelector
                           baseNote={note}

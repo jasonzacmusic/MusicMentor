@@ -138,14 +138,14 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   const p4MajorChord = getChordFromNote(p4Note, 'major', 1); // Use first inversion
   chords.push({
     ...p4MajorChord,
-    name: `${p4MajorChord.rootNote} (P5)`
+    name: `${p4MajorChord.rootNote} (p5)`
   });
   
   // 4. Perfect 4th Minor with first inversion
   const p4MinorChord = getChordFromNote(p4Note, 'minor', 1);
   chords.push({
     ...p4MinorChord,
-    name: `${p4MinorChord.rootNote}m (P5)`
+    name: `${p4MinorChord.rootNote}m (p5)`
   });
   
   // 5. Major 6th Major with second inversion for smooth voice leading
