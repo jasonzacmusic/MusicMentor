@@ -124,15 +124,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           
           const colorScheme = chordColors[positionIndex % 6];
           
-          // Extract interval name from chord name
-          const getIntervalName = (chordName: string) => {
-            if (chordName.includes('(p5)')) return 'p5';
-            if (chordName.includes('(M3)')) return 'M3';
-            if (chordName.includes('(m3)')) return 'm3';
-            return 'Root';
-          };
-          
-          const intervalName = getIntervalName(chord.name);
+
           
           return (
             <div key={index} className="absolute">
@@ -167,18 +159,6 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
                 <span className="text-xs font-bold text-center leading-tight px-1">
                   {chord.name}
                 </span>
-              </div>
-              
-              {/* Interval label outside the circle */}
-              <div
-                className="absolute text-xs font-semibold text-gray-600 z-40"
-                style={{
-                  left: `calc(50% + ${x + Math.cos(angle * Math.PI / 180) * 35}px)`,
-                  top: `calc(50% + ${y + Math.sin(angle * Math.PI / 180) * 35}px)`,
-                  transform: 'translate(-50%, -50%)'
-                }}
-              >
-                {intervalName}
               </div>
             </div>
           );
