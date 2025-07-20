@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
-import ChordTreePanel from '@/components/chord-tree-panel';
-import PianoKeyboard from '@/components/piano-keyboard';
-import IntervalTraining from '@/components/interval-training';
+import ChordSkillSelector from '@/components/chord-skill-selector';
 import { Music, HelpCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -41,29 +39,16 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-8">
           {/* Random Notes Generator */}
-          <div className="lg:col-span-2">
+          <div>
             <RandomNotesGenerator onNotesChange={handleNotesChange} />
           </div>
 
-          {/* Chord Tree Panel */}
+          {/* Chord Skill Level Selector */}
           <div>
-            <ChordTreePanel selectedNote={selectedNote} />
+            <ChordSkillSelector baseNote={selectedNote} />
           </div>
-        </div>
-
-        {/* Piano Keyboard */}
-        <div className="mt-8">
-          <PianoKeyboard 
-            activeNotes={activeNotes}
-            chordNotes={chordNotes}
-          />
-        </div>
-
-        {/* Interval Training */}
-        <div className="mt-8">
-          <IntervalTraining />
         </div>
       </main>
     </div>
