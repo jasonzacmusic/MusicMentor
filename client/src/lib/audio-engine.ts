@@ -87,26 +87,40 @@ export class AudioEngine {
     await Promise.all(promises);
   }
 
-  async playSequence(notes: string[], tempo: number = 120, withMetronome: boolean = false): Promise<void> {
+  async playSequence(notes: string[], tempo: number = 120, withMetronome: boolean = false, metronomeMultiplier: number = 1): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
     const beatDuration = (60 / tempo) * 1000; // ms per beat
+    const metronomeBeatDuration = beatDuration / metronomeMultiplier;
     
-    // Play notes according to the timing: 2-2-4 beats
+    // Play notes according to the timing: 2-2-4 beats (total 8 beats)
     const timings = [2, 2, 4];
+    let currentBeat = 0;
     
     for (let i = 0; i < notes.length && i < timings.length; i++) {
       const duration = beatDuration * timings[i];
       const octaveOffset = i === 2 ? -1 : 0; // Note 3 plays an octave below note 1
       
-      // Play metronome clicks if enabled
+      // Start playing the note
+      const notePromise = this.playNote(notes[i], duration, octaveOffset);
+      
+      // Play metronome clicks for all beats in this section
       if (withMetronome) {
-        this.playMetronomeClick();
+        const beatsInSection = timings[i];
+        for (let beat = 0; beat < beatsInSection; beat++) {
+          if (beat === 0) {
+            // Play metronome click immediately for first beat
+            this.playMetronomeClick();
+          } else {
+            // Schedule subsequent clicks
+            setTimeout(() => this.playMetronomeClick(), beat * metronomeBeatDuration);
+          }
+        }
       }
       
-      await this.playNote(notes[i], duration, octaveOffset);
+      await notePromise;
       
       // Small gap between notes (except for the last one)
       if (i < notes.length - 1) {
@@ -115,7 +129,7 @@ export class AudioEngine {
     }
   }
 
-  private async playMetronomeClick(): Promise<void> {
+  playMetronomeClick(): void {
     if (!this.audioContext || !this.masterGainNode) return;
 
     const oscillator = this.audioContext.createOscillator();

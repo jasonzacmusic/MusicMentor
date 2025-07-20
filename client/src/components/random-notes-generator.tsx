@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
 import { generateRandomNotes, type Chord } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
+import { audioEngine } from '@/lib/audio-engine';
 
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
@@ -13,11 +14,12 @@ interface RandomNotesGeneratorProps {
 }
 
 export default function RandomNotesGenerator({ onNotesChange, selectedChords = [] }: RandomNotesGeneratorProps) {
-  const [notes, setNotes] = useState<string[]>(['C', 'E', 'A']);
+  const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G as requested
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
   const [withMetronome, setWithMetronome] = useState(false);
+  const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
   const { playSequence, playChord, isPlaying: audioIsPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
@@ -34,19 +36,50 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     try {
       do {
         if (hasSelectedChords) {
-          // Play chord progression
+          // Play chord progression with metronome
           const beatDuration = (60 / tempo) * 1000;
+          const metronomeBeatDuration = beatDuration / metronomeMultiplier;
           const chordDurations = [2, 2, 4];
+          let currentBeat = 0;
           
           for (let i = 0; i < 3; i++) {
             const chord = selectedChords[i];
+            const duration = beatDuration * chordDurations[i];
             
             if (chord && chord.notes) {
-              const duration = beatDuration * chordDurations[i];
               const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
-              await playChord(voiceLeadingNotes, duration);
+              
+              // Start playing the chord
+              const chordPromise = playChord(voiceLeadingNotes, duration);
+              
+              // Play metronome clicks for all beats in this section
+              if (withMetronome) {
+                const beatsInSection = chordDurations[i];
+                for (let beat = 0; beat < beatsInSection; beat++) {
+                  if (beat === 0) {
+                    // Play metronome click immediately for first beat
+                    playMetronomeClick();
+                  } else {
+                    // Schedule subsequent clicks
+                    setTimeout(() => playMetronomeClick(), beat * metronomeBeatDuration);
+                  }
+                }
+              }
+              
+              await chordPromise;
             } else {
-              await new Promise(resolve => setTimeout(resolve, beatDuration * chordDurations[i]));
+              // If no chord selected, still play metronome and wait
+              if (withMetronome) {
+                const beatsInSection = chordDurations[i];
+                for (let beat = 0; beat < beatsInSection; beat++) {
+                  if (beat === 0) {
+                    playMetronomeClick();
+                  } else {
+                    setTimeout(() => playMetronomeClick(), beat * metronomeBeatDuration);
+                  }
+                }
+              }
+              await new Promise(resolve => setTimeout(resolve, duration));
             }
             
             if (i < 2) {
@@ -55,7 +88,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           }
         } else {
           // Play note sequence
-          await playSequence(notes, tempo, withMetronome);
+          await playSequence(notes, tempo, withMetronome, metronomeMultiplier);
         }
         
         // If looping, add a brief pause before repeating
@@ -66,7 +99,12 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     } finally {
       setIsPlaying(false);
     }
-  }, [selectedChords, notes, tempo, withMetronome, playChord, playSequence, isLooping, isPlaying]);
+  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, playChord, playSequence, isLooping, isPlaying]);
+
+  // Use audioEngine's metronome click method
+  const playMetronomeClick = () => {
+    audioEngine.playMetronomeClick();
+  };
 
   // Apply voice leading for smoother chord progressions
   const applyVoiceLeading = (notes: string[], position: number) => {
@@ -104,15 +142,35 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
                 className="w-32"
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="metronome"
-                checked={withMetronome}
-                onCheckedChange={setWithMetronome}
-              />
-              <label htmlFor="metronome" className="text-sm font-medium text-gray-700">
-                Metronome
-              </label>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="metronome"
+                  checked={withMetronome}
+                  onCheckedChange={setWithMetronome}
+                />
+                <label htmlFor="metronome" className="text-sm font-medium text-gray-700">
+                  Metronome
+                </label>
+              </div>
+              {withMetronome && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Speed:</span>
+                  <div className="flex space-x-1">
+                    {[1, 2, 3, 4].map((multiplier) => (
+                      <Button
+                        key={multiplier}
+                        size="sm"
+                        variant={metronomeMultiplier === multiplier ? "default" : "outline"}
+                        onClick={() => setMetronomeMultiplier(multiplier)}
+                        className="px-2 py-1 text-xs"
+                      >
+                        x{multiplier}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <h2 className="text-lg font-medium text-gray-900">Random Note Practice</h2>
