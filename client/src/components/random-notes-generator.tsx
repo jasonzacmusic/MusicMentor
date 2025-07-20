@@ -23,7 +23,8 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const { playSequence, playChord, isPlaying: audioIsPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
-    const newNotes = generateRandomNotes();
+    // Always set to default Bb, D, G
+    const newNotes = ['Bb', 'D', 'G'];
     setNotes(newNotes);
     onNotesChange?.(newNotes);
   }, [onNotesChange]);

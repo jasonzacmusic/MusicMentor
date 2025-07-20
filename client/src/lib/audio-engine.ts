@@ -119,7 +119,7 @@ export class AudioEngine {
     
     for (let i = 0; i < notes.length && i < timings.length; i++) {
       const duration = beatDuration * timings[i];
-      const octaveOffset = i === 2 ? -1 : 0; // Note 3 plays an octave below note 1 (keeping it lower)
+      const octaveOffset = 0; // All notes play at the same octave
       
       // Schedule the note to play at precise time
       this.scheduleNote(notes[i], currentTime, duration, octaveOffset);
