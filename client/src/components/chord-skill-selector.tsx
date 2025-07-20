@@ -108,12 +108,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect,
                       </div>
                     )}
                     
-                    {/* Debug info */}
-                    {selectedChord?.name === chord.name && (
-                      <div className="text-xs text-gray-400 text-center mt-1">
-                        Selected: {selectedChord?.name} | Has callback: {onInversionChange ? 'Yes' : 'No'} | Mode: {inversionMode}
-                      </div>
-                    )}
+
                   </div>
                 </div>
               ))}

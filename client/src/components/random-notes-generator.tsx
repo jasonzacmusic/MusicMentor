@@ -54,7 +54,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
     if (mode === 'auto' || notes.length !== 3) {
-      return notes; // Return as-is for auto mode or invalid input
+      return notes.map(note => ({ note, octave: 0 })); // Return with octave info for auto mode
     }
     
     const [root, third, fifth] = notes;
@@ -62,15 +62,27 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     switch (mode) {
       case 'root':
         // Root position: C E G (root in bass)
-        return [root, third, fifth];
+        return [
+          { note: root, octave: 0 },
+          { note: third, octave: 0 },
+          { note: fifth, octave: 0 }
+        ];
       case 'first':
-        // First inversion: E G C (third in bass, but C goes up an octave)
-        return [third, fifth, root + '+']; // '+' indicates octave up
+        // First inversion: E G C (third in bass, root goes up an octave)
+        return [
+          { note: third, octave: 0 },
+          { note: fifth, octave: 0 },
+          { note: root, octave: 1 }
+        ];
       case 'second':
-        // Second inversion: G C E (fifth in bass, C and E go up an octave)
-        return [fifth, root + '+', third + '+'];
+        // Second inversion: G C E (fifth in bass, root and third go up an octave)
+        return [
+          { note: fifth, octave: 0 },
+          { note: root, octave: 1 },
+          { note: third, octave: 1 }
+        ];
       default:
-        return notes;
+        return notes.map(note => ({ note, octave: 0 }));
     }
   };
 
@@ -140,19 +152,13 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           // CHORD: Play the selected chord for this position
           const baseNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
           const triadNotes = applyInversion(baseNotes, inversionMode);
-          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, triadNotes, inversionMode !== 'auto' ? `(${inversionMode})` : '');
+          const noteNames = triadNotes.map(n => n.note);
+          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, noteNames, inversionMode !== 'auto' ? `(${inversionMode})` : '');
           
           // Schedule each note in the chord with slight stagger
-          triadNotes.forEach((note, noteIndex) => {
+          triadNotes.forEach((noteObj, noteIndex) => {
             setTimeout(() => {
-              // Check if note has octave indicator (+)
-              let octaveOffset = 0;
-              let cleanNote = note;
-              if (note.endsWith('+')) {
-                octaveOffset = 1; // One octave up
-                cleanNote = note.replace('+', '');
-              }
-              audioEngine.playNote(cleanNote, duration * 1000, octaveOffset);
+              audioEngine.playNote(noteObj.note, duration * 1000, noteObj.octave);
             }, (currentTime - startTime) * 1000 + (noteIndex * 50));
           });
         } else {
