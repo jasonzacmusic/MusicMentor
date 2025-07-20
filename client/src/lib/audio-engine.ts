@@ -92,7 +92,7 @@ export class AudioEngine {
       await this.initialize();
     }
 
-    const beatDuration = (60 / tempo) * 1000; // ms per beat
+    const beatDuration = 60 / tempo; // seconds per beat
     
     // Calculate metronome interval based on multiplier
     // x1 = quarter notes (same as beat), x2 = eighth notes, x3 = triplets
@@ -109,48 +109,102 @@ export class AudioEngine {
     
     // Play notes according to the timing: 2-2-4 beats (total 8 beats)
     const timings = [2, 2, 4];
+    const startTime = this.audioContext!.currentTime;
+    let currentTime = startTime;
+    
+    // Schedule all metronome clicks first if needed
+    if (withMetronome) {
+      this.scheduleMetronomeClicks(startTime, 8 * beatDuration, metronomeInterval);
+    }
     
     for (let i = 0; i < notes.length && i < timings.length; i++) {
       const duration = beatDuration * timings[i];
       const octaveOffset = i === 2 ? -1 : 0; // Note 3 plays an octave below note 1
       
-      // Start playing the note
-      const notePromise = this.playNote(notes[i], duration, octaveOffset);
+      // Schedule the note to play at precise time
+      this.scheduleNote(notes[i], currentTime, duration, octaveOffset);
       
-      // Play metronome clicks continuously during this section
-      if (withMetronome) {
-        const metronomePromise = this.playMetronomeForDuration(duration, metronomeInterval);
-        await Promise.all([notePromise, metronomePromise]);
-      } else {
-        await notePromise;
-      }
+      currentTime += duration;
       
       // Small gap between notes (except for the last one)
       if (i < notes.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        currentTime += 0.1; // 100ms gap
       }
+    }
+    
+    // Wait for the entire sequence to complete
+    const totalDuration = (currentTime - startTime + 0.1) * 1000; // Convert to ms
+    await new Promise(resolve => setTimeout(resolve, totalDuration));
+  }
+
+  private scheduleNote(note: string, startTime: number, duration: number, octaveOffset: number = 0): void {
+    if (!this.audioContext || !this.masterGainNode) return;
+
+    const frequency = this.getFrequency(note, octaveOffset);
+    
+    // Create oscillator
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
+    const filterNode = this.audioContext.createBiquadFilter();
+
+    // Connect nodes
+    oscillator.connect(filterNode);
+    filterNode.connect(gainNode);
+    gainNode.connect(this.masterGainNode);
+
+    // Configure oscillator
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+    oscillator.type = 'sawtooth';
+
+    // Configure filter for viola-like sound
+    filterNode.type = 'lowpass';
+    filterNode.frequency.setValueAtTime(1600, startTime);
+    filterNode.Q.setValueAtTime(1.5, startTime);
+
+    // Configure envelope
+    const attackTime = 0.1;
+    const releaseTime = 0.3;
+
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, startTime + attackTime);
+    gainNode.gain.setValueAtTime(0.3, startTime + duration - releaseTime);
+    gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+
+    // Start and stop
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  }
+
+  private scheduleMetronomeClicks(startTime: number, totalDuration: number, interval: number): void {
+    if (!this.audioContext) return;
+
+    let clickTime = startTime;
+    while (clickTime < startTime + totalDuration) {
+      this.scheduleMetronomeClick(clickTime);
+      clickTime += interval;
     }
   }
 
-  private async playMetronomeForDuration(duration: number, interval: number): Promise<void> {
-    return new Promise((resolve) => {
-      let elapsed = 0;
-      
-      // Play first click immediately
-      this.playMetronomeClick();
-      elapsed += interval;
-      
-      const intervalId = setInterval(() => {
-        if (elapsed >= duration) {
-          clearInterval(intervalId);
-          resolve();
-          return;
-        }
-        
-        this.playMetronomeClick();
-        elapsed += interval;
-      }, interval);
-    });
+  private scheduleMetronomeClick(time: number): void {
+    if (!this.audioContext || !this.masterGainNode) return;
+
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(this.masterGainNode);
+
+    oscillator.frequency.setValueAtTime(800, time);
+    oscillator.type = 'square';
+
+    const clickDuration = 0.05;
+
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
+    gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
+
+    oscillator.start(time);
+    oscillator.stop(time + clickDuration);
   }
 
   playMetronomeClick(): void {

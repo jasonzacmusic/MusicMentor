@@ -38,54 +38,8 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     try {
       do {
         if (hasSelectedChords) {
-          // Play chord progression with metronome
-          const beatDuration = (60 / tempo) * 1000;
-          const chordDurations = [2, 2, 4];
-          
-          // Calculate metronome interval based on multiplier
-          let metronomeInterval: number;
-          if (metronomeMultiplier === 1) {
-            metronomeInterval = beatDuration; // Quarter notes
-          } else if (metronomeMultiplier === 2) {
-            metronomeInterval = beatDuration / 2; // Eighth notes
-          } else if (metronomeMultiplier === 3) {
-            metronomeInterval = beatDuration / 3; // Triplets
-          } else {
-            metronomeInterval = beatDuration;
-          }
-          
-          for (let i = 0; i < 3; i++) {
-            if (!isPlaying) break; // Check if stopped during playback
-            
-            const chord = selectedChords[i];
-            const duration = beatDuration * chordDurations[i];
-            
-            if (chord && chord.notes) {
-              const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
-              
-              // Start playing the chord
-              const chordPromise = playChord(voiceLeadingNotes, duration);
-              
-              // Play metronome clicks continuously during this section
-              if (withMetronome) {
-                const metronomePromise = playMetronomeForDuration(duration, metronomeInterval);
-                await Promise.all([chordPromise, metronomePromise]);
-              } else {
-                await chordPromise;
-              }
-            } else {
-              // If no chord selected, still play metronome and wait
-              if (withMetronome) {
-                await playMetronomeForDuration(duration, metronomeInterval);
-              } else {
-                await new Promise(resolve => setTimeout(resolve, duration));
-              }
-            }
-            
-            if (i < 2 && isPlaying) {
-              await new Promise(resolve => setTimeout(resolve, 200));
-            }
-          }
+          // Play chord progression with precise timing
+          await playChordProgression();
         } else {
           // Play note sequence
           await playSequence(notes, tempo, withMetronome, metronomeMultiplier);
@@ -99,28 +53,125 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     } finally {
       setIsPlaying(false);
     }
-  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, playChord, playSequence, isLooping]);
+  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, playSequence, isLooping, isPlaying]);
 
-  // Add metronome helper function
-  const playMetronomeForDuration = async (duration: number, interval: number): Promise<void> => {
-    return new Promise((resolve) => {
-      let elapsed = 0;
+  // Precise chord progression playback
+  const playChordProgression = useCallback(async () => {
+    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+      await audioEngine.initialize();
+    }
+
+    const beatDuration = 60 / tempo; // seconds per beat
+    const chordDurations = [2, 2, 4]; // beats per chord
+    const startTime = audioEngine.audioContext!.currentTime;
+    let currentTime = startTime;
+
+    // Calculate metronome interval
+    let metronomeInterval: number;
+    if (metronomeMultiplier === 1) {
+      metronomeInterval = beatDuration; // Quarter notes
+    } else if (metronomeMultiplier === 2) {
+      metronomeInterval = beatDuration / 2; // Eighth notes
+    } else if (metronomeMultiplier === 3) {
+      metronomeInterval = beatDuration / 3; // Triplets
+    } else {
+      metronomeInterval = beatDuration;
+    }
+
+    // Schedule metronome clicks for entire progression
+    if (withMetronome) {
+      const totalDuration = 8 * beatDuration; // 8 beats total
+      let clickTime = startTime;
+      while (clickTime < startTime + totalDuration) {
+        scheduleMetronomeClick(clickTime);
+        clickTime += metronomeInterval;
+      }
+    }
+
+    // Schedule chord playback
+    for (let i = 0; i < 3; i++) {
+      const chord = selectedChords[i];
+      const duration = beatDuration * chordDurations[i];
       
-      // Play first click immediately
-      playMetronomeClick();
-      elapsed += interval;
+      if (chord && chord.notes) {
+        const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
+        scheduleChord(voiceLeadingNotes, currentTime, duration);
+      }
       
-      const intervalId = setInterval(() => {
-        if (elapsed >= duration || !isPlaying) {
-          clearInterval(intervalId);
-          resolve();
-          return;
-        }
-        
-        playMetronomeClick();
-        elapsed += interval;
-      }, interval);
+      currentTime += duration;
+      
+      // Small gap between chords
+      if (i < 2) {
+        currentTime += 0.1;
+      }
+    }
+
+    // Wait for progression to complete
+    const totalDuration = (currentTime - startTime + 0.1) * 1000;
+    await new Promise(resolve => setTimeout(resolve, totalDuration));
+  }, [selectedChords, tempo, withMetronome, metronomeMultiplier, isPlaying]);
+
+  // Schedule a chord with precise timing
+  const scheduleChord = (notes: string[], startTime: number, duration: number) => {
+    notes.forEach(note => {
+      scheduleNote(note, startTime, duration);
     });
+  };
+
+  // Schedule a single note with precise timing
+  const scheduleNote = (note: string, startTime: number, duration: number, octaveOffset: number = 0) => {
+    if (!audioEngine.audioContext || !audioEngine.masterGainNode) return;
+
+    const frequency = audioEngine.getFrequency(note, octaveOffset);
+    
+    const oscillator = audioEngine.audioContext.createOscillator();
+    const gainNode = audioEngine.audioContext.createGain();
+    const filterNode = audioEngine.audioContext.createBiquadFilter();
+
+    oscillator.connect(filterNode);
+    filterNode.connect(gainNode);
+    gainNode.connect(audioEngine.masterGainNode);
+
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+    oscillator.type = 'sawtooth';
+
+    filterNode.type = 'lowpass';
+    filterNode.frequency.setValueAtTime(1600, startTime);
+    filterNode.Q.setValueAtTime(1.5, startTime);
+
+    const attackTime = 0.1;
+    const releaseTime = 0.3;
+
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, startTime + attackTime);
+    gainNode.gain.setValueAtTime(0.3, startTime + duration - releaseTime);
+    gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  };
+
+  // Schedule metronome click with precise timing
+  const scheduleMetronomeClick = (time: number) => {
+    if (!audioEngine.audioContext || !audioEngine.masterGainNode) return;
+
+    const oscillator = audioEngine.audioContext.createOscillator();
+    const gainNode = audioEngine.audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioEngine.masterGainNode);
+
+    oscillator.frequency.setValueAtTime(800, time);
+    oscillator.type = 'square';
+
+    const clickDuration = 0.05;
+
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
+    gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
+
+    oscillator.start(time);
+    oscillator.stop(time + clickDuration);
   };
 
   // Use audioEngine's metronome click method
