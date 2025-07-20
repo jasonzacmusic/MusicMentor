@@ -48,7 +48,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   // Store previous chord selection to detect changes
   const prevChordsRef = useRef<Chord[]>(selectedChords);
 
-  // Single play function that plays the sequence once
+  // Single play function that plays the sequence once, synchronized to beat 1
   const playSequenceOnce = useCallback(async () => {
     if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
       await audioEngine.initialize();
@@ -56,7 +56,9 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
 
     const beatDuration = 60 / tempo;
     const chordDurations = [2, 2, 4]; // beats per position
-    const startTime = audioEngine.audioContext!.currentTime;
+    
+    // Start immediately at the next audio context time (beat 1)
+    const startTime = audioEngine.audioContext!.currentTime + 0.01; // Small buffer for scheduling
     let currentTime = startTime;
 
     // Apply voice leading to selected chords for smooth transitions
@@ -83,29 +85,38 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       }
     }
 
+    // Check if we have chords selected or should play individual notes
+    const hasSelectedChords = selectedChords && selectedChords.length > 0;
+    console.log('Playback mode:', hasSelectedChords ? 'CHORDS' : 'NOTES', 'Selected chords:', selectedChords.length);
+
     // Always play 3 sounds with specific pitch placement and voice leading
     for (let i = 0; i < 3; i++) {
       const duration = beatDuration * chordDurations[i];
-      const chord = voiceLedChords[i];
       
-      if (chord && chord.notes) {
-        // Play exactly 3 notes for each chord within specified range
+      if (hasSelectedChords && voiceLedChords[i] && voiceLedChords[i].notes) {
+        // CHORD MODE: Play the selected chord for this position
+        const chord = voiceLedChords[i];
         const triadNotes = chord.notes.slice(0, 3); // Ensure only 3 notes
+        console.log(`Playing chord ${i + 1}:`, chord.notes);
+        
         triadNotes.forEach((note, noteIndex) => {
           // Keep all chord notes within range: -1 octave to +1 octave from middle C
-          // Root note around middle C (0), 3rd and 5th within close range
+          let octaveOffset = 0;  // All notes in same octave range
+          scheduleNote(note, currentTime + (noteIndex * 0.05), duration, octaveOffset);
+        });
+      } else if (hasSelectedChords && selectedChords.length > 0) {
+        // CHORD MODE but no chord for this position - use first available chord
+        const chord = selectedChords[0]; // Fallback to first selected chord
+        const triadNotes = chord.notes.slice(0, 3);
+        console.log(`Playing fallback chord ${i + 1}:`, chord.notes);
+        
+        triadNotes.forEach((note, noteIndex) => {
           let octaveOffset = 0;
-          if (noteIndex === 0) octaveOffset = 0;  // Root at middle C
-          if (noteIndex === 1) octaveOffset = 0;  // 3rd same octave as root
-          if (noteIndex === 2) octaveOffset = 0;  // 5th same octave as root
-          
           scheduleNote(note, currentTime + (noteIndex * 0.05), duration, octaveOffset);
         });
       } else {
-        // Play individual notes with specific pitch placement:
-        // Note 1 (D) - middle C area (0)
-        // Note 2 (F#) - same octave as D (0) 
-        // Note 3 (B) - octave below D (-1)
+        // NOTE MODE: Play individual notes
+        console.log(`Playing note ${i + 1}:`, notes[i]);
         let octaveOffset = 0;
         if (i === 0) octaveOffset = 0;  // Note 1 around middle C
         if (i === 1) octaveOffset = 0;  // Note 2 above Note 1 in same octave  
@@ -305,9 +316,14 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   };
 
   // Apply voice leading for smoother chord progressions
-  const applyVoiceLeading = (notes: string[], position: number) => {
-    // For now, use basic voice leading principles
-    return notes; // Will enhance this with actual octave adjustments later
+  const applyVoiceLeading = (chords: Chord[], notes: string[]) => {
+    if (!chords || chords.length === 0) {
+      return []; // No chords selected, return empty array
+    }
+    
+    // Return the selected chords as-is for now
+    // Later we can add voice leading logic here
+    return chords;
   };
 
   const handleStop = useCallback(() => {
@@ -350,66 +366,70 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     setIsLooping(!isLooping);
   }, [isLooping]);
 
-  // Monitor chord selection changes and restart playback if playing
+  // Monitor chord selection changes and restart playback immediately at beat 1
   useEffect(() => {
     const chordsChanged = JSON.stringify(prevChordsRef.current) !== JSON.stringify(selectedChords);
     
     if (isPlaying && chordsChanged) {
-      console.log('Chord selection changed during playback - restarting');
+      console.log('Chord selection changed - IMMEDIATE restart from beat 1');
       prevChordsRef.current = selectedChords;
       
-      // Stop current audio cleanly
+      // Stop all audio immediately
       audioEngine.stopAll();
       if (loopIntervalRef.current) {
         clearInterval(loopIntervalRef.current);
         loopIntervalRef.current = null;
       }
       
-      // Restart with new chord selection after brief pause
-      setTimeout(async () => {
-        if (isPlaying) { // Make sure we're still supposed to be playing
+      // Restart immediately from beat 1 - no delay
+      const immediateRestart = async () => {
+        if (isPlaying) {
           try {
             const sequenceDuration = await playSequenceOnce();
             loopIntervalRef.current = setInterval(() => {
               playSequenceOnce();
             }, sequenceDuration);
           } catch (error) {
-            console.error('Restart playback error:', error);
+            console.error('Immediate restart error:', error);
             setIsPlaying(false);
           }
         }
-      }, 100);
+      };
+      
+      immediateRestart();
     } else {
       prevChordsRef.current = selectedChords;
     }
   }, [selectedChords, isPlaying, playSequenceOnce]);
 
-  // Monitor tempo and metronome changes for seamless updates
+  // Monitor tempo and metronome changes for immediate restart
   useEffect(() => {
     if (isPlaying) {
-      console.log('Tempo/metronome changed during playback - restarting');
+      console.log('Tempo/metronome changed - IMMEDIATE restart from beat 1');
       
-      // Stop current audio cleanly
+      // Stop all audio immediately
       audioEngine.stopAll();
       if (loopIntervalRef.current) {
         clearInterval(loopIntervalRef.current);
         loopIntervalRef.current = null;
       }
       
-      // Restart with new settings after brief pause
-      setTimeout(async () => {
-        if (isPlaying) { // Make sure we're still supposed to be playing
+      // Restart immediately from beat 1 - no delay
+      const immediateRestart = async () => {
+        if (isPlaying) {
           try {
             const sequenceDuration = await playSequenceOnce();
             loopIntervalRef.current = setInterval(() => {
               playSequenceOnce();
             }, sequenceDuration);
           } catch (error) {
-            console.error('Settings restart error:', error);
+            console.error('Immediate restart error:', error);
             setIsPlaying(false);
           }
         }
-      }, 100);
+      };
+      
+      immediateRestart();
     }
   }, [tempo, withMetronome, metronomeMultiplier, isPlaying, playSequenceOnce]);
 
