@@ -106,6 +106,7 @@ export default function Home() {
                   <ChordSkillSelector
                     baseNote={note}
                     noteIndex={index}
+                    selectedChord={selectedChords[index]}
                     onChordSelect={handleChordSelect}
                     inversionMode={inversionModes[index]}
                     onInversionChange={(mode) => handleInversionChange(mode, index)}

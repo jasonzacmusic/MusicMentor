@@ -8,31 +8,30 @@ import PianoKeyboard from './piano-keyboard';
 interface ChordSkillSelectorProps {
   baseNote: string;
   noteIndex: number;
+  selectedChord?: Chord | null;
   onChordSelect: (chord: Chord | null, noteIndex: number) => void;
   inversionMode?: 'auto' | 'root' | 'first' | 'second';
   onInversionChange?: (mode: 'auto' | 'root' | 'first' | 'second') => void;
 }
 
-export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect, inversionMode = 'auto', onInversionChange }: ChordSkillSelectorProps) {
-  const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
+export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord: parentSelectedChord, onChordSelect, inversionMode = 'auto', onInversionChange }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord, isPlaying } = useAudio();
+
+  // Use the parent's selected chord if provided, otherwise use local state
+  const selectedChord = parentSelectedChord;
 
   useEffect(() => {
     // Always use beginner chords
     const chords = getBeginnerChordsForNote(baseNote);
     setAvailableChords(chords);
-    // Only reset selection when base note changes
-    setSelectedChord(null);
   }, [baseNote]);
 
   const handleSelectChord = (chord: Chord) => {
-    setSelectedChord(chord);
     onChordSelect(chord, noteIndex);
   };
 
   const handleDeselectChord = () => {
-    setSelectedChord(null);
     onChordSelect(null, noteIndex);
   };
 
