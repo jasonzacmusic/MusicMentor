@@ -47,28 +47,15 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           </div>
         </div>
 
-        {/* Chord branches arranged with Major on right, Minor on left */}
+        {/* Chord branches arranged in organized pattern */}
         {availableChords.map((chord, index) => {
-          // Arrange: Major chords on right (positive angles), Minor chords on left (negative angles)
-          // Right side (Major): 30°, 90°, 150° | Left side (Minor): -30°, -90°, -150°
-          const isMajor = chord.name.includes('Major') || !chord.name.includes('m');
-          const majorAngles = [30, 90, 150]; // Right side
-          const minorAngles = [-30, -90, -150]; // Left side
+          // Organize chords in clean symmetric pattern
+          // Top row: -120°, -60°, 60°, 120°
+          // Bottom row: -150°, 150°
+          const angles = [-120, -60, 60, 120, -150, 150];
+          const angle = angles[index];
           
-          let angle;
-          let colorIndex;
-          
-          if (isMajor) {
-            const majorIndex = Math.floor(index / 2);
-            angle = majorAngles[majorIndex % 3];
-            colorIndex = majorIndex % 3;
-          } else {
-            const minorIndex = Math.floor((index - 1) / 2);
-            angle = minorAngles[minorIndex % 3];
-            colorIndex = (minorIndex % 3) + 3; // Offset for minor colors
-          }
-          
-          const radius = 140;
+          const radius = 130;
           const x = Math.cos(angle * Math.PI / 180) * radius;
           const y = Math.sin(angle * Math.PI / 180) * radius;
           
@@ -76,37 +63,37 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           
           // Unique colors for each chord position
           const chordColors = [
-            { // Major 1
+            { // Position 0
               default: 'from-blue-200 to-blue-400 border-blue-300 text-blue-800',
               selected: 'from-blue-500 to-blue-700 border-blue-400 text-white',
               hover: 'hover:from-blue-300 hover:to-blue-500',
               branch: '#3b82f6'
             },
-            { // Major 2
-              default: 'from-red-200 to-red-400 border-red-300 text-red-800',
-              selected: 'from-red-500 to-red-700 border-red-400 text-white',
-              hover: 'hover:from-red-300 hover:to-red-500',
-              branch: '#ef4444'
-            },
-            { // Major 3
-              default: 'from-green-200 to-green-400 border-green-300 text-green-800',
-              selected: 'from-green-500 to-green-700 border-green-400 text-white',
-              hover: 'hover:from-green-300 hover:to-green-500',
-              branch: '#10b981'
-            },
-            { // Minor 1
+            { // Position 1
               default: 'from-purple-200 to-purple-400 border-purple-300 text-purple-800',
               selected: 'from-purple-500 to-purple-700 border-purple-400 text-white',
               hover: 'hover:from-purple-300 hover:to-purple-500',
               branch: '#8b5cf6'
             },
-            { // Minor 2
+            { // Position 2
+              default: 'from-red-200 to-red-400 border-red-300 text-red-800',
+              selected: 'from-red-500 to-red-700 border-red-400 text-white',
+              hover: 'hover:from-red-300 hover:to-red-500',
+              branch: '#ef4444'
+            },
+            { // Position 3
               default: 'from-pink-200 to-pink-400 border-pink-300 text-pink-800',
               selected: 'from-pink-500 to-pink-700 border-pink-400 text-white',
               hover: 'hover:from-pink-300 hover:to-pink-500',
               branch: '#ec4899'
             },
-            { // Minor 3
+            { // Position 4
+              default: 'from-green-200 to-green-400 border-green-300 text-green-800',
+              selected: 'from-green-500 to-green-700 border-green-400 text-white',
+              hover: 'hover:from-green-300 hover:to-green-500',
+              branch: '#10b981'
+            },
+            { // Position 5
               default: 'from-teal-200 to-teal-400 border-teal-300 text-teal-800',
               selected: 'from-teal-500 to-teal-700 border-teal-400 text-white',
               hover: 'hover:from-teal-300 hover:to-teal-500',
@@ -114,11 +101,11 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
             }
           ];
           
-          const colorScheme = chordColors[colorIndex];
+          const colorScheme = chordColors[index];
           
           // Extract interval name from chord name
           const getIntervalName = (chordName: string) => {
-            if (chordName.includes('(p5)')) return 'P5';
+            if (chordName.includes('(p5)')) return 'p5';
             if (chordName.includes('(M3)')) return 'M3';
             if (chordName.includes('(m3)')) return 'm3';
             return 'Root';
