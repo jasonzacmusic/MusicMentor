@@ -8,6 +8,22 @@ ChordCraft is a web-based music practice application designed to help users lear
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (Latest)
+
+**July 20, 2025:**
+- Updated random note generation to use specific interval relationships:
+  - Note 1: Any of the 12 chromatic notes (base note)
+  - Note 2: Major 3rd up from Note 1 (4 semitones)
+  - Note 3: Minor 3rd down from Note 1 (3 semitones)
+- Changed audio engine to use legato violin sound with sawtooth wave and low-pass filter
+- Implemented beginner chord tree with 6 harmonizing chord options:
+  - Root Major/Minor (unison)
+  - Perfect 4th Major/Minor (where base note is the P5)
+  - Major 6th Major (where base note is the M3)
+  - Minor 6th Minor (where base note is the m3)
+- Created visual tree structure for chord harmonization panel
+- Connected random notes generator to chord tree for integrated practice
+
 ## System Architecture
 
 ### Frontend Architecture

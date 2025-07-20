@@ -8,8 +8,13 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const [selectedNote, setSelectedNote] = useState('C');
-  const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'G']);
+  const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A']);
   const [chordNotes, setChordNotes] = useState<string[]>([]);
+
+  const handleNotesChange = (notes: string[]) => {
+    setActiveNotes(notes);
+    setSelectedNote(notes[0]); // Use the first note (base note) for chord harmonization
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,7 +44,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Random Notes Generator */}
           <div className="lg:col-span-2">
-            <RandomNotesGenerator />
+            <RandomNotesGenerator onNotesChange={handleNotesChange} />
           </div>
 
           {/* Chord Tree Panel */}

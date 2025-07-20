@@ -6,15 +6,20 @@ import { Shuffle, Play, Square } from 'lucide-react';
 import { generateRandomNotes } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 
-export default function RandomNotesGenerator() {
-  const [notes, setNotes] = useState<string[]>(['C', 'E', 'G']);
+interface RandomNotesGeneratorProps {
+  onNotesChange?: (notes: string[]) => void;
+}
+
+export default function RandomNotesGenerator({ onNotesChange }: RandomNotesGeneratorProps) {
+  const [notes, setNotes] = useState<string[]>(['C', 'E', 'A']);
   const [tempo, setTempo] = useState(120);
   const { playNote, playSequence, isPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
     const newNotes = generateRandomNotes();
     setNotes(newNotes);
-  }, []);
+    onNotesChange?.(newNotes);
+  }, [onNotesChange]);
 
   const handlePlayNote = useCallback(async (note: string, beats: number) => {
     const beatDuration = (60 / tempo) * 1000 * beats;
@@ -46,28 +51,43 @@ export default function RandomNotesGenerator() {
 
         {/* Note Display Section */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          {notes.map((note, index) => (
-            <div key={index} className="text-center">
-              <div className={`rounded-lg p-6 mb-3 ${
-                index === 2 ? 'bg-orange-100' : 'bg-gray-100'
-              }`}>
-                <div className="text-3xl font-mono font-medium text-gray-900 mb-2">
-                  {note}
+          {notes.map((note, index) => {
+            const getRelationshipLabel = (index: number) => {
+              switch(index) {
+                case 0: return 'Base Note';
+                case 1: return 'Major 3rd up';
+                case 2: return 'Minor 3rd down';
+                default: return '';
+              }
+            };
+            
+            return (
+              <div key={index} className="text-center">
+                <div className={`rounded-lg p-6 mb-3 ${
+                  index === 0 ? 'bg-blue-100' : 
+                  index === 1 ? 'bg-green-100' : 'bg-orange-100'
+                }`}>
+                  <div className="text-3xl font-mono font-medium text-gray-900 mb-2">
+                    {note}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-1">
+                    {beatTimings[index]} beats
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {getRelationshipLabel(index)}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">
-                  {beatTimings[index]} beats
-                </div>
+                <Button
+                  onClick={() => handlePlayNote(note, beatTimings[index])}
+                  disabled={isPlaying}
+                  className="bg-green-600 hover:bg-green-700 w-full"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Play
+                </Button>
               </div>
-              <Button
-                onClick={() => handlePlayNote(note, beatTimings[index])}
-                disabled={isPlaying}
-                className="bg-green-600 hover:bg-green-700 w-full"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Play
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Playback Controls */}
