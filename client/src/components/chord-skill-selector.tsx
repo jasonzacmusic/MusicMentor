@@ -100,22 +100,42 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           
           return (
             <div key={index} className="absolute">
-              {/* Branch line from center to chord */}
-              <div 
-                className={`absolute w-1 bg-gradient-to-r ${colorScheme.branch} z-10`}
+              {/* Tree branch - curved and organic looking */}
+              <svg 
+                className="absolute z-10" 
                 style={{
                   left: '50%',
                   top: '50%',
-                  width: `${radius - 48}px`, // Line from center edge to chord edge
-                  height: '2px',
-                  transform: `translate(-50%, -50%) rotate(${angle}deg)`,
-                  transformOrigin: 'left center'
+                  width: `${radius + 40}px`,
+                  height: `${radius + 40}px`,
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none'
                 }}
-              />
+              >
+                <defs>
+                  <linearGradient id={`branch-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#d97706" />
+                    <stop offset="100%" stopColor={colorScheme.branch.includes('blue') ? '#3b82f6' : 
+                                                   colorScheme.branch.includes('purple') ? '#8b5cf6' :
+                                                   colorScheme.branch.includes('red') ? '#ef4444' :
+                                                   colorScheme.branch.includes('pink') ? '#ec4899' :
+                                                   colorScheme.branch.includes('green') ? '#10b981' : '#14b8a6'} />
+                  </linearGradient>
+                </defs>
+                <path
+                  d={`M ${(radius + 40) / 2} ${(radius + 40) / 2} 
+                     Q ${(radius + 40) / 2 + Math.cos(angle * Math.PI / 180) * (radius * 0.4)} ${(radius + 40) / 2 + Math.sin(angle * Math.PI / 180) * (radius * 0.4)}
+                     ${(radius + 40) / 2 + Math.cos(angle * Math.PI / 180) * (radius * 0.75)} ${(radius + 40) / 2 + Math.sin(angle * Math.PI / 180) * (radius * 0.75)}`}
+                  stroke={`url(#branch-gradient-${index})`}
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </svg>
               
-              {/* Chord button (leaf) */}
+              {/* Chord button (leaf) - positioned at end of branch */}
               <div
-                className={`absolute w-20 h-20 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 border-3 shadow-xl transform hover:scale-110 z-20 ${
+                className={`absolute w-20 h-20 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 border-3 shadow-xl transform hover:scale-110 z-30 ${
                   isSelected 
                     ? `bg-gradient-to-br ${colorScheme.selected} scale-115 shadow-2xl` 
                     : `bg-gradient-to-br ${colorScheme.default} ${colorScheme.hover}`

@@ -100,7 +100,10 @@ export default function Home() {
 
           {/* Chord Trees - Visual tree structure for each note */}
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
-            <h3 className="text-2xl font-bold text-center text-gray-900 mb-12">Chord Trees</h3>
+            <div className="text-center mb-8">
+              <p className="text-lg text-gray-700 mb-2">🎵 Click on any colored chord to hear how it sounds with your note!</p>
+              <p className="text-sm text-gray-600">Each orange note has 6 different chords you can explore</p>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 justify-items-center">
               {activeNotes.map((note, index) => {
                 return (
