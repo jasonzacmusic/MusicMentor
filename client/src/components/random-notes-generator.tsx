@@ -257,8 +257,16 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     gainNode.gain.setValueAtTime(0.3, startTime + duration - releaseTime);
     gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
 
+    // Track this oscillator in the audio engine
+    audioEngine.activeOscillators.add(oscillator);
+    
     oscillator.start(startTime);
     oscillator.stop(startTime + duration);
+    
+    // Remove from tracking when it ends
+    oscillator.addEventListener('ended', () => {
+      audioEngine.activeOscillators.delete(oscillator);
+    });
   };
 
   // Schedule metronome click with precise timing
@@ -280,8 +288,15 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
     gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
 
+    // Track metronome oscillators too
+    audioEngine.activeOscillators.add(oscillator);
+    
     oscillator.start(time);
     oscillator.stop(time + clickDuration);
+    
+    oscillator.addEventListener('ended', () => {
+      audioEngine.activeOscillators.delete(oscillator);
+    });
   };
 
   // Use audioEngine's metronome click method

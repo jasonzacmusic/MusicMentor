@@ -4,7 +4,7 @@ export class AudioEngine {
   private audioContext: AudioContext | null = null;
   private masterGainNode: GainNode | null = null;
   private isInitialized = false;
-  private activeOscillators: Set<OscillatorNode> = new Set();
+  public activeOscillators: Set<OscillatorNode> = new Set();
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
