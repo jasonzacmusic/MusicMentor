@@ -231,19 +231,23 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const sequenceDuration = await playSequenceOnce();
       console.log('⏱️ Duration:', sequenceDuration, 'ms');
       
-      // Always loop for now - use precise timing
-      const loopDelay = Math.max(sequenceDuration, 4000); // Minimum 4 seconds
-      console.log('🔄 Setting up loop with delay:', loopDelay, 'ms');
-      
-      loopIntervalRef.current = setInterval(() => {
-        console.log('🔄 Loop trigger');
-        playSequenceOnce();
-      }, loopDelay);
+      // Only loop if Auto Loop is enabled
+      if (isLooping) {
+        const loopDelay = Math.max(sequenceDuration, 4000); // Minimum 4 seconds
+        console.log('🔄 Setting up loop with delay:', loopDelay, 'ms');
+        
+        loopIntervalRef.current = setInterval(() => {
+          console.log('🔄 Loop trigger');
+          playSequenceOnce();
+        }, loopDelay);
+      } else {
+        console.log('🔇 Auto Loop disabled - playing once only');
+      }
     } catch (error) {
       console.error('❌ Play error:', error);
       setIsPlaying(false);
     }
-  }, [isPlaying, playSequenceOnce, emergencyReset]);
+  }, [isPlaying, isLooping, playSequenceOnce, emergencyReset]);
 
   // REMOVED OLD CONFLICTING AUDIO FUNCTIONS
 
