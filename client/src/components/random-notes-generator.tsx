@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
-import { generateRandomNotes, type Chord } from '@/lib/chord-theory';
+import { generateRandomNotes, type Chord, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
 
@@ -59,6 +59,9 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     const startTime = audioEngine.audioContext!.currentTime;
     let currentTime = startTime;
 
+    // Apply voice leading to selected chords for smooth transitions
+    const voiceLedChords = applyVoiceLeading(selectedChords, notes);
+
     // Schedule metronome clicks if enabled
     if (withMetronome) {
       let metronomeInterval: number;
@@ -80,19 +83,34 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       }
     }
 
-    // Always play 3 sounds - chord if selected, note if not
+    // Always play 3 sounds with specific pitch placement and voice leading
     for (let i = 0; i < 3; i++) {
       const duration = beatDuration * chordDurations[i];
-      const chord = selectedChords[i];
+      const chord = voiceLedChords[i];
       
       if (chord && chord.notes) {
-        // Play the selected chord
-        chord.notes.forEach(note => {
-          scheduleNote(note, currentTime, duration, i === 2 ? -1 : 0);
+        // Play the selected chord with proper voice leading and inversions
+        chord.notes.forEach((note, noteIndex) => {
+          // Use octave information from chord if available, otherwise apply voice leading
+          let octaveOffset = 0;
+          if (chord.octaves && chord.octaves[noteIndex] !== undefined) {
+            octaveOffset = chord.octaves[noteIndex];
+          } else {
+            // Default voice leading for smooth transitions
+            octaveOffset = noteIndex === 0 ? 0 : (noteIndex === 1 ? 0 : 1);
+          }
+          scheduleNote(note, currentTime + (noteIndex * 0.05), duration, octaveOffset);
         });
       } else {
-        // Play the individual note (with octave offset for Note 3)
-        const octaveOffset = i === 2 ? -1 : 0;
+        // Play individual notes with specific pitch placement:
+        // Note 1 (D) - middle C area (0)
+        // Note 2 (F#) - same octave as D (0) 
+        // Note 3 (B) - octave below D (-1)
+        let octaveOffset = 0;
+        if (i === 0) octaveOffset = 0;  // Note 1 around middle C
+        if (i === 1) octaveOffset = 0;  // Note 2 above Note 1 in same octave  
+        if (i === 2) octaveOffset = -1; // Note 3 below Note 1
+        
         scheduleNote(notes[i], currentTime, duration, octaveOffset);
       }
       

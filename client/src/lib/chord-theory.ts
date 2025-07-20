@@ -5,6 +5,8 @@ export interface Chord {
   notes: string[];
   type: string;
   rootNote: string;
+  octaves?: number[]; // Octave positions for each note (0 = middle octave, -1 = lower, +1 = higher)
+  inversion?: number; // 0 = root position, 1 = first inversion, 2 = second inversion
 }
 
 // Helper function to get proper note name based on chord type
@@ -32,7 +34,7 @@ export function generateRandomNotes(): string[] {
   return [note1, note2, note3];
 }
 
-export function getChordFromNote(rootNote: string, chordType: string): Chord {
+export function getChordFromNote(rootNote: string, chordType: string, inversion: number = 0): Chord {
   const rootIndex = CHROMATIC_NOTES.indexOf(rootNote);
   const intervals = CHORD_INTERVALS[chordType];
   
@@ -50,12 +52,65 @@ export function getChordFromNote(rootNote: string, chordType: string): Chord {
     return getProperNoteName(noteIndex, chordTypeForNaming);
   });
 
+  // Apply inversion and calculate octave positions
+  const { invertedNotes, octaves } = applyInversion(notes, inversion);
+  
+  const inversionSuffix = inversion > 0 ? ` (${getInversionName(inversion)})` : '';
+
   return {
-    name: `${properRootNote} ${CHORD_NAMES[chordType]}`,
-    notes,
+    name: `${properRootNote} ${CHORD_NAMES[chordType]}${inversionSuffix}`,
+    notes: invertedNotes,
+    octaves,
+    inversion,
     type: chordType,
     rootNote: properRootNote
   };
+}
+
+// Apply chord inversion and calculate appropriate octave positions for smooth voice leading
+function applyInversion(notes: string[], inversion: number): { invertedNotes: string[], octaves: number[] } {
+  if (inversion === 0) {
+    // Root position - use close voicing with optimal spacing
+    return {
+      invertedNotes: [...notes],
+      octaves: [0, 0, 1] // Root and 3rd in middle octave, 5th higher for better spacing
+    };
+  }
+  
+  const invertedNotes = [...notes];
+  const octaves = [0, 0, 0]; // Start with all notes in same octave
+  
+  if (inversion === 1) {
+    // First inversion: 3rd in bass
+    const bassNote = invertedNotes.shift()!; // Remove root
+    invertedNotes.push(bassNote); // Put root on top
+    return {
+      invertedNotes,
+      octaves: [0, 0, 1] // 3rd and 5th in middle, root higher
+    };
+  }
+  
+  if (inversion === 2) {
+    // Second inversion: 5th in bass  
+    const root = invertedNotes.shift()!; // Remove root
+    const third = invertedNotes.shift()!; // Remove 3rd
+    invertedNotes.push(third, root); // Put 3rd and root on top
+    return {
+      invertedNotes,
+      octaves: [0, 1, 1] // 5th in bass, 3rd and root higher
+    };
+  }
+  
+  // Default for other inversions
+  return {
+    invertedNotes,
+    octaves: notes.map(() => 0)
+  };
+}
+
+function getInversionName(inversion: number): string {
+  const inversionNames = ['Root', '1st Inv', '2nd Inv', '3rd Inv'];
+  return inversionNames[inversion] || `${inversion}th Inv`;
 }
 
 export function getBeginnerChordsForNote(rootNote: string): Chord[] {
@@ -64,44 +119,44 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
     throw new Error(`Invalid root note: ${rootNote}`);
   }
   
-  // Beginner chord tree with 6 harmonizing options based on interval relationships
+  // Enhanced beginner chord tree with proper inversions and voice leading
   const chords: Chord[] = [];
   
-  // 1. Root Major (Unison)
-  chords.push(getChordFromNote(rootNote, 'major'));
+  // 1. Root Major (Root position)
+  chords.push(getChordFromNote(rootNote, 'major', 0));
   
-  // 2. Root Minor (Unison)
-  chords.push(getChordFromNote(rootNote, 'minor'));
+  // 2. Root Minor (Root position) 
+  chords.push(getChordFromNote(rootNote, 'minor', 0));
   
-  // 3. Perfect 4th Major (root note is the perfect 5th of this chord)
+  // 3. Perfect 4th Major with first inversion for better voice leading
   const p4Index = (rootIndex - 7 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
   const p4Note = CHROMATIC_NOTES[p4Index];
-  const p4MajorChord = getChordFromNote(p4Note, 'major');
+  const p4MajorChord = getChordFromNote(p4Note, 'major', 1); // Use first inversion
   chords.push({
     ...p4MajorChord,
     name: `${p4MajorChord.rootNote} Major (${rootNote} is the P5)`
   });
   
-  // 4. Perfect 4th Minor (root note is the perfect 5th of this chord)
-  const p4MinorChord = getChordFromNote(p4Note, 'minor');
+  // 4. Perfect 4th Minor with first inversion
+  const p4MinorChord = getChordFromNote(p4Note, 'minor', 1);
   chords.push({
     ...p4MinorChord,
     name: `${p4MinorChord.rootNote} Minor (${rootNote} is the P5)`
   });
   
-  // 5. Major 6th Major (root note is the major 3rd of this chord)
+  // 5. Major 6th Major with second inversion for smooth voice leading
   const m6Index = (rootIndex - 4 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
   const m6Note = CHROMATIC_NOTES[m6Index];
-  const m6MajorChord = getChordFromNote(m6Note, 'major');
+  const m6MajorChord = getChordFromNote(m6Note, 'major', 2); // Use second inversion
   chords.push({
     ...m6MajorChord,
     name: `${m6MajorChord.rootNote} Major (${rootNote} is the M3)`
   });
   
-  // 6. Minor 6th Minor (root note is the minor 3rd of this chord)
+  // 6. Minor 6th Minor with second inversion
   const m6MinorIndex = (rootIndex - 3 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
   const m6MinorNote = CHROMATIC_NOTES[m6MinorIndex];
-  const m6MinorChord = getChordFromNote(m6MinorNote, 'minor');
+  const m6MinorChord = getChordFromNote(m6MinorNote, 'minor', 2);
   chords.push({
     ...m6MinorChord,
     name: `${m6MinorChord.rootNote} Minor (${rootNote} is the m3)`
@@ -128,4 +183,36 @@ export function getNoteFromSemitones(rootNote: string, semitones: number): strin
   
   const targetIndex = (rootIndex + semitones) % CHROMATIC_NOTES.length;
   return CHROMATIC_NOTES[targetIndex];
+}
+
+// Apply voice leading rules to create smooth chord progressions
+export function applyVoiceLeading(chords: Chord[], baseNotes: string[]): Chord[] {
+  if (chords.length === 0) return chords;
+  
+  const voiceLedChords = [...chords];
+  
+  // Analyze the base notes to determine optimal inversions
+  for (let i = 0; i < voiceLedChords.length; i++) {
+    const chord = voiceLedChords[i];
+    const baseNote = baseNotes[i];
+    
+    if (chord && baseNote) {
+      // Find which note in the chord matches the base note
+      const baseNoteIndex = chord.notes.findIndex(note => 
+        CHROMATIC_NOTES.indexOf(note) === CHROMATIC_NOTES.indexOf(baseNote)
+      );
+      
+      if (baseNoteIndex !== -1) {
+        // Use the inversion that puts the base note in the bass
+        const optimalInversion = baseNoteIndex;
+        const reVoicedChord = getChordFromNote(chord.rootNote, chord.type, optimalInversion);
+        voiceLedChords[i] = {
+          ...reVoicedChord,
+          name: chord.name // Keep original name but apply voice leading
+        };
+      }
+    }
+  }
+  
+  return voiceLedChords;
 }
