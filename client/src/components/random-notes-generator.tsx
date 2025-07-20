@@ -65,25 +65,25 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     
     switch (mode) {
       case 'root':
-        // Root position: C E G (lowest to highest)
+        // Root position: 1-3-5 (e.g., Bb-D-F)
         return [
-          { note: root, octave: 0 },   // C4
-          { note: third, octave: 0 },  // E4
-          { note: fifth, octave: 0 }   // G4
+          { note: root, octave: 0 },   // 1 (root in bass)
+          { note: third, octave: 0 },  // 3
+          { note: fifth, octave: 0 }   // 5
         ];
       case 'first':
-        // First inversion: E G C (third becomes bass note)
+        // 1st inversion: 3-5-1' (e.g., D-F-Bb)
         return [
-          { note: third, octave: 0 },  // E4 (bass)
-          { note: fifth, octave: 0 },  // G4
-          { note: root, octave: 1 }    // C5 (up an octave)
+          { note: third, octave: 0 },  // 3 (third in bass)
+          { note: fifth, octave: 0 },  // 5
+          { note: root, octave: 1 }    // 1' (root up an octave)
         ];
       case 'second':
-        // Second inversion: G C E (fifth becomes bass note)
+        // 2nd inversion: 5-1'-3' (e.g., F-Bb-D)
         return [
-          { note: fifth, octave: 0 },  // G4 (bass)
-          { note: root, octave: 1 },   // C5 (up an octave)
-          { note: third, octave: 1 }   // E5 (up an octave)
+          { note: fifth, octave: 0 },  // 5 (fifth in bass)
+          { note: root, octave: 1 },   // 1' (root up an octave)
+          { note: third, octave: 1 }   // 3' (third up an octave)
         ];
       default:
         return notes.map(note => ({ note, octave: 0 }));
@@ -157,8 +157,8 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           const baseNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
           const currentInversionMode = inversionModes[i]; // Get inversion mode for this specific position
           const triadNotes = applyInversion(baseNotes, currentInversionMode);
-          const noteNames = triadNotes.map(n => n.note);
-          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, noteNames, currentInversionMode !== 'auto' ? `(${currentInversionMode})` : '');
+          const noteNames = triadNotes.map(n => n.note + (n.octave > 0 ? "'" : ""));
+          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, noteNames, currentInversionMode !== 'auto' ? `(${currentInversionMode} inversion)` : '');
           
           // Schedule each note in the chord with slight stagger
           triadNotes.forEach((noteObj, noteIndex) => {
