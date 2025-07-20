@@ -138,7 +138,23 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const scheduleNote = (note: string, startTime: number, duration: number, octaveOffset: number = 0) => {
     if (!audioEngine.audioContext || !audioEngine.masterGainNode) return;
 
-    const frequency = audioEngine.getFrequency(note, 0); // Always use octave 0 for correct pitch
+    // Use NOTE_FREQUENCIES directly for correct pitch
+    const NOTE_FREQUENCIES: Record<string, number> = {
+      'C': 261.63, 'C#': 277.18, 'Db': 277.18, 'D': 293.66, 'D#': 311.13, 'Eb': 311.13,
+      'E': 329.63, 'F': 349.23, 'F#': 369.99, 'Gb': 369.99, 'G': 392.00, 'G#': 415.30,
+      'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
+    };
+    
+    let frequency = NOTE_FREQUENCIES[note];
+    if (!frequency) {
+      console.warn(`Unknown note: ${note}`);
+      return;
+    }
+
+    // Apply octave offset (each octave is double/half the frequency)
+    if (octaveOffset !== 0) {
+      frequency = frequency * Math.pow(2, octaveOffset);
+    }
     
     const oscillator = audioEngine.audioContext.createOscillator();
     const gainNode = audioEngine.audioContext.createGain();

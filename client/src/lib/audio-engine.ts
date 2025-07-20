@@ -29,8 +29,16 @@ export class AudioEngine {
       throw new Error('Audio context not initialized');
     }
 
-    // Use the getFrequency method for consistent note calculation
-    const frequency = this.getFrequency(note, octaveOffset);
+    // Use the original NOTE_FREQUENCIES for correct pitches
+    let frequency = NOTE_FREQUENCIES[note];
+    if (!frequency) {
+      throw new Error(`Unknown note: ${note}`);
+    }
+
+    // Apply octave offset (each octave is double/half the frequency)
+    if (octaveOffset !== 0) {
+      frequency = frequency * Math.pow(2, octaveOffset);
+    }
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -76,8 +84,8 @@ export class AudioEngine {
       await this.initialize();
     }
 
-    // Play all chord notes at octave 0 for correct pitch
-    const promises = notes.map(note => this.playNote(note, duration, 0));
+    // Play all chord notes at their correct pitch
+    const promises = notes.map(note => this.playNote(note, duration));
     await Promise.all(promises);
   }
 
@@ -135,7 +143,16 @@ export class AudioEngine {
   private scheduleNote(note: string, startTime: number, duration: number, octaveOffset: number = 0): void {
     if (!this.audioContext || !this.masterGainNode) return;
 
-    const frequency = this.getFrequency(note, octaveOffset);
+    let frequency = NOTE_FREQUENCIES[note];
+    if (!frequency) {
+      console.warn(`Unknown note: ${note}`);
+      return;
+    }
+
+    // Apply octave offset (each octave is double/half the frequency)
+    if (octaveOffset !== 0) {
+      frequency = frequency * Math.pow(2, octaveOffset);
+    }
     
     // Create oscillator
     const oscillator = this.audioContext.createOscillator();
