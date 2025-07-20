@@ -289,6 +289,9 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   };
 
   const handleStop = useCallback(() => {
+    // Stop all audio immediately
+    audioEngine.stopAll();
+    
     // Clear loop interval if active
     if (loopIntervalRef.current) {
       clearInterval(loopIntervalRef.current);
@@ -308,7 +311,10 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     if (isPlaying && (chordsChanged)) {
       prevChordsRef.current = selectedChords;
       
-      // Immediately restart playback with changes
+      // Stop all current audio immediately to prevent chaos
+      audioEngine.stopAll();
+      
+      // Clear interval
       if (loopIntervalRef.current) {
         clearInterval(loopIntervalRef.current);
         loopIntervalRef.current = null;
@@ -316,6 +322,8 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       
       const restartPlayback = async () => {
         try {
+          // Small delay to ensure all audio has stopped
+          await new Promise(resolve => setTimeout(resolve, 50));
           const sequenceDuration = await playSequenceOnce();
           loopIntervalRef.current = setInterval(() => {
             playSequenceOnce();
@@ -334,7 +342,9 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   // Monitor tempo and metronome changes for seamless updates
   useEffect(() => {
     if (isPlaying) {
-      // Restart playback immediately when tempo or metronome settings change
+      // Stop all current audio and restart with new settings
+      audioEngine.stopAll();
+      
       if (loopIntervalRef.current) {
         clearInterval(loopIntervalRef.current);
         loopIntervalRef.current = null;
@@ -342,6 +352,8 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       
       const restartWithNewSettings = async () => {
         try {
+          // Small delay to ensure all audio has stopped
+          await new Promise(resolve => setTimeout(resolve, 50));
           const sequenceDuration = await playSequenceOnce();
           loopIntervalRef.current = setInterval(() => {
             playSequenceOnce();

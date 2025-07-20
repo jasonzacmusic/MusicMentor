@@ -4,6 +4,7 @@ export class AudioEngine {
   private audioContext: AudioContext | null = null;
   private masterGainNode: GainNode | null = null;
   private isInitialized = false;
+  private activeOscillators: Set<OscillatorNode> = new Set();
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -71,8 +72,16 @@ export class AudioEngine {
     gainNode.gain.setValueAtTime(sustainLevel, now + (duration / 1000) - releaseTime);
     gainNode.gain.linearRampToValueAtTime(0, now + (duration / 1000));
 
+    // Track active oscillators
+    this.activeOscillators.add(oscillator);
+    
     oscillator.start(now);
     oscillator.stop(now + (duration / 1000));
+    
+    // Remove from tracking when it ends
+    oscillator.addEventListener('ended', () => {
+      this.activeOscillators.delete(oscillator);
+    });
 
     return new Promise((resolve) => {
       oscillator.onended = () => resolve();
@@ -182,9 +191,17 @@ export class AudioEngine {
     gainNode.gain.setValueAtTime(0.3, startTime + duration - releaseTime);
     gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
 
+    // Track oscillator
+    this.activeOscillators.add(oscillator);
+    
     // Start and stop
     oscillator.start(startTime);
     oscillator.stop(startTime + duration);
+    
+    // Remove from tracking when it ends
+    oscillator.addEventListener('ended', () => {
+      this.activeOscillators.delete(oscillator);
+    });
   }
 
   private scheduleMetronomeClicks(startTime: number, totalDuration: number, interval: number): void {
@@ -215,8 +232,15 @@ export class AudioEngine {
     gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
     gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
 
+    // Track metronome oscillators
+    this.activeOscillators.add(oscillator);
+    
     oscillator.start(time);
     oscillator.stop(time + clickDuration);
+    
+    oscillator.addEventListener('ended', () => {
+      this.activeOscillators.delete(oscillator);
+    });
   }
 
   playMetronomeClick(): void {
@@ -239,8 +263,27 @@ export class AudioEngine {
     gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
     gainNode.gain.linearRampToValueAtTime(0, now + clickDuration);
 
+    // Track immediate metronome clicks too
+    this.activeOscillators.add(oscillator);
+    
     oscillator.start(now);
     oscillator.stop(now + clickDuration);
+    
+    oscillator.addEventListener('ended', () => {
+      this.activeOscillators.delete(oscillator);
+    });
+  }
+
+  stopAll(): void {
+    // Stop all active oscillators immediately
+    this.activeOscillators.forEach(oscillator => {
+      try {
+        oscillator.stop();
+      } catch (error) {
+        // Oscillator might already be stopped
+      }
+    });
+    this.activeOscillators.clear();
   }
 
   setMasterVolume(volume: number): void {
