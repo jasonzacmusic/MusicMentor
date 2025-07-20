@@ -156,19 +156,28 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
         const selectedChord = selectedChords[i]; // Get chord for this specific position
         
         if (selectedChord) {
-          // CHORD: Play the selected chord for this position
+          // CHORD: Play the selected chord for this position - STRICT 3 NOTES ONLY
           const baseNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
           const currentInversionMode = inversionModes[i]; // Get inversion mode for this specific position
           console.log(`🔧 Position ${i + 1} - Inversion Mode:`, currentInversionMode, 'from array:', inversionModes);
           const triadNotes = applyInversion(baseNotes, currentInversionMode);
+          
+          // STRICT: Only play these 3 notes, nothing else
+          if (triadNotes.length !== 3) {
+            console.error(`❌ Wrong number of notes! Expected 3, got ${triadNotes.length}`);
+            return;
+          }
+          
           const noteNames = triadNotes.map(n => n.note + (n.octave > 0 ? "'" : ""));
           console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, 
             `LOWEST:${noteNames[0]} MIDDLE:${noteNames[1]} HIGHEST:${noteNames[2]}`, 
             currentInversionMode !== 'auto' ? `(${currentInversionMode} inversion)` : '(auto)');
+          console.log(`🎵 Playing exactly 3 notes:`, triadNotes);
           
-          // Schedule each note in the chord with slight stagger
+          // Schedule ONLY these 3 notes with slight stagger
           triadNotes.forEach((noteObj, noteIndex) => {
             setTimeout(() => {
+              console.log(`🔊 Playing note ${noteIndex + 1}/3:`, noteObj.note, `octave:${noteObj.octave}`);
               audioEngine.playNote(noteObj.note, duration * 1000, noteObj.octave);
             }, (currentTime - startTime) * 1000 + (noteIndex * 50));
           });
