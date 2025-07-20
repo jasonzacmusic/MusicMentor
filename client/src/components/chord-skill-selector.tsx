@@ -136,16 +136,16 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           
           return (
             <div key={index} className="absolute">
-              {/* Simple straight branch line */}
+              {/* Simple straight branch line - properly positioned */}
               <div 
-                className="absolute w-1 bg-gradient-to-r from-amber-600 z-10"
+                className="absolute z-10"
                 style={{
                   left: '50%',
                   top: '50%',
                   width: `${radius - 48}px`,
                   height: '3px',
                   backgroundColor: colorScheme.branch,
-                  transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+                  transform: `translate(0, -50%) rotate(${angle}deg)`,
                   transformOrigin: 'left center'
                 }}
               />
