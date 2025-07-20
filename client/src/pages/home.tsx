@@ -13,6 +13,7 @@ export default function Home() {
   const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A']);
   const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null]);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
+  const [inversionMode, setInversionMode] = useState<'auto' | 'root' | 'first' | 'second'>('auto');
 
   const handleNotesChange = (notes: string[]) => {
     setActiveNotes(notes);
@@ -78,6 +79,7 @@ export default function Home() {
             <RandomNotesGenerator 
               onNotesChange={handleNotesChange}
               selectedChords={selectedChords}
+              inversionMode={inversionMode}
             />
           </div>
 
@@ -97,6 +99,8 @@ export default function Home() {
                     baseNote={note}
                     noteIndex={index}
                     onChordSelect={handleChordSelect}
+                    inversionMode={inversionMode}
+                    onInversionChange={setInversionMode}
                   />
                 </div>
               );

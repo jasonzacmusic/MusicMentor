@@ -11,16 +11,16 @@ import { audioEngine } from '@/lib/audio-engine';
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
   selectedChords?: (Chord | null)[];
+  inversionMode?: 'auto' | 'root' | 'first' | 'second';
 }
 
-export default function RandomNotesGenerator({ onNotesChange, selectedChords = [null, null, null] }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, selectedChords = [null, null, null], inversionMode = 'auto' }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
   const [withMetronome, setWithMetronome] = useState(false);
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
-  const [inversionMode, setInversionMode] = useState<'auto' | 'root' | 'first' | 'second'>('auto');
   // Removed old useAudio hook - using direct audioEngine now
 
   const generateNew = useCallback(() => {
@@ -51,7 +51,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   // Store previous chord selection to detect changes
   const prevChordsRef = useRef<Chord[]>(selectedChords);
 
-  // Function to apply chord inversions
+  // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
     if (mode === 'auto' || notes.length !== 3) {
       return notes; // Return as-is for auto mode or invalid input
@@ -61,11 +61,14 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     
     switch (mode) {
       case 'root':
-        return [root, third, fifth]; // Root position
+        // Root position: C E G (root in bass)
+        return [root, third, fifth];
       case 'first':
-        return [third, fifth, root]; // First inversion (third in bass)
+        // First inversion: E G C (third in bass, but C goes up an octave)
+        return [third, fifth, root + '+']; // '+' indicates octave up
       case 'second':
-        return [fifth, root, third]; // Second inversion (fifth in bass)
+        // Second inversion: G C E (fifth in bass, C and E go up an octave)
+        return [fifth, root + '+', third + '+'];
       default:
         return notes;
     }
@@ -142,7 +145,14 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           // Schedule each note in the chord with slight stagger
           triadNotes.forEach((note, noteIndex) => {
             setTimeout(() => {
-              audioEngine.playNote(note, duration * 1000, 0);
+              // Check if note has octave indicator (+)
+              let octaveOffset = 0;
+              let cleanNote = note;
+              if (note.endsWith('+')) {
+                octaveOffset = 1; // One octave up
+                cleanNote = note.replace('+', '');
+              }
+              audioEngine.playNote(cleanNote, duration * 1000, octaveOffset);
             }, (currentTime - startTime) * 1000 + (noteIndex * 50));
           });
         } else {
@@ -401,38 +411,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
             </Button>
           </div>
 
-          {/* Chord Inversion Controls */}
-          <div className="flex justify-center">
-            <Card className="w-fit">
-              <CardContent className="p-3">
-                <div className="text-center space-y-3">
-                  <div className="text-sm font-medium text-gray-700">Chord Voicing</div>
-                  <div className="flex space-x-1">
-                    {[
-                      { value: 'auto', label: 'Auto' },
-                      { value: 'root', label: 'Root' },
-                      { value: 'first', label: '1st' },
-                      { value: 'second', label: '2nd' }
-                    ].map((option) => (
-                      <Button
-                        key={option.value}
-                        onClick={() => setInversionMode(option.value as any)}
-                        variant={inversionMode === option.value ? "default" : "outline"}
-                        size="sm"
-                        className={`px-3 py-1 text-xs font-medium ${
-                          inversionMode === option.value 
-                            ? 'bg-purple-600 text-white hover:bg-purple-700' 
-                            : 'text-purple-600 border-purple-200 hover:bg-purple-50'
-                        }`}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+
         </div>
 
 

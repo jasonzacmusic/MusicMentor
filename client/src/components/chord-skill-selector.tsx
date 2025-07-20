@@ -9,9 +9,11 @@ interface ChordSkillSelectorProps {
   baseNote: string;
   noteIndex: number;
   onChordSelect: (chord: Chord | null, noteIndex: number) => void;
+  inversionMode?: 'auto' | 'root' | 'first' | 'second';
+  onInversionChange?: (mode: 'auto' | 'root' | 'first' | 'second') => void;
 }
 
-export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect }: ChordSkillSelectorProps) {
+export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect, inversionMode = 'auto', onInversionChange }: ChordSkillSelectorProps) {
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord, isPlaying } = useAudio();
@@ -76,11 +78,35 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect 
                 >
                   <div className="space-y-2">
                     <div className="font-medium text-gray-900 text-sm text-center">
-                      {chord.name}
+                      {chord.name.replace('Minor', 'minor')}
                     </div>
-                    <div className="text-xs text-gray-600 font-mono text-center">
-                      {formatChordNotes(chord.notes)}
-                    </div>
+                    
+                    {/* Show inversion controls only when this chord is selected */}
+                    {selectedChord?.name === chord.name && onInversionChange && (
+                      <div className="flex justify-center space-x-1">
+                        {[
+                          { value: 'auto', label: 'Auto' },
+                          { value: 'root', label: 'Root' },
+                          { value: 'first', label: '1st' },
+                          { value: 'second', label: '2nd' }
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onInversionChange(option.value as any);
+                            }}
+                            className={`px-2 py-1 text-xs rounded border transition-colors ${
+                              inversionMode === option.value 
+                                ? 'bg-purple-600 text-white border-purple-600' 
+                                : 'text-purple-600 border-purple-200 bg-white hover:bg-purple-50'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
