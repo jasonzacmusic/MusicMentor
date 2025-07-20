@@ -10,6 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Latest)
 
+**July 20, 2025 - Evening Session:**
+- Major UI cleanup and visual improvements:
+  - Removed redundant timing info boxes ("G 2 beats, B 2 beats, E 4 beats")
+  - Centered orange root notes perfectly in each chord tree
+  - Replaced "Chord Trees" title with student-friendly instructions
+  - Updated instruction text: "Click on any of the Chord Branches and see how they sound with the Melody Note"
+- Enhanced tree branch design:
+  - Replaced straight lines with curved SVG tree branches for organic look
+  - Added color gradients flowing from orange center to each chord color
+  - Improved visual hierarchy and spacing between elements
+- Improved chord tree layout:
+  - Larger orange center notes (24x24) and chord buttons (20x20)
+  - Better proportioned branches and increased spacing between trees
+  - Enhanced z-index layering for proper visual stacking
+
 **July 20, 2025 - Afternoon Session:**
 - Fixed Random Harmonizer to properly select from existing chord options:
   - Now picks from the 6 available chord options for each note position (not completely random chords)

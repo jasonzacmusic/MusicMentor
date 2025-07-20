@@ -100,36 +100,66 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           
           return (
             <div key={index} className="absolute">
-              {/* Tree branch - curved and organic looking */}
+              {/* Organic tree branch with natural curves */}
               <svg 
                 className="absolute z-10" 
                 style={{
                   left: '50%',
                   top: '50%',
-                  width: `${radius + 40}px`,
-                  height: `${radius + 40}px`,
+                  width: `${(radius + 40) * 2}px`,
+                  height: `${(radius + 40) * 2}px`,
                   transform: 'translate(-50%, -50%)',
                   pointerEvents: 'none'
                 }}
               >
                 <defs>
-                  <linearGradient id={`branch-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#d97706" />
-                    <stop offset="100%" stopColor={colorScheme.branch.includes('blue') ? '#3b82f6' : 
+                  <linearGradient id={`branch-gradient-${baseNote}-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#8b4513" stopOpacity="1" />
+                    <stop offset="30%" stopColor="#a0522d" stopOpacity="0.9" />
+                    <stop offset="70%" stopColor={colorScheme.branch.includes('blue') ? '#3b82f6' : 
                                                    colorScheme.branch.includes('purple') ? '#8b5cf6' :
                                                    colorScheme.branch.includes('red') ? '#ef4444' :
                                                    colorScheme.branch.includes('pink') ? '#ec4899' :
-                                                   colorScheme.branch.includes('green') ? '#10b981' : '#14b8a6'} />
+                                                   colorScheme.branch.includes('green') ? '#10b981' : '#14b8a6'} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={colorScheme.branch.includes('blue') ? '#60a5fa' : 
+                                                   colorScheme.branch.includes('purple') ? '#a78bfa' :
+                                                   colorScheme.branch.includes('red') ? '#f87171' :
+                                                   colorScheme.branch.includes('pink') ? '#f472b6' :
+                                                   colorScheme.branch.includes('green') ? '#34d399' : '#2dd4bf'} stopOpacity="0.9" />
                   </linearGradient>
                 </defs>
+                {/* Main branch trunk */}
                 <path
-                  d={`M ${(radius + 40) / 2} ${(radius + 40) / 2} 
-                     Q ${(radius + 40) / 2 + Math.cos(angle * Math.PI / 180) * (radius * 0.4)} ${(radius + 40) / 2 + Math.sin(angle * Math.PI / 180) * (radius * 0.4)}
-                     ${(radius + 40) / 2 + Math.cos(angle * Math.PI / 180) * (radius * 0.75)} ${(radius + 40) / 2 + Math.sin(angle * Math.PI / 180) * (radius * 0.75)}`}
-                  stroke={`url(#branch-gradient-${index})`}
+                  d={`M ${radius + 40} ${radius + 40} 
+                     C ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.2)} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.2)}
+                     ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.4) + Math.sin(angle * Math.PI / 180) * 8} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.4) - Math.cos(angle * Math.PI / 180) * 8}
+                     ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.7)} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.7)}`}
+                  stroke={`url(#branch-gradient-${baseNote}-${index})`}
+                  strokeWidth="6"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                {/* Small secondary branch */}
+                <path
+                  d={`M ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.5)} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.5)}
+                     C ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.6) + Math.cos((angle + 25) * Math.PI / 180) * 12} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.6) + Math.sin((angle + 25) * Math.PI / 180) * 12}
+                     ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.75) + Math.cos((angle + 20) * Math.PI / 180) * 8} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.75) + Math.sin((angle + 20) * Math.PI / 180) * 8}
+                     ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.85)} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.85)}`}
+                  stroke={`url(#branch-gradient-${baseNote}-${index})`}
                   strokeWidth="3"
                   fill="none"
                   strokeLinecap="round"
+                  opacity="0.7"
+                />
+                {/* Tiny twig */}
+                <path
+                  d={`M ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.6)} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.6)}
+                     L ${radius + 40 + Math.cos(angle * Math.PI / 180) * (radius * 0.7) + Math.cos((angle - 30) * Math.PI / 180) * 6} ${radius + 40 + Math.sin(angle * Math.PI / 180) * (radius * 0.7) + Math.sin((angle - 30) * Math.PI / 180) * 6}`}
+                  stroke="#8b4513"
+                  strokeWidth="2"
+                  fill="none"
+                  strokeLinecap="round"
+                  opacity="0.5"
                 />
               </svg>
               
