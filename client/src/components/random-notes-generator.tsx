@@ -89,11 +89,16 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       const chord = voiceLedChords[i];
       
       if (chord && chord.notes) {
-        // Play exactly 3 notes for each chord (simple triad: root, 3rd, 5th)
+        // Play exactly 3 notes for each chord within specified range
         const triadNotes = chord.notes.slice(0, 3); // Ensure only 3 notes
         triadNotes.forEach((note, noteIndex) => {
-          // Simple octave placement: root at middle C, 3rd same octave, 5th same or higher
-          const octaveOffset = noteIndex === 2 ? 1 : 0; // 5th goes up one octave for clarity
+          // Keep all chord notes within range: -1 octave to +1 octave from middle C
+          // Root note around middle C (0), 3rd and 5th within close range
+          let octaveOffset = 0;
+          if (noteIndex === 0) octaveOffset = 0;  // Root at middle C
+          if (noteIndex === 1) octaveOffset = 0;  // 3rd same octave as root
+          if (noteIndex === 2) octaveOffset = 0;  // 5th same octave as root
+          
           scheduleNote(note, currentTime + (noteIndex * 0.05), duration, octaveOffset);
         });
       } else {

@@ -68,36 +68,36 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
   };
 }
 
-// Apply chord inversion for exactly 3 notes (root, 3rd, 5th)
+// Apply chord inversion for exactly 3 notes within tight octave range
 function applyInversion(notes: string[], inversion: number): { invertedNotes: string[], octaves: number[] } {
   // Always work with exactly 3 notes (triad: root, 3rd, 5th)
   const triadNotes = notes.slice(0, 3);
   
   if (inversion === 0) {
-    // Root position: root, 3rd, 5th
+    // Root position: root, 3rd, 5th - all in close voicing
     return {
       invertedNotes: [...triadNotes],
-      octaves: [0, 0, 0] // All in same octave for simple, clean sound
+      octaves: [0, 0, 0] // All notes within same octave range
     };
   }
   
   if (inversion === 1) {
-    // First inversion: 3rd, 5th, root
+    // First inversion: 3rd, 5th, root - tight voicing
     return {
       invertedNotes: [triadNotes[1], triadNotes[2], triadNotes[0]],
-      octaves: [0, 0, 0] // All in same octave
+      octaves: [0, 0, 1] // Root moves up one octave to stay in range
     };
   }
   
   if (inversion === 2) {
-    // Second inversion: 5th, root, 3rd
+    // Second inversion: 5th, root, 3rd - tight voicing
     return {
       invertedNotes: [triadNotes[2], triadNotes[0], triadNotes[1]],
-      octaves: [0, 0, 0] // All in same octave
+      octaves: [-1, 0, 0] // 5th moves down to bass, others stay in middle
     };
   }
   
-  // Default - root position
+  // Default - root position with tight voicing
   return {
     invertedNotes: triadNotes,
     octaves: [0, 0, 0]
