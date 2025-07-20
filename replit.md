@@ -24,13 +24,20 @@ Preferred communication style: Simple, everyday language.
   - Perfect 4th Major/Minor (where base note is the P5)
   - Major 6th Major (where base note is the M3)
   - Minor 6th Minor (where base note is the m3)
-- Removed individual play buttons from notes display section
-- Added loop functionality with dedicated loop button next to play/stop controls
-- Implemented proper voice leading for chord progressions (basic implementation)
-- Removed skill level selectors from individual chord trees
-- Added single skill level selector at top level (defaulting to beginner)
-- Simplified chord skill selector component to only show beginner chords for now
-- Fixed Perfect 4th chord calculation (was generating P5 instead of P4)
+- Major UI restructuring and functionality improvements:
+  - Consolidated controls: single Play, Stop, and Loop buttons to left of Generate New
+  - Moved tempo control to top left area with metronome checkbox option
+  - Added metronome functionality for practice with consistent beat sounds
+  - Implemented conditional playback: plays chords if selected, otherwise plays single notes
+  - Made Note 3 always play an octave below Note 1 (-1 octave offset)
+  - Updated note naming preferences: Bb, Ab, Eb for black keys (instead of sharps)
+  - Fixed chord selection callback dependency issues that were resetting selections
+  - Removed individual note play buttons for cleaner interface
+- Audio engine enhancements:
+  - Added octave offset parameter to playNote function
+  - Added metronome click sound generation (800Hz square wave, 50ms duration)
+  - Updated playSequence to support metronome and octave adjustments
+- Fixed chord selection functionality to properly maintain selections without auto-reset
 
 ## System Architecture
 

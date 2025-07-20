@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
 import { generateRandomNotes, type Chord } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
@@ -14,9 +15,10 @@ interface RandomNotesGeneratorProps {
 export default function RandomNotesGenerator({ onNotesChange, selectedChords = [] }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['C', 'E', 'A']);
   const [tempo, setTempo] = useState(120);
-  const [isPlayingProgression, setIsPlayingProgression] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
-  const { playNote, playSequence, playChord, isPlaying, error } = useAudio();
+  const [withMetronome, setWithMetronome] = useState(false);
+  const { playSequence, playChord, isPlaying: audioIsPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
     const newNotes = generateRandomNotes();
@@ -24,65 +26,56 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     onNotesChange?.(newNotes);
   }, [onNotesChange]);
 
-  const handlePlayNote = useCallback(async (note: string, beats: number) => {
-    const beatDuration = (60 / tempo) * 1000 * beats;
-    await playNote(note, beatDuration);
-  }, [playNote, tempo]);
-
-  const handlePlaySequence = useCallback(async () => {
-    await playSequence(notes, tempo);
-  }, [playSequence, notes, tempo]);
-
-  const handlePlayChordProgression = useCallback(async () => {
-    const validChords = selectedChords.filter(chord => chord !== null);
-    if (validChords.length === 0) return;
+  // Unified play function - plays chords if selected, otherwise plays notes
+  const handlePlay = useCallback(async () => {
+    const hasSelectedChords = selectedChords.some(chord => chord !== null);
     
-    setIsPlayingProgression(true);
+    setIsPlaying(true);
     try {
       do {
-        const beatDuration = (60 / tempo) * 1000;
-        const chordDurations = [2, 2, 4]; // Same as note timings
-        
-        // Play chords based on their original position (maintain timing)
-        for (let i = 0; i < 3; i++) {
-          const chord = selectedChords[i];
+        if (hasSelectedChords) {
+          // Play chord progression
+          const beatDuration = (60 / tempo) * 1000;
+          const chordDurations = [2, 2, 4];
           
-          if (chord && chord.notes) {
-            const duration = beatDuration * chordDurations[i];
-            // Apply voice leading by using proper inversions for smoother transitions
-            const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
-            await playChord(voiceLeadingNotes, duration);
-          } else {
-            // If no chord selected for this position, wait for the duration
-            await new Promise(resolve => setTimeout(resolve, beatDuration * chordDurations[i]));
+          for (let i = 0; i < 3; i++) {
+            const chord = selectedChords[i];
+            
+            if (chord && chord.notes) {
+              const duration = beatDuration * chordDurations[i];
+              const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
+              await playChord(voiceLeadingNotes, duration);
+            } else {
+              await new Promise(resolve => setTimeout(resolve, beatDuration * chordDurations[i]));
+            }
+            
+            if (i < 2) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
           }
-          
-          // Small gap between sections
-          if (i < 2) {
-            await new Promise(resolve => setTimeout(resolve, 200));
-          }
+        } else {
+          // Play note sequence
+          await playSequence(notes, tempo, withMetronome);
         }
         
         // If looping, add a brief pause before repeating
-        if (isLooping && isPlayingProgression) {
+        if (isLooping && isPlaying) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
-      } while (isLooping && isPlayingProgression);
+      } while (isLooping && isPlaying);
     } finally {
-      setIsPlayingProgression(false);
+      setIsPlaying(false);
     }
-  }, [selectedChords, tempo, playChord, isLooping]);
+  }, [selectedChords, notes, tempo, withMetronome, playChord, playSequence, isLooping, isPlaying]);
 
   // Apply voice leading for smoother chord progressions
   const applyVoiceLeading = (notes: string[], position: number) => {
     // For now, use basic voice leading principles
-    // Lower register for first chord, middle for second, higher for third
-    const octaveAdjustment = position === 0 ? 0 : position === 1 ? 1 : 2;
     return notes; // Will enhance this with actual octave adjustments later
   };
 
-  const stopProgression = () => {
-    setIsPlayingProgression(false);
+  const handleStop = () => {
+    setIsPlaying(false);
     setIsLooping(false);
   };
 
@@ -95,122 +88,89 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   return (
     <Card>
       <CardContent className="p-6">
+        {/* Top section with tempo and metronome controls */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-medium text-gray-900">Random Note Practice</h2>
-          <div className="flex items-center space-x-3">
-            {selectedChords.some(chord => chord !== null) && (
-              <>
-                {!isPlayingProgression ? (
-                  <Button 
-                    onClick={handlePlayChordProgression}
-                    disabled={isPlaying}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Play Chords
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={stopProgression}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    <Square className="w-4 h-4 mr-2" />
-                    Stop
-                  </Button>
-                )}
-                <Button 
-                  onClick={toggleLoop}
-                  variant={isLooping ? "default" : "outline"}
-                  className={isLooping ? "bg-orange-600 hover:bg-orange-700" : ""}
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  {isLooping ? "Loop: ON" : "Loop: OFF"}
-                </Button>
-              </>
-            )}
-            <Button onClick={generateNew} className="bg-blue-600 hover:bg-blue-700">
-              <Shuffle className="w-4 h-4 mr-2" />
-              Generate New
-            </Button>
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
+              <label className="text-sm font-medium text-gray-700 min-w-[80px]">
+                Tempo: {tempo} BPM
+              </label>
+              <Slider
+                value={[tempo]}
+                onValueChange={(value) => setTempo(value[0])}
+                min={60}
+                max={200}
+                step={10}
+                className="w-32"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="metronome"
+                checked={withMetronome}
+                onCheckedChange={setWithMetronome}
+              />
+              <label htmlFor="metronome" className="text-sm font-medium text-gray-700">
+                Metronome
+              </label>
+            </div>
           </div>
+          <h2 className="text-lg font-medium text-gray-900">Random Note Practice</h2>
+        </div>
+
+        {/* Central controls section */}
+        <div className="flex items-center justify-center space-x-3 mb-6">
+          {!isPlaying ? (
+            <Button 
+              onClick={handlePlay}
+              disabled={audioIsPlaying}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Play
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleStop}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Square className="w-4 h-4 mr-2" />
+              Stop
+            </Button>
+          )}
+          <Button 
+            onClick={toggleLoop}
+            variant={isLooping ? "default" : "outline"}
+            className={isLooping ? "bg-orange-600 hover:bg-orange-700" : ""}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Loop: {isLooping ? "ON" : "OFF"}
+          </Button>
+          <Button onClick={generateNew} variant="outline">
+            <Shuffle className="w-4 h-4 mr-2" />
+            Generate New
+          </Button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 
-        {/* Note Display Section */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {notes.map((note, index) => {
-            const getRelationshipLabel = (index: number) => {
-              switch(index) {
-                case 0: return 'Base Note';
-                case 1: return 'Major 3rd up';
-                case 2: return 'Minor 3rd down';
-                default: return '';
-              }
-            };
-            
-            return (
-              <div key={index} className="text-center">
-                <div className={`rounded-lg p-6 mb-3 ${
-                  index === 0 ? 'bg-blue-100' : 
-                  index === 1 ? 'bg-green-100' : 'bg-orange-100'
-                }`}>
-                  <div className="text-3xl font-mono font-medium text-gray-900 mb-2">
-                    {note}
-                  </div>
-                  <div className="text-sm text-gray-600 mb-1">
-                    {beatTimings[index]} beats
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {getRelationshipLabel(index)}
-                  </div>
+        {/* Notes display */}
+        <div className="grid grid-cols-3 gap-4">
+          {notes.map((note, index) => (
+            <div key={index} className="text-center">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-2">
+                <div className="text-2xl font-bold text-blue-800 mb-1">{note}</div>
+                <div className="text-sm text-blue-600">
+                  {beatTimings[index]} beats
+                  {index === 2 && " (octave lower)"}
                 </div>
-
               </div>
-            );
-          })}
-        </div>
-
-        {/* Playback Controls */}
-        <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              onClick={handlePlaySequence}
-              disabled={isPlaying}
-              className="bg-blue-600 hover:bg-blue-700 p-3 rounded-full"
-            >
-              <Play className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="outline"
-              className="p-3 rounded-full"
-            >
-              <Square className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Tempo Control */}
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">Tempo:</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-mono text-gray-700 w-8">
-                {tempo}
-              </span>
-              <span className="text-sm text-gray-600">BPM</span>
             </div>
-            <Slider
-              value={[tempo]}
-              onValueChange={(value) => setTempo(value[0])}
-              min={60}
-              max={200}
-              step={1}
-              className="w-24"
-            />
-          </div>
+          ))}
         </div>
       </CardContent>
     </Card>

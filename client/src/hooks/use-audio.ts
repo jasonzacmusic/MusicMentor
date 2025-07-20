@@ -48,14 +48,14 @@ export function useAudio() {
     }
   }, [isInitialized, initialize]);
 
-  const playSequence = useCallback(async (notes: string[], tempo: number) => {
+  const playSequence = useCallback(async (notes: string[], tempo: number, withMetronome: boolean = false) => {
     if (!isInitialized) {
       await initialize();
     }
 
     try {
       setIsPlaying(true);
-      await audioEngine.playSequence(notes, tempo);
+      await audioEngine.playSequence(notes, tempo, withMetronome);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play sequence');

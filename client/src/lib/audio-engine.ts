@@ -20,7 +20,7 @@ export class AudioEngine {
     }
   }
 
-  async playNote(note: string, duration: number = 1000): Promise<void> {
+  async playNote(note: string, duration: number = 1000, octaveOffset: number = 0): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -29,9 +29,14 @@ export class AudioEngine {
       throw new Error('Audio context not initialized');
     }
 
-    const frequency = NOTE_FREQUENCIES[note];
+    let frequency = NOTE_FREQUENCIES[note];
     if (!frequency) {
       throw new Error(`Unknown note: ${note}`);
+    }
+
+    // Apply octave offset (each octave is double/half the frequency)
+    if (octaveOffset !== 0) {
+      frequency = frequency * Math.pow(2, octaveOffset);
     }
 
     const oscillator = this.audioContext.createOscillator();
@@ -82,7 +87,7 @@ export class AudioEngine {
     await Promise.all(promises);
   }
 
-  async playSequence(notes: string[], tempo: number = 120): Promise<void> {
+  async playSequence(notes: string[], tempo: number = 120, withMetronome: boolean = false): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -94,13 +99,44 @@ export class AudioEngine {
     
     for (let i = 0; i < notes.length && i < timings.length; i++) {
       const duration = beatDuration * timings[i];
-      await this.playNote(notes[i], duration);
+      const octaveOffset = i === 2 ? -1 : 0; // Note 3 plays an octave below note 1
+      
+      // Play metronome clicks if enabled
+      if (withMetronome) {
+        this.playMetronomeClick();
+      }
+      
+      await this.playNote(notes[i], duration, octaveOffset);
       
       // Small gap between notes (except for the last one)
       if (i < notes.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
+  }
+
+  private async playMetronomeClick(): Promise<void> {
+    if (!this.audioContext || !this.masterGainNode) return;
+
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(this.masterGainNode);
+
+    // Simple click sound - higher frequency, short duration
+    oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+    oscillator.type = 'square';
+
+    const now = this.audioContext.currentTime;
+    const clickDuration = 0.05; // 50ms click
+
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
+    gainNode.gain.linearRampToValueAtTime(0, now + clickDuration);
+
+    oscillator.start(now);
+    oscillator.stop(now + clickDuration);
   }
 
   setMasterVolume(volume: number): void {
