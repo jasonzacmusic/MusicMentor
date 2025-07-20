@@ -32,17 +32,31 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const handlePlay = useCallback(async () => {
     const hasSelectedChords = selectedChords.some(chord => chord !== null);
     
+    if (isPlaying) return; // Prevent multiple simultaneous plays
+    
     setIsPlaying(true);
     try {
       do {
         if (hasSelectedChords) {
           // Play chord progression with metronome
           const beatDuration = (60 / tempo) * 1000;
-          const metronomeBeatDuration = beatDuration / metronomeMultiplier;
           const chordDurations = [2, 2, 4];
-          let currentBeat = 0;
+          
+          // Calculate metronome interval based on multiplier
+          let metronomeInterval: number;
+          if (metronomeMultiplier === 1) {
+            metronomeInterval = beatDuration; // Quarter notes
+          } else if (metronomeMultiplier === 2) {
+            metronomeInterval = beatDuration / 2; // Eighth notes
+          } else if (metronomeMultiplier === 3) {
+            metronomeInterval = beatDuration / 3; // Triplets
+          } else {
+            metronomeInterval = beatDuration;
+          }
           
           for (let i = 0; i < 3; i++) {
+            if (!isPlaying) break; // Check if stopped during playback
+            
             const chord = selectedChords[i];
             const duration = beatDuration * chordDurations[i];
             
@@ -52,37 +66,23 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
               // Start playing the chord
               const chordPromise = playChord(voiceLeadingNotes, duration);
               
-              // Play metronome clicks for all beats in this section
+              // Play metronome clicks continuously during this section
               if (withMetronome) {
-                const beatsInSection = chordDurations[i];
-                for (let beat = 0; beat < beatsInSection; beat++) {
-                  if (beat === 0) {
-                    // Play metronome click immediately for first beat
-                    playMetronomeClick();
-                  } else {
-                    // Schedule subsequent clicks
-                    setTimeout(() => playMetronomeClick(), beat * metronomeBeatDuration);
-                  }
-                }
+                const metronomePromise = playMetronomeForDuration(duration, metronomeInterval);
+                await Promise.all([chordPromise, metronomePromise]);
+              } else {
+                await chordPromise;
               }
-              
-              await chordPromise;
             } else {
               // If no chord selected, still play metronome and wait
               if (withMetronome) {
-                const beatsInSection = chordDurations[i];
-                for (let beat = 0; beat < beatsInSection; beat++) {
-                  if (beat === 0) {
-                    playMetronomeClick();
-                  } else {
-                    setTimeout(() => playMetronomeClick(), beat * metronomeBeatDuration);
-                  }
-                }
+                await playMetronomeForDuration(duration, metronomeInterval);
+              } else {
+                await new Promise(resolve => setTimeout(resolve, duration));
               }
-              await new Promise(resolve => setTimeout(resolve, duration));
             }
             
-            if (i < 2) {
+            if (i < 2 && isPlaying) {
               await new Promise(resolve => setTimeout(resolve, 200));
             }
           }
@@ -99,7 +99,29 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     } finally {
       setIsPlaying(false);
     }
-  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, playChord, playSequence, isLooping, isPlaying]);
+  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, playChord, playSequence, isLooping]);
+
+  // Add metronome helper function
+  const playMetronomeForDuration = async (duration: number, interval: number): Promise<void> => {
+    return new Promise((resolve) => {
+      let elapsed = 0;
+      
+      // Play first click immediately
+      playMetronomeClick();
+      elapsed += interval;
+      
+      const intervalId = setInterval(() => {
+        if (elapsed >= duration || !isPlaying) {
+          clearInterval(intervalId);
+          resolve();
+          return;
+        }
+        
+        playMetronomeClick();
+        elapsed += interval;
+      }, interval);
+    });
+  };
 
   // Use audioEngine's metronome click method
   const playMetronomeClick = () => {
@@ -157,15 +179,19 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">Speed:</span>
                   <div className="flex space-x-1">
-                    {[1, 2, 3, 4].map((multiplier) => (
+                    {[
+                      { value: 1, label: 'x1' },
+                      { value: 2, label: 'x2' },
+                      { value: 3, label: 'x3' }
+                    ].map(({ value, label }) => (
                       <Button
-                        key={multiplier}
+                        key={value}
                         size="sm"
-                        variant={metronomeMultiplier === multiplier ? "default" : "outline"}
-                        onClick={() => setMetronomeMultiplier(multiplier)}
+                        variant={metronomeMultiplier === value ? "default" : "outline"}
+                        onClick={() => setMetronomeMultiplier(value)}
                         className="px-2 py-1 text-xs"
                       >
-                        x{multiplier}
+                        {label}
                       </Button>
                     ))}
                   </div>

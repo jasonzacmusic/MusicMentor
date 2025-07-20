@@ -1,126 +1,110 @@
-import { useState, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { CHROMATIC_NOTES } from '@/lib/music-constants';
-import { useAudio } from '@/hooks/use-audio';
+import { useMemo } from 'react';
 
 interface PianoKeyboardProps {
-  activeNotes?: string[];
-  chordNotes?: string[];
+  highlightedNotes?: string[];
+  onKeyPress?: (note: string) => void;
+  className?: string;
 }
 
-export default function PianoKeyboard({ activeNotes = [], chordNotes = [] }: PianoKeyboardProps) {
-  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-  const { playNote, isPlaying } = useAudio();
+const PIANO_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const BLACK_KEYS = ['C#', 'D#', 'F#', 'G#', 'A#'];
 
-  const handleKeyPress = useCallback(async (note: string) => {
-    setPressedKeys(prev => new Set(prev).add(note));
-    await playNote(note, 1000);
-    setTimeout(() => {
-      setPressedKeys(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(note);
-        return newSet;
-      });
-    }, 150);
-  }, [playNote]);
+export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, className = '' }: PianoKeyboardProps) {
+  const normalizedHighlightedNotes = useMemo(() => {
+    // Normalize note names to handle enharmonic equivalents
+    return highlightedNotes.map(note => {
+      const normalizations: Record<string, string> = {
+        'Db': 'C#',
+        'Eb': 'D#',
+        'Gb': 'F#',
+        'Ab': 'G#',
+        'Bb': 'A#'
+      };
+      return normalizations[note] || note;
+    });
+  }, [highlightedNotes]);
 
-  const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-  const blackKeys = ['C#', 'D#', 'F#', 'G#', 'A#'];
-  
-  const blackKeyPositions = {
-    'C#': 25,
-    'D#': 65,
-    'F#': 145,
-    'G#': 185,
-    'A#': 225
+  const isHighlighted = (note: string) => {
+    return normalizedHighlightedNotes.includes(note);
   };
 
-  const getKeyClass = (note: string, isBlack: boolean) => {
-    const baseClass = isBlack
-      ? 'absolute h-20 w-6 rounded-b-lg shadow-md transition-colors'
-      : 'relative h-32 w-10 rounded-b-lg shadow-sm transition-colors border border-gray-300';
+  const isBlackKey = (note: string) => {
+    return BLACK_KEYS.includes(note);
+  };
+
+  const getKeyPosition = (note: string, index: number) => {
+    const whiteKeyWidth = 32;
+    const blackKeyWidth = 20;
+    const whiteKeysBeforeNote = PIANO_NOTES.slice(0, index).filter(n => !isBlackKey(n)).length;
     
-    const isPressed = pressedKeys.has(note);
-    const isActive = activeNotes.includes(note);
-    const isChordNote = chordNotes.includes(note);
-    
-    if (isBlack) {
-      return `${baseClass} ${
-        isPressed
-          ? 'bg-gray-600'
-          : isActive
-          ? 'bg-blue-600'
-          : isChordNote
-          ? 'bg-green-600'
-          : 'bg-gray-800 hover:bg-gray-700'
-      }`;
+    if (isBlackKey(note)) {
+      // Position black keys between white keys
+      const positions: Record<string, number> = {
+        'C#': 0.7,
+        'D#': 1.7,
+        'F#': 3.7,
+        'G#': 4.7,
+        'A#': 5.7
+      };
+      return positions[note] * whiteKeyWidth - blackKeyWidth / 2;
     } else {
-      return `${baseClass} ${
-        isPressed
-          ? 'bg-gray-200'
-          : isActive
-          ? 'bg-blue-100'
-          : isChordNote
-          ? 'bg-green-100'
-          : 'bg-white hover:bg-gray-50'
-      }`;
+      return whiteKeysBeforeNote * whiteKeyWidth;
     }
   };
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-6">Piano Keyboard</h2>
-        
-        <div className="relative bg-gray-100 rounded-lg p-4 overflow-x-auto">
-          <div className="flex relative" style={{ minWidth: '280px' }}>
-            {/* White Keys */}
-            {whiteKeys.map((note, index) => (
-              <button
-                key={note}
-                onClick={() => handleKeyPress(note)}
-                disabled={isPlaying}
-                className={`${getKeyClass(note, false)} flex items-end justify-center pb-2 text-xs font-mono text-gray-600`}
-                style={{ zIndex: 1 }}
-              >
-                {note}
-              </button>
-            ))}
-            
-            {/* Black Keys */}
-            {blackKeys.map((note) => (
-              <button
-                key={note}
-                onClick={() => handleKeyPress(note)}
-                disabled={isPlaying}
-                className={`${getKeyClass(note, true)} text-white text-xs font-mono flex items-end justify-center pb-1`}
-                style={{ 
-                  left: `${blackKeyPositions[note as keyof typeof blackKeyPositions]}px`, 
-                  top: 0,
-                  zIndex: 2
-                }}
-              >
-                {note}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Keyboard Info */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Active Notes</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Chord Notes</span>
-            </div>
-          </div>
-          <div>Click any key to play</div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className={`relative inline-block ${className}`}>
+      <div className="relative h-32 bg-gray-100 rounded-lg p-2">
+        {/* White keys */}
+        {PIANO_NOTES.filter(note => !isBlackKey(note)).map((note, whiteIndex) => (
+          <button
+            key={`white-${note}`}
+            onClick={() => onKeyPress?.(note)}
+            className={`absolute border border-gray-300 rounded-b transition-colors ${
+              isHighlighted(note)
+                ? 'bg-blue-400 border-blue-500'
+                : 'bg-white hover:bg-gray-50'
+            }`}
+            style={{
+              left: `${whiteIndex * 32}px`,
+              width: '30px',
+              height: '112px',
+              top: '8px'
+            }}
+          >
+            <span className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-medium ${
+              isHighlighted(note) ? 'text-white' : 'text-gray-700'
+            }`}>
+              {note}
+            </span>
+          </button>
+        ))}
+
+        {/* Black keys */}
+        {PIANO_NOTES.filter(note => isBlackKey(note)).map((note, index) => (
+          <button
+            key={`black-${note}`}
+            onClick={() => onKeyPress?.(note)}
+            className={`absolute border border-gray-600 rounded-b transition-colors z-10 ${
+              isHighlighted(note)
+                ? 'bg-blue-600 border-blue-700'
+                : 'bg-gray-800 hover:bg-gray-700'
+            }`}
+            style={{
+              left: `${getKeyPosition(note, PIANO_NOTES.indexOf(note))}px`,
+              width: '20px',
+              height: '72px',
+              top: '8px'
+            }}
+          >
+            <span className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-medium ${
+              isHighlighted(note) ? 'text-white' : 'text-white'
+            }`}>
+              {note}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

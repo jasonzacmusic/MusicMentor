@@ -93,11 +93,22 @@ export class AudioEngine {
     }
 
     const beatDuration = (60 / tempo) * 1000; // ms per beat
-    const metronomeBeatDuration = beatDuration / metronomeMultiplier;
+    
+    // Calculate metronome interval based on multiplier
+    // x1 = quarter notes (same as beat), x2 = eighth notes, x3 = triplets
+    let metronomeInterval: number;
+    if (metronomeMultiplier === 1) {
+      metronomeInterval = beatDuration; // Quarter notes
+    } else if (metronomeMultiplier === 2) {
+      metronomeInterval = beatDuration / 2; // Eighth notes
+    } else if (metronomeMultiplier === 3) {
+      metronomeInterval = beatDuration / 3; // Triplets
+    } else {
+      metronomeInterval = beatDuration;
+    }
     
     // Play notes according to the timing: 2-2-4 beats (total 8 beats)
     const timings = [2, 2, 4];
-    let currentBeat = 0;
     
     for (let i = 0; i < notes.length && i < timings.length; i++) {
       const duration = beatDuration * timings[i];
@@ -106,27 +117,40 @@ export class AudioEngine {
       // Start playing the note
       const notePromise = this.playNote(notes[i], duration, octaveOffset);
       
-      // Play metronome clicks for all beats in this section
+      // Play metronome clicks continuously during this section
       if (withMetronome) {
-        const beatsInSection = timings[i];
-        for (let beat = 0; beat < beatsInSection; beat++) {
-          if (beat === 0) {
-            // Play metronome click immediately for first beat
-            this.playMetronomeClick();
-          } else {
-            // Schedule subsequent clicks
-            setTimeout(() => this.playMetronomeClick(), beat * metronomeBeatDuration);
-          }
-        }
+        const metronomePromise = this.playMetronomeForDuration(duration, metronomeInterval);
+        await Promise.all([notePromise, metronomePromise]);
+      } else {
+        await notePromise;
       }
-      
-      await notePromise;
       
       // Small gap between notes (except for the last one)
       if (i < notes.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
+  }
+
+  private async playMetronomeForDuration(duration: number, interval: number): Promise<void> {
+    return new Promise((resolve) => {
+      let elapsed = 0;
+      
+      // Play first click immediately
+      this.playMetronomeClick();
+      elapsed += interval;
+      
+      const intervalId = setInterval(() => {
+        if (elapsed >= duration) {
+          clearInterval(intervalId);
+          resolve();
+          return;
+        }
+        
+        this.playMetronomeClick();
+        elapsed += interval;
+      }, interval);
+    });
   }
 
   playMetronomeClick(): void {

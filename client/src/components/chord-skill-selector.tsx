@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { getBeginnerChordsForNote, formatChordNotes, type Chord } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
+import PianoKeyboard from './piano-keyboard';
 
 interface ChordSkillSelectorProps {
   baseNote: string;
@@ -27,6 +28,11 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect 
     onChordSelect(chord, noteIndex);
   };
 
+  const handleDeselectChord = () => {
+    setSelectedChord(null);
+    onChordSelect(null, noteIndex);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -41,30 +47,72 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect 
       {/* Chord Options */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 gap-3">
-            {availableChords.map((chord, index) => (
-              <div
-                key={index}
-                onClick={() => handleSelectChord(chord)}
-                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                  selectedChord?.name === chord.name
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className="space-y-2">
-                  <div className="font-medium text-gray-900 text-sm text-center">
-                    {chord.name}
-                  </div>
-                  <div className="text-xs text-gray-600 font-mono text-center">
-                    {formatChordNotes(chord.notes)}
+          <div className="space-y-4">
+            {/* Clear button */}
+            {selectedChord && (
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleDeselectChord}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 gap-3">
+              {availableChords.map((chord, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleSelectChord(chord)}
+                  className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                    selectedChord?.name === chord.name
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="font-medium text-gray-900 text-sm text-center">
+                      {chord.name}
+                    </div>
+                    <div className="text-xs text-gray-600 font-mono text-center">
+                      {formatChordNotes(chord.notes)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Piano Keyboard Visualization */}
+      {selectedChord && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-700 text-center">
+                {selectedChord.name} on Piano
+              </h4>
+              <div className="flex justify-center">
+                <PianoKeyboard 
+                  highlightedNotes={selectedChord.notes}
+                  onKeyPress={(note) => {
+                    // Could add individual note playback here
+                  }}
+                />
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-gray-600 font-mono">
+                  Notes: {formatChordNotes(selectedChord.notes)}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
