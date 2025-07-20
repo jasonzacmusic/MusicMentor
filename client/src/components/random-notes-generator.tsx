@@ -151,12 +151,11 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     }
   }, [selectedChords, notes, tempo, withMetronome]);
 
-  // NEW CLEAN PLAY FUNCTION
+  // SIMPLIFIED PLAY FUNCTION
   const handlePlay = useCallback(async () => {
     console.log('▶️ PLAY PRESSED');
     
     if (isPlaying) {
-      // If already playing, stop
       emergencyReset();
       return;
     }
@@ -165,107 +164,38 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
 
     try {
       const sequenceDuration = await playSequenceOnce();
-      console.log('⏱️ Sequence duration:', sequenceDuration, 'ms');
+      console.log('⏱️ Duration:', sequenceDuration, 'ms');
       
-      if (isLooping) {
-        loopIntervalRef.current = setInterval(() => {
-          console.log('🔄 Loop triggered');
-          playSequenceOnce();
-        }, sequenceDuration);
-      }
+      // Always loop for now
+      loopIntervalRef.current = setInterval(() => {
+        console.log('🔄 Loop');
+        playSequenceOnce();
+      }, sequenceDuration);
     } catch (error) {
       console.error('❌ Play error:', error);
-      emergencyReset();
+      setIsPlaying(false);
     }
-  }, [isPlaying, playSequenceOnce, isLooping, emergencyReset]);
+  }, [isPlaying, playSequenceOnce, emergencyReset]);
 
   // REMOVED OLD CONFLICTING AUDIO FUNCTIONS
 
-  // Schedule a single note with precise timing
+  // SIMPLIFIED NOTE SCHEDULING
   const scheduleNote = (note: string, startTime: number, duration: number, octaveOffset: number = 0) => {
-    if (!audioEngine.audioContext || !audioEngine.masterGainNode) return;
-
-    // Use NOTE_FREQUENCIES directly for correct pitch
-    const NOTE_FREQUENCIES: Record<string, number> = {
-      'C': 261.63, 'C#': 277.18, 'Db': 277.18, 'D': 293.66, 'D#': 311.13, 'Eb': 311.13,
-      'E': 329.63, 'F': 349.23, 'F#': 369.99, 'Gb': 369.99, 'G': 392.00, 'G#': 415.30,
-      'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
-    };
-    
-    let frequency = NOTE_FREQUENCIES[note];
-    if (!frequency) {
-      console.warn(`Unknown note: ${note}`);
-      return;
+    try {
+      // Use audioEngine's built-in playNote method instead
+      audioEngine.playNote(note, duration * 1000, octaveOffset);
+    } catch (error) {
+      console.error('Note scheduling error:', error);
     }
-
-    // Apply octave offset (each octave is double/half the frequency)
-    if (octaveOffset !== 0) {
-      frequency = frequency * Math.pow(2, octaveOffset);
-    }
-    
-    const oscillator = audioEngine.audioContext.createOscillator();
-    const gainNode = audioEngine.audioContext.createGain();
-    const filterNode = audioEngine.audioContext.createBiquadFilter();
-
-    oscillator.connect(filterNode);
-    filterNode.connect(gainNode);
-    gainNode.connect(audioEngine.masterGainNode);
-
-    oscillator.frequency.setValueAtTime(frequency, startTime);
-    oscillator.type = 'sawtooth';
-
-    filterNode.type = 'lowpass';
-    filterNode.frequency.setValueAtTime(1600, startTime);
-    filterNode.Q.setValueAtTime(1.5, startTime);
-
-    const attackTime = 0.1;
-    const releaseTime = 0.3;
-
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.3, startTime + attackTime);
-    gainNode.gain.setValueAtTime(0.3, startTime + duration - releaseTime);
-    gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
-
-    // Track this oscillator in the audio engine
-    audioEngine.activeOscillators.add(oscillator);
-    
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
-    
-    // Remove from tracking when it ends
-    oscillator.addEventListener('ended', () => {
-      audioEngine.activeOscillators.delete(oscillator);
-    });
   };
 
-  // Schedule metronome click with precise timing
+  // SIMPLIFIED METRONOME
   const scheduleMetronomeClick = (time: number) => {
-    if (!audioEngine.audioContext || !audioEngine.masterGainNode) return;
-
-    const oscillator = audioEngine.audioContext.createOscillator();
-    const gainNode = audioEngine.audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioEngine.masterGainNode);
-
-    oscillator.frequency.setValueAtTime(800, time);
-    oscillator.type = 'square';
-
-    const clickDuration = 0.05;
-
-    gainNode.gain.setValueAtTime(0, time);
-    gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
-    gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
-
-    // Track metronome oscillators too
-    audioEngine.activeOscillators.add(oscillator);
-    
-    oscillator.start(time);
-    oscillator.stop(time + clickDuration);
-    
-    oscillator.addEventListener('ended', () => {
-      audioEngine.activeOscillators.delete(oscillator);
-    });
+    try {
+      audioEngine.playMetronomeClick();
+    } catch (error) {
+      console.error('Metronome scheduling error:', error);
+    }
   };
 
   // Add generate function
@@ -288,68 +218,10 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     setIsLooping(!isLooping);
   }, [isLooping]);
 
-  // Monitor chord selection changes and restart immediately
+  // Simplified monitoring - no automatic restarts for now
   useEffect(() => {
-    const chordsChanged = JSON.stringify(prevChordsRef.current) !== JSON.stringify(selectedChords);
-    
-    if (isPlaying && chordsChanged) {
-      console.log('🔄 Chord change detected - immediate restart');
-      prevChordsRef.current = selectedChords;
-      
-      // Emergency reset to stop everything
-      emergencyReset();
-      
-      // Restart after brief moment
-      setTimeout(() => {
-        setIsPlaying(true);
-        const startNewSequence = async () => {
-          try {
-            const sequenceDuration = await playSequenceOnce();
-            if (isLooping) {
-              loopIntervalRef.current = setInterval(() => {
-                playSequenceOnce();
-              }, sequenceDuration);
-            }
-          } catch (error) {
-            console.error('❌ Restart error:', error);
-            emergencyReset();
-          }
-        };
-        startNewSequence();
-      }, 50);
-    } else {
-      prevChordsRef.current = selectedChords;
-    }
-  }, [selectedChords, isPlaying, playSequenceOnce, isLooping, emergencyReset]);
-
-  // Monitor tempo and metronome changes
-  useEffect(() => {
-    if (isPlaying) {
-      console.log('⚡ Settings changed - immediate restart');
-      
-      // Emergency reset to stop everything  
-      emergencyReset();
-      
-      // Restart after brief moment
-      setTimeout(() => {
-        setIsPlaying(true);
-        const startNewSequence = async () => {
-          try {
-            const sequenceDuration = await playSequenceOnce();
-            if (isLooping) {
-              loopIntervalRef.current = setInterval(() => {
-                playSequenceOnce();
-              }, sequenceDuration);
-            }
-          } catch (error) {
-            console.error('❌ Settings restart error:', error);
-            emergencyReset();
-          }
-        };
-        startNewSequence();
-      }, 50);
-    }
-  }, [tempo, withMetronome, metronomeMultiplier, isPlaying, playSequenceOnce, isLooping, emergencyReset]);
+    prevChordsRef.current = selectedChords;
+  }, [selectedChords]);
 
   // Clean up on unmount
   useEffect(() => {
