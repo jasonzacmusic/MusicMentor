@@ -100,28 +100,23 @@ export default function Home() {
 
           {/* Chord Trees - Visual tree structure for each note */}
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
-            <h3 className="text-2xl font-bold text-center text-gray-900 mb-8">Chord Trees</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <h3 className="text-2xl font-bold text-center text-gray-900 mb-12">Chord Trees</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 justify-items-center">
               {activeNotes.map((note, index) => {
-                const noteLabels = ['Note 1 (Base)', 'Note 2 (Major 3rd)', 'Note 3 (Minor 3rd)'];
-                const timings = ['2 beats', '2 beats', '4 beats'];
-                
                 return (
-                  <div key={`${note}-${index}`} className="relative">
-                    {/* Tree Container */}
-                    <div className="relative flex flex-col items-center">
+                  <div key={`${note}-${index}`} className="relative flex justify-center items-center min-h-[480px]">
+                    {/* Tree Container - centered */}
+                    <div className="relative flex flex-col items-center justify-center">
                       {/* Chord Selector with Tree Layout - includes center note */}
-                      <div className="relative">
-                        <ChordSkillSelector
-                          baseNote={note}
-                          noteIndex={index}
-                          selectedChord={selectedChords[index]}
-                          onChordSelect={handleChordSelect}
-                          inversionMode={inversionModes[index]}
-                          onInversionChange={(mode) => handleInversionChange(mode, index)}
-                          treeLayout={true}
-                        />
-                      </div>
+                      <ChordSkillSelector
+                        baseNote={note}
+                        noteIndex={index}
+                        selectedChord={selectedChords[index]}
+                        onChordSelect={handleChordSelect}
+                        inversionMode={inversionModes[index]}
+                        onInversionChange={(mode) => handleInversionChange(mode, index)}
+                        treeLayout={true}
+                      />
                     </div>
                   </div>
                 );

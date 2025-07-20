@@ -39,18 +39,18 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
   if (treeLayout) {
     // Tree layout with chords arranged in a circle around the central note
     return (
-      <div className="relative w-80 h-80 mx-auto">
+      <div className="relative w-96 h-96 mx-auto flex items-center justify-center">
         {/* Central Root Note (Orange Circle) */}
-        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
-            <span className="text-2xl font-bold text-white">{baseNote}</span>
+        <div className="absolute z-20 flex items-center justify-center">
+          <div className="w-24 h-24 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+            <span className="text-3xl font-bold text-white">{baseNote}</span>
           </div>
         </div>
 
         {/* Chord branches arranged in a circle */}
         {availableChords.map((chord, index) => {
           const angle = (index * 60) - 90; // 6 chords, 60 degrees apart, starting from top
-          const radius = 120;
+          const radius = 140;
           const x = Math.cos(angle * Math.PI / 180) * radius;
           const y = Math.sin(angle * Math.PI / 180) * radius;
           
@@ -102,21 +102,22 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
             <div key={index} className="absolute">
               {/* Branch line from center to chord */}
               <div 
-                className={`absolute w-0.5 bg-gradient-to-r ${colorScheme.branch} origin-bottom z-10`}
+                className={`absolute w-1 bg-gradient-to-r ${colorScheme.branch} z-10`}
                 style={{
                   left: '50%',
                   top: '50%',
-                  height: `${radius - 40}px`, // Shorter to account for center circle
+                  width: `${radius - 48}px`, // Line from center edge to chord edge
+                  height: '2px',
                   transform: `translate(-50%, -50%) rotate(${angle}deg)`,
-                  transformOrigin: 'bottom center'
+                  transformOrigin: 'left center'
                 }}
               />
               
               {/* Chord button (leaf) */}
               <div
-                className={`absolute w-16 h-16 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 border-2 shadow-lg transform hover:scale-110 z-20 ${
+                className={`absolute w-20 h-20 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 border-3 shadow-xl transform hover:scale-110 z-20 ${
                   isSelected 
-                    ? `bg-gradient-to-br ${colorScheme.selected} scale-110` 
+                    ? `bg-gradient-to-br ${colorScheme.selected} scale-115 shadow-2xl` 
                     : `bg-gradient-to-br ${colorScheme.default} ${colorScheme.hover}`
                 }`}
                 style={{
@@ -126,7 +127,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
                 }}
                 onClick={() => handleSelectChord(chord)}
               >
-                <span className="text-xs font-bold text-center leading-tight">
+                <span className="text-xs font-bold text-center leading-tight px-1">
                   {chord.name}
                 </span>
               </div>
@@ -136,7 +137,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
         
         {/* Clear button - positioned below the tree */}
         {selectedChord && (
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full mt-4">
+          <div className="absolute bottom-[-60px] left-1/2 transform -translate-x-1/2">
             <Button
               onClick={handleDeselectChord}
               variant="outline"

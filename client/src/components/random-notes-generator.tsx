@@ -541,20 +541,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           </div>
         </div>
 
-        {/* Notes display */}
-        <div className="grid grid-cols-3 gap-4">
-          {notes.map((note, index) => (
-            <div key={index} className="text-center">
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-2">
-                <div className="text-2xl font-bold text-blue-800 mb-1">{note}</div>
-                <div className="text-sm text-blue-600">
-                  {beatTimings[index]} beats
-                  {index === 2 && " (octave lower)"}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+
       </CardContent>
     </Card>
   );
