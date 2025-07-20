@@ -106,6 +106,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     if (loopIntervalRef.current) {
       clearInterval(loopIntervalRef.current);
       loopIntervalRef.current = null;
+      console.log('🔄 Cleared loop interval');
     }
     
     // Stop all oscillators
@@ -242,6 +243,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         }, loopDelay);
       } else {
         console.log('🔇 Auto Loop disabled - playing once only');
+        // Set playing to false after the sequence completes
+        setTimeout(() => {
+          setIsPlaying(false);
+        }, sequenceDuration);
       }
     } catch (error) {
       console.error('❌ Play error:', error);
@@ -341,21 +346,15 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     onChordsChange?.(randomChords);
     
     // Always start playing after selecting random chords
-    if (isPlaying) {
-      // If already playing, restart with new chords
-      emergencyReset();
+    setTimeout(() => {
+      emergencyReset(); // Always reset first to clear any existing audio
       setTimeout(() => {
         handlePlay();
-      }, 100);
-    } else {
-      // If not playing, start playing
-      setTimeout(() => {
-        handlePlay();
-      }, 100);
-    }
+      }, 150);
+    }, 50);
   }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset]);
 
-  // Monitor changes and restart playback if needed
+  // Monitor tempo/metronome changes only - NOT chord changes 
   useEffect(() => {
     if (isPlaying) {
       console.log('🔄 Settings changed - restarting playback');
@@ -365,8 +364,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         handlePlay();
       }, 100);
     }
-    prevChordsRef.current = selectedChords;
-  }, [selectedChords, inversionModes]);
+  }, [tempo, withMetronome]); // Only tempo and metronome, NOT selectedChords
 
   // Clean up on unmount
   useEffect(() => {

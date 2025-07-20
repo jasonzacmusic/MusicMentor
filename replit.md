@@ -10,7 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Latest)
 
-**July 20, 2025 - Latest Session:**
+**July 20, 2025 - Afternoon Session:**
+- Fixed Random Harmonizer to properly select from existing chord options:
+  - Now picks from the 6 available chord options for each note position (not completely random chords)
+  - Each note gets a random selection from its own beginner chord tree
+  - Added detailed logging: "Position 1 (C): Selected 'F Major (C is the P5)' from 6 options"
+- Enhanced Random Harmonizer workflow:
+  - Button now automatically triggers playback after chord selection
+  - Smart behavior: restarts if playing, starts if stopped
+  - Provides seamless practice workflow without manual Play button
+- Fixed Auto Loop toggle functionality:
+  - Toggle now properly controls whether music loops continuously or plays once
+  - Shows "Auto Loop disabled - playing once only" when turned off
+  - Resolved issue where music always looped regardless of setting
+
+**July 20, 2025 - Morning Session:**
 - Fixed critical control responsiveness bugs:
   - Metronome toggle now works seamlessly during playback without requiring "Generate New"
   - Tempo and metronome speed changes apply instantly while music plays
