@@ -113,7 +113,6 @@ export default function Home() {
                       {/* Tree Title */}
                       <div className="text-center mb-6">
                         <h4 className="text-xl font-bold text-gray-900">{noteLabels[index]}</h4>
-                        <p className="text-sm text-gray-600">{timings[index]}</p>
                       </div>
 
                       {/* Root Note (Trunk) */}
