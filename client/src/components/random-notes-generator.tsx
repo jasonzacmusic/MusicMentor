@@ -362,32 +362,77 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
         </div>
 
         {/* Central controls section */}
-        <div className="flex items-center justify-center space-x-3 mb-6">
-          {!isPlaying ? (
-            <Button 
+        <div className="space-y-4 mb-6">
+          <div className="flex justify-center space-x-3">
+            <Button
               onClick={handlePlay}
-              className="bg-green-600 hover:bg-green-700"
+              variant={isPlaying ? "default" : "outline"}
+              className={`${isPlaying ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white min-w-[120px]`}
             >
-              <Play className="w-4 h-4 mr-2" />
-              Play <span className="text-xs opacity-75">(Space)</span>
+              {isPlaying ? (
+                <>
+                  <Square className="w-4 h-4 mr-2" />
+                  Stop (Space)
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  Play (Space)
+                </>
+              )}
             </Button>
-          ) : (
-            <Button 
-              onClick={handleStop}
-              className="bg-red-600 hover:bg-red-700"
+
+            <Button
+              onClick={toggleLoop}
+              variant={isLooping ? "default" : "outline"}
+              className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'} min-w-[120px] ${isLooping ? 'text-white' : 'text-blue-600'}`}
             >
-              <Square className="w-4 h-4 mr-2" />
-              Stop <span className="text-xs opacity-75">(Space)</span>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Auto Loop: {isLooping ? 'ON' : 'OFF'}
             </Button>
-          )}
-          <div className="text-sm text-gray-600 flex items-center">
-            <RotateCcw className="w-4 h-4 mr-1" />
-            Auto Loop: ON
+            
+            <Button
+              onClick={handleGenerate}
+              variant="outline"
+              className="hover:bg-orange-50 border-orange-200 text-orange-600 min-w-[140px]"
+            >
+              <Shuffle className="w-4 h-4 mr-2" />
+              Generate New (R)
+            </Button>
           </div>
-          <Button onClick={handleGenerate} variant="outline">
-            <Shuffle className="w-4 h-4 mr-2" />
-            Generate New <span className="text-xs opacity-75">(R)</span>
-          </Button>
+
+          {/* Chord Inversion Controls */}
+          <div className="flex justify-center">
+            <Card className="w-fit">
+              <CardContent className="p-3">
+                <div className="text-center space-y-3">
+                  <div className="text-sm font-medium text-gray-700">Chord Voicing</div>
+                  <div className="flex space-x-1">
+                    {[
+                      { value: 'auto', label: 'Auto' },
+                      { value: 'root', label: 'Root' },
+                      { value: 'first', label: '1st' },
+                      { value: 'second', label: '2nd' }
+                    ].map((option) => (
+                      <Button
+                        key={option.value}
+                        onClick={() => setInversionMode(option.value as any)}
+                        variant={inversionMode === option.value ? "default" : "outline"}
+                        size="sm"
+                        className={`px-3 py-1 text-xs font-medium ${
+                          inversionMode === option.value 
+                            ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                            : 'text-purple-600 border-purple-200 hover:bg-purple-50'
+                        }`}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
 
