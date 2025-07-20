@@ -123,16 +123,23 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
 
   // Main play function - automatically loops continuously
   const handlePlay = useCallback(async () => {
-    if (isPlaying) return;
+    console.log('PLAY BUTTON PRESSED - Current isPlaying:', isPlaying);
+    if (isPlaying) {
+      console.log('Already playing, returning early');
+      return;
+    }
     
+    console.log('Setting isPlaying to true');
     setIsPlaying(true);
     
     try {
       // Play the sequence once
       const sequenceDuration = await playSequenceOnce();
+      console.log('Sequence duration:', sequenceDuration, 'ms');
       
       // Set up continuous looping - simplified approach
       loopIntervalRef.current = setInterval(() => {
+        console.log('Loop interval triggered - playing sequence again');
         playSequenceOnce();
       }, sequenceDuration); // Perfect timing - no extra pause
       
@@ -140,7 +147,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       console.error('Playback error:', error);
       setIsPlaying(false);
     }
-  }, [playSequenceOnce]);
+  }, [playSequenceOnce, isPlaying]);
 
   // Precise chord progression playback
   const playChordProgression = useCallback(async () => {
@@ -444,7 +451,6 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           {!isPlaying ? (
             <Button 
               onClick={handlePlay}
-              disabled={audioIsPlaying}
               className="bg-green-600 hover:bg-green-700"
             >
               <Play className="w-4 h-4 mr-2" />
