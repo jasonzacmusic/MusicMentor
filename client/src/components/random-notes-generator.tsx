@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -44,6 +44,9 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
 
   // Store loop interval reference
   const loopIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Store previous chord selection to detect changes
+  const prevChordsRef = useRef<Chord[]>(selectedChords);
 
   // Single play function that plays the sequence once
   const playSequenceOnce = useCallback(async () => {
@@ -279,6 +282,41 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const toggleLoop = useCallback(() => {
     setIsLooping(!isLooping);
   }, [isLooping]);
+
+  // Monitor chord selection changes and restart playback if playing
+  useEffect(() => {
+    // Check if chord selection has changed
+    const chordsChanged = JSON.stringify(prevChordsRef.current) !== JSON.stringify(selectedChords);
+    
+    if (chordsChanged && isPlaying) {
+      // Restart playback with new chord selection
+      prevChordsRef.current = selectedChords;
+      
+      // Clear current interval
+      if (loopIntervalRef.current) {
+        clearInterval(loopIntervalRef.current);
+        loopIntervalRef.current = null;
+      }
+      
+      // Restart playback immediately with new chords
+      const restartPlayback = async () => {
+        try {
+          const sequenceDuration = await playSequenceOnce();
+          
+          // Set up new loop with updated chords
+          loopIntervalRef.current = setInterval(() => {
+            playSequenceOnce();
+          }, sequenceDuration);
+        } catch (error) {
+          console.error('Restart playback error:', error);
+        }
+      };
+      
+      restartPlayback();
+    } else {
+      prevChordsRef.current = selectedChords;
+    }
+  }, [selectedChords, isPlaying, playSequenceOnce]);
 
   const beatTimings = [2, 2, 4];
 
