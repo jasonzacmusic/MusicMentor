@@ -156,9 +156,10 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           // CHORD: Play the selected chord for this position
           const baseNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
           const currentInversionMode = inversionModes[i]; // Get inversion mode for this specific position
+          console.log(`🔧 Position ${i + 1} - Inversion Mode:`, currentInversionMode, 'from array:', inversionModes);
           const triadNotes = applyInversion(baseNotes, currentInversionMode);
           const noteNames = triadNotes.map(n => n.note + (n.octave > 0 ? "'" : ""));
-          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, noteNames, currentInversionMode !== 'auto' ? `(${currentInversionMode} inversion)` : '');
+          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, noteNames, currentInversionMode !== 'auto' ? `(${currentInversionMode} inversion)` : '(auto)');
           
           // Schedule each note in the chord with slight stagger
           triadNotes.forEach((noteObj, noteIndex) => {
