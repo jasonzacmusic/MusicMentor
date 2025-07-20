@@ -198,7 +198,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       isSequenceActiveRef.current = false;
       return 8000;
     }
-  }, [selectedChords, notes, tempo, withMetronome]);
+  }, [selectedChords, notes, tempo, withMetronome, inversionModes]);
 
   // SIMPLIFIED PLAY FUNCTION
   const handlePlay = useCallback(async () => {
@@ -267,10 +267,18 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     setIsLooping(!isLooping);
   }, [isLooping]);
 
-  // Simplified monitoring - no automatic restarts for now
+  // Monitor changes and restart playback if needed
   useEffect(() => {
+    if (isPlaying) {
+      console.log('🔄 Settings changed - restarting playback');
+      emergencyReset();
+      // Restart after brief delay
+      setTimeout(() => {
+        handlePlay();
+      }, 100);
+    }
     prevChordsRef.current = selectedChords;
-  }, [selectedChords]);
+  }, [selectedChords, inversionModes]);
 
   // Clean up on unmount
   useEffect(() => {
