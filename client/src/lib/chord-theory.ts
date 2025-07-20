@@ -60,7 +60,7 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   chords.push(getChordFromNote(rootNote, 'minor'));
   
   // 3. Perfect 4th Major (root note is the perfect 5th of this chord)
-  const p4Index = (rootIndex - 5 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
+  const p4Index = (rootIndex - 7 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
   const p4Note = CHROMATIC_NOTES[p4Index];
   chords.push({
     ...getChordFromNote(p4Note, 'major'),

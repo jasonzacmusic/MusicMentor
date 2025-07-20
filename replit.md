@@ -23,6 +23,9 @@ Preferred communication style: Simple, everyday language.
   - Minor 6th Minor (where base note is the m3)
 - Created visual tree structure for chord harmonization panel
 - Connected random notes generator to chord tree for integrated practice
+- Removed individual play buttons from chord trees
+- Added single Play/Stop button for chord progressions
+- Fixed Perfect 4th chord calculation (was generating P5 instead of P4)
 
 ## System Architecture
 
