@@ -83,7 +83,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect,
                     
                     {/* Show inversion controls only when this chord is selected */}
                     {selectedChord?.name === chord.name && onInversionChange && (
-                      <div className="flex justify-center space-x-1">
+                      <div className="flex justify-center space-x-1 mt-2">
                         {[
                           { value: 'auto', label: 'Auto' },
                           { value: 'root', label: 'Root' },
@@ -105,6 +105,13 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect,
                             {option.label}
                           </button>
                         ))}
+                      </div>
+                    )}
+                    
+                    {/* Debug info */}
+                    {selectedChord?.name === chord.name && (
+                      <div className="text-xs text-gray-400 text-center mt-1">
+                        Selected: {selectedChord?.name} | Has callback: {onInversionChange ? 'Yes' : 'No'} | Mode: {inversionMode}
                       </div>
                     )}
                   </div>
