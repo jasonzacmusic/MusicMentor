@@ -4,17 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
-import { generateRandomNotes, type Chord, applyVoiceLeading } from '@/lib/chord-theory';
+import { generateRandomNotes, getChordFromNote, type Chord, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
 
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
+  onChordsChange?: (chords: (Chord | null)[]) => void;
   selectedChords?: (Chord | null)[];
   inversionModes?: ('auto' | 'root' | 'first' | 'second')[];
 }
 
-export default function RandomNotesGenerator({ onNotesChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'] }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'] }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -305,6 +306,68 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     setIsLooping(!isLooping);
   }, [isLooping]);
 
+  // RANDOM HARMONIZER - Select random chords for each position (no repeats)
+  const handleRandomHarmonize = useCallback(() => {
+    console.log('🎭 RANDOM HARMONIZER PRESSED');
+    
+    // Get all available chord options from ChordSkillSelector
+    const allChords = [
+      // Major chords
+      { name: 'C Major', type: 'major', rootNote: 'C' },
+      { name: 'Db Major', type: 'major', rootNote: 'Db' },
+      { name: 'D Major', type: 'major', rootNote: 'D' },
+      { name: 'Eb Major', type: 'major', rootNote: 'Eb' },
+      { name: 'E Major', type: 'major', rootNote: 'E' },
+      { name: 'F Major', type: 'major', rootNote: 'F' },
+      { name: 'Gb Major', type: 'major', rootNote: 'Gb' },
+      { name: 'G Major', type: 'major', rootNote: 'G' },
+      { name: 'Ab Major', type: 'major', rootNote: 'Ab' },
+      { name: 'A Major', type: 'major', rootNote: 'A' },
+      { name: 'Bb Major', type: 'major', rootNote: 'Bb' },
+      { name: 'B Major', type: 'major', rootNote: 'B' },
+      // Minor chords
+      { name: 'C Minor', type: 'minor', rootNote: 'C' },
+      { name: 'C# Minor', type: 'minor', rootNote: 'C#' },
+      { name: 'D Minor', type: 'minor', rootNote: 'D' },
+      { name: 'Eb Minor', type: 'minor', rootNote: 'Eb' },
+      { name: 'E Minor', type: 'minor', rootNote: 'E' },
+      { name: 'F Minor', type: 'minor', rootNote: 'F' },
+      { name: 'F# Minor', type: 'minor', rootNote: 'F#' },
+      { name: 'G Minor', type: 'minor', rootNote: 'G' },
+      { name: 'G# Minor', type: 'minor', rootNote: 'G#' },
+      { name: 'A Minor', type: 'minor', rootNote: 'A' },
+      { name: 'Bb Minor', type: 'minor', rootNote: 'Bb' },
+      { name: 'B Minor', type: 'minor', rootNote: 'B' },
+    ];
+
+    // Shuffle the array and pick 3 unique chords
+    const shuffled = [...allChords].sort(() => Math.random() - 0.5);
+    const selectedRandomChords = shuffled.slice(0, 3);
+    
+    // Convert to full chord objects with notes
+    const randomChords = selectedRandomChords.map(chord => {
+      try {
+        return getChordFromNote(chord.rootNote, chord.type, 0); // Root position
+      } catch (error) {
+        console.error('Error creating chord:', error);
+        return null;
+      }
+    }).filter(Boolean) as Chord[];
+
+    console.log('🎯 Random chords selected:', randomChords.map(c => c?.name));
+    
+    // Update the chord selections
+    onChordsChange?.(randomChords);
+    
+    // Auto-restart playback if currently playing
+    if (isPlaying) {
+      emergencyReset();
+      setTimeout(() => {
+        handlePlay();
+      }, 100);
+    }
+  }, [onChordsChange, isPlaying, handlePlay, emergencyReset]);
+
   // Monitor changes and restart playback if needed
   useEffect(() => {
     if (isPlaying) {
@@ -448,6 +511,15 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
                   Play (Space)
                 </>
               )}
+            </Button>
+
+            <Button
+              onClick={handleRandomHarmonize}
+              variant="outline"
+              className="hover:bg-purple-50 border-purple-200 text-purple-600 min-w-[140px]"
+            >
+              <Shuffle className="w-4 h-4 mr-2" />
+              Random Chords
             </Button>
 
             <Button

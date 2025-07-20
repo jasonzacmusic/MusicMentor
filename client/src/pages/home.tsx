@@ -85,6 +85,7 @@ export default function Home() {
           <div>
             <RandomNotesGenerator 
               onNotesChange={handleNotesChange}
+              onChordsChange={setSelectedChords}
               selectedChords={selectedChords}
               inversionModes={inversionModes}
             />
