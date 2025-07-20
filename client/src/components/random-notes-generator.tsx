@@ -110,23 +110,16 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       // Play the sequence once
       const sequenceDuration = await playSequenceOnce();
       
-      // Always set up continuous looping when playing
-      loopIntervalRef.current = setInterval(async () => {
-        if (isPlaying) {
-          await playSequenceOnce();
-        } else {
-          if (loopIntervalRef.current) {
-            clearInterval(loopIntervalRef.current);
-            loopIntervalRef.current = null;
-          }
-        }
+      // Set up continuous looping - simplified approach
+      loopIntervalRef.current = setInterval(() => {
+        playSequenceOnce();
       }, sequenceDuration); // Perfect timing - no extra pause
       
     } catch (error) {
       console.error('Playback error:', error);
       setIsPlaying(false);
     }
-  }, [isPlaying, playSequenceOnce]);
+  }, [playSequenceOnce]);
 
   // Precise chord progression playback
   const playChordProgression = useCallback(async () => {
@@ -281,7 +274,6 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       loopIntervalRef.current = null;
     }
     setIsPlaying(false);
-    setIsLooping(false);
   }, []);
 
   const toggleLoop = useCallback(() => {
