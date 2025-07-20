@@ -52,8 +52,9 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
     return getProperNoteName(noteIndex, chordTypeForNaming);
   });
 
-  // Apply inversion and calculate octave positions
-  const { invertedNotes, octaves } = applyInversion(notes, inversion);
+  // Apply inversion and calculate octave positions (limit to triads - 3 notes max)
+  const triadNotes = notes.slice(0, 3); // Ensure we only use 3 notes for triads
+  const { invertedNotes, octaves } = applyInversion(triadNotes, inversion);
   
   const inversionSuffix = inversion > 0 ? ` (${getInversionName(inversion)})` : '';
 
@@ -69,16 +70,18 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
 
 // Apply chord inversion and calculate appropriate octave positions for smooth voice leading
 function applyInversion(notes: string[], inversion: number): { invertedNotes: string[], octaves: number[] } {
+  // Ensure we always work with exactly 3 notes (triad)
+  const triadNotes = notes.slice(0, 3);
+  
   if (inversion === 0) {
     // Root position - use close voicing with optimal spacing
     return {
-      invertedNotes: [...notes],
+      invertedNotes: [...triadNotes],
       octaves: [0, 0, 1] // Root and 3rd in middle octave, 5th higher for better spacing
     };
   }
   
-  const invertedNotes = [...notes];
-  const octaves = [0, 0, 0]; // Start with all notes in same octave
+  const invertedNotes = [...triadNotes];
   
   if (inversion === 1) {
     // First inversion: 3rd in bass
@@ -101,10 +104,10 @@ function applyInversion(notes: string[], inversion: number): { invertedNotes: st
     };
   }
   
-  // Default for other inversions
+  // Default for other inversions - return triad
   return {
-    invertedNotes,
-    octaves: notes.map(() => 0)
+    invertedNotes: triadNotes,
+    octaves: triadNotes.map(() => 0)
   };
 }
 

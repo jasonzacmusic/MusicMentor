@@ -89,8 +89,9 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       const chord = voiceLedChords[i];
       
       if (chord && chord.notes) {
-        // Play the selected chord with proper voice leading and inversions
-        chord.notes.forEach((note, noteIndex) => {
+        // Play the selected chord with exactly 3 notes (triad only)
+        const triadNotes = chord.notes.slice(0, 3); // Use only first 3 notes for triads
+        triadNotes.forEach((note, noteIndex) => {
           // Use octave information from chord if available, otherwise apply voice leading
           let octaveOffset = 0;
           if (chord.octaves && chord.octaves[noteIndex] !== undefined) {
