@@ -37,8 +37,6 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     const validChords = selectedChords.filter(chord => chord !== null);
     if (validChords.length === 0) return;
     
-    console.log('Playing chord progression with chords:', selectedChords);
-    
     setIsPlayingProgression(true);
     try {
       do {
@@ -48,16 +46,13 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
         // Play chords based on their original position (maintain timing)
         for (let i = 0; i < 3; i++) {
           const chord = selectedChords[i];
-          console.log(`Position ${i}: chord =`, chord);
           
           if (chord && chord.notes) {
             const duration = beatDuration * chordDurations[i];
-            console.log(`Playing chord ${chord.name} for ${duration}ms`);
             // Apply voice leading by using proper inversions for smoother transitions
             const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
             await playChord(voiceLeadingNotes, duration);
           } else {
-            console.log(`No chord selected for position ${i}, waiting ${beatDuration * chordDurations[i]}ms`);
             // If no chord selected for this position, wait for the duration
             await new Promise(resolve => setTimeout(resolve, beatDuration * chordDurations[i]));
           }

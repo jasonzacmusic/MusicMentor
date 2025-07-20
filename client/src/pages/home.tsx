@@ -21,11 +21,9 @@ export default function Home() {
   };
 
   const handleChordSelect = (chord: Chord | null, noteIndex: number) => {
-    console.log(`Home: Handling chord selection for note ${noteIndex}:`, chord);
     const newSelectedChords = [...selectedChords];
     newSelectedChords[noteIndex] = chord;
     setSelectedChords(newSelectedChords);
-    console.log('Updated selectedChords:', newSelectedChords);
   };
 
   return (

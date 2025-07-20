@@ -1,4 +1,5 @@
-export const CHROMATIC_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+// Default note naming preferences: Bb, Ab, Eb for black keys (others can be random)
+export const CHROMATIC_NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 // Note naming for Major chords: use flats (Db, Eb, Ab, Bb) except F#
 export const MAJOR_CHORD_NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];

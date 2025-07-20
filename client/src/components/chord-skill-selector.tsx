@@ -18,12 +18,11 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect 
     // Always use beginner chords
     const chords = getBeginnerChordsForNote(baseNote);
     setAvailableChords(chords);
+    // Only reset selection when base note changes
     setSelectedChord(null);
-    onChordSelect(null, noteIndex);
-  }, [baseNote, onChordSelect, noteIndex]);
+  }, [baseNote]);
 
   const handleSelectChord = (chord: Chord) => {
-    console.log(`Selecting chord for note ${noteIndex}:`, chord);
     setSelectedChord(chord);
     onChordSelect(chord, noteIndex);
   };
