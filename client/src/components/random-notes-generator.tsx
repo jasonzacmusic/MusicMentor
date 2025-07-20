@@ -197,16 +197,17 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
         currentTime += duration;
       }
 
-      // Return total duration for timing
-      const totalDuration = (currentTime - startTime) * 1000;
+      // Calculate actual duration in milliseconds
+      const totalDurationSeconds = currentTime - startTime;
+      const totalDurationMs = totalDurationSeconds * 1000;
       
       // Mark sequence as complete after duration
       setTimeout(() => {
         isSequenceActiveRef.current = false;
         console.log('✅ Sequence complete');
-      }, totalDuration);
+      }, totalDurationMs);
       
-      return totalDuration;
+      return totalDurationMs;
     } catch (error) {
       console.error('❌ Sequence error:', error);
       isSequenceActiveRef.current = false;
@@ -229,11 +230,14 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       const sequenceDuration = await playSequenceOnce();
       console.log('⏱️ Duration:', sequenceDuration, 'ms');
       
-      // Always loop for now
+      // Always loop for now - use precise timing
+      const loopDelay = Math.max(sequenceDuration, 4000); // Minimum 4 seconds
+      console.log('🔄 Setting up loop with delay:', loopDelay, 'ms');
+      
       loopIntervalRef.current = setInterval(() => {
-        console.log('🔄 Loop');
+        console.log('🔄 Loop trigger');
         playSequenceOnce();
-      }, sequenceDuration);
+      }, loopDelay);
     } catch (error) {
       console.error('❌ Play error:', error);
       setIsPlaying(false);
