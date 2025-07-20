@@ -350,6 +350,69 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     setIsLooping(!isLooping);
   }, [isLooping]);
 
+  // Monitor chord selection changes and restart playback if playing
+  useEffect(() => {
+    const chordsChanged = JSON.stringify(prevChordsRef.current) !== JSON.stringify(selectedChords);
+    
+    if (isPlaying && chordsChanged) {
+      console.log('Chord selection changed during playback - restarting');
+      prevChordsRef.current = selectedChords;
+      
+      // Stop current audio cleanly
+      audioEngine.stopAll();
+      if (loopIntervalRef.current) {
+        clearInterval(loopIntervalRef.current);
+        loopIntervalRef.current = null;
+      }
+      
+      // Restart with new chord selection after brief pause
+      setTimeout(async () => {
+        if (isPlaying) { // Make sure we're still supposed to be playing
+          try {
+            const sequenceDuration = await playSequenceOnce();
+            loopIntervalRef.current = setInterval(() => {
+              playSequenceOnce();
+            }, sequenceDuration);
+          } catch (error) {
+            console.error('Restart playback error:', error);
+            setIsPlaying(false);
+          }
+        }
+      }, 100);
+    } else {
+      prevChordsRef.current = selectedChords;
+    }
+  }, [selectedChords, isPlaying, playSequenceOnce]);
+
+  // Monitor tempo and metronome changes for seamless updates
+  useEffect(() => {
+    if (isPlaying) {
+      console.log('Tempo/metronome changed during playback - restarting');
+      
+      // Stop current audio cleanly
+      audioEngine.stopAll();
+      if (loopIntervalRef.current) {
+        clearInterval(loopIntervalRef.current);
+        loopIntervalRef.current = null;
+      }
+      
+      // Restart with new settings after brief pause
+      setTimeout(async () => {
+        if (isPlaying) { // Make sure we're still supposed to be playing
+          try {
+            const sequenceDuration = await playSequenceOnce();
+            loopIntervalRef.current = setInterval(() => {
+              playSequenceOnce();
+            }, sequenceDuration);
+          } catch (error) {
+            console.error('Settings restart error:', error);
+            setIsPlaying(false);
+          }
+        }
+      }, 100);
+    }
+  }, [tempo, withMetronome, metronomeMultiplier, isPlaying, playSequenceOnce]);
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
