@@ -3,15 +3,23 @@ import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector from '@/components/chord-skill-selector';
 import { Music, HelpCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { Chord } from '@/lib/chord-theory';
 
 export default function Home() {
   const [selectedNote, setSelectedNote] = useState('C');
   const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A']);
-  const [chordNotes, setChordNotes] = useState<string[]>([]);
+  const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null]);
 
   const handleNotesChange = (notes: string[]) => {
     setActiveNotes(notes);
     setSelectedNote(notes[0]); // Use the first note (base note) for chord harmonization
+    setSelectedChords([null, null, null]); // Reset selected chords when notes change
+  };
+
+  const handleChordSelect = (chord: Chord, noteIndex: number) => {
+    const newSelectedChords = [...selectedChords];
+    newSelectedChords[noteIndex] = chord;
+    setSelectedChords(newSelectedChords);
   };
 
   return (
@@ -42,12 +50,32 @@ export default function Home() {
         <div className="space-y-8">
           {/* Random Notes Generator */}
           <div>
-            <RandomNotesGenerator onNotesChange={handleNotesChange} />
+            <RandomNotesGenerator 
+              onNotesChange={handleNotesChange}
+              selectedChords={selectedChords}
+            />
           </div>
 
-          {/* Chord Skill Level Selector */}
-          <div>
-            <ChordSkillSelector baseNote={selectedNote} />
+          {/* Chord Skill Level Selectors for each note */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {activeNotes.map((note, index) => {
+              const noteLabels = ['Note 1 (Base)', 'Note 2 (Major 3rd)', 'Note 3 (Minor 3rd)'];
+              const timings = ['2 beats', '2 beats', '4 beats'];
+              
+              return (
+                <div key={`${note}-${index}`} className="space-y-3">
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium text-gray-900">{noteLabels[index]}</h3>
+                    <p className="text-sm text-gray-600">{note} • {timings[index]}</p>
+                  </div>
+                  <ChordSkillSelector
+                    baseNote={note}
+                    noteIndex={index}
+                    onChordSelect={handleChordSelect}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>

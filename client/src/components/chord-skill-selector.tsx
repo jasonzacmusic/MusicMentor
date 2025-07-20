@@ -7,12 +7,15 @@ import { useAudio } from '@/hooks/use-audio';
 
 interface ChordSkillSelectorProps {
   baseNote: string;
+  noteIndex: number;
+  onChordSelect?: (chord: Chord, noteIndex: number) => void;
 }
 
 type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
 
-export default function ChordSkillSelector({ baseNote }: ChordSkillSelectorProps) {
+export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect }: ChordSkillSelectorProps) {
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<SkillLevel>('beginner');
+  const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const { playChord, isPlaying } = useAudio();
 
   const getAdvancedChords = (rootNote: string): Chord[] => {
@@ -51,8 +54,9 @@ export default function ChordSkillSelector({ baseNote }: ChordSkillSelectorProps
     }
   };
 
-  const handlePlayChord = async (chord: Chord) => {
-    await playChord(chord.notes, 2000);
+  const handleSelectChord = (chord: Chord) => {
+    setSelectedChord(chord);
+    onChordSelect?.(chord, noteIndex);
   };
 
   const skillLevels: { level: SkillLevel; title: string; description: string }[] = [
@@ -112,7 +116,12 @@ export default function ChordSkillSelector({ baseNote }: ChordSkillSelectorProps
             {getChordsForSkillLevel(selectedSkillLevel).map((chord, index) => (
               <div
                 key={index}
-                className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                onClick={() => handleSelectChord(chord)}
+                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                  selectedChord?.name === chord.name
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
               >
                 <div className="space-y-2">
                   <div className="font-medium text-gray-900 text-sm text-center">
@@ -121,15 +130,6 @@ export default function ChordSkillSelector({ baseNote }: ChordSkillSelectorProps
                   <div className="text-xs text-gray-600 font-mono text-center">
                     {formatChordNotes(chord.notes)}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handlePlayChord(chord)}
-                    disabled={isPlaying}
-                    className="text-green-600 hover:text-green-700 hover:bg-green-50 w-full h-6"
-                  >
-                    <Play className="w-3 h-3" />
-                  </Button>
                 </div>
               </div>
             ))}

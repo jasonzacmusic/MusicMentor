@@ -3,17 +3,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Shuffle, Play, Square } from 'lucide-react';
-import { generateRandomNotes } from '@/lib/chord-theory';
+import { generateRandomNotes, type Chord } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
+  selectedChords?: Chord[];
 }
 
-export default function RandomNotesGenerator({ onNotesChange }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, selectedChords = [] }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['C', 'E', 'A']);
   const [tempo, setTempo] = useState(120);
-  const { playNote, playSequence, isPlaying, error } = useAudio();
+  const [isPlayingProgression, setIsPlayingProgression] = useState(false);
+  const { playNote, playSequence, playChord, isPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
     const newNotes = generateRandomNotes();
@@ -30,6 +32,40 @@ export default function RandomNotesGenerator({ onNotesChange }: RandomNotesGener
     await playSequence(notes, tempo);
   }, [playSequence, notes, tempo]);
 
+  const handlePlayChordProgression = useCallback(async () => {
+    const validChords = selectedChords.filter(chord => chord !== null);
+    if (validChords.length === 0) return;
+    
+    setIsPlayingProgression(true);
+    try {
+      const beatDuration = (60 / tempo) * 1000;
+      const chordDurations = [2, 2, 4]; // Same as note timings
+      
+      // Play chords based on their original position (maintain timing)
+      for (let i = 0; i < 3; i++) {
+        const chord = selectedChords[i];
+        if (chord && chord.notes) {
+          const duration = beatDuration * chordDurations[i];
+          await playChord(chord.notes, duration);
+        } else {
+          // If no chord selected for this position, wait for the duration
+          await new Promise(resolve => setTimeout(resolve, beatDuration * chordDurations[i]));
+        }
+        
+        // Small gap between sections
+        if (i < 2) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+    } finally {
+      setIsPlayingProgression(false);
+    }
+  }, [selectedChords, tempo, playChord]);
+
+  const stopProgression = () => {
+    setIsPlayingProgression(false);
+  };
+
   const beatTimings = [2, 2, 4];
 
   return (
@@ -37,10 +73,34 @@ export default function RandomNotesGenerator({ onNotesChange }: RandomNotesGener
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-gray-900">Random Note Practice</h2>
-          <Button onClick={generateNew} className="bg-blue-600 hover:bg-blue-700">
-            <Shuffle className="w-4 h-4 mr-2" />
-            Generate New
-          </Button>
+          <div className="flex items-center space-x-3">
+            {selectedChords.some(chord => chord !== null) && (
+              <>
+                {!isPlayingProgression ? (
+                  <Button 
+                    onClick={handlePlayChordProgression}
+                    disabled={isPlaying}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Play Chords
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={stopProgression}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Square className="w-4 h-4 mr-2" />
+                    Stop
+                  </Button>
+                )}
+              </>
+            )}
+            <Button onClick={generateNew} className="bg-blue-600 hover:bg-blue-700">
+              <Shuffle className="w-4 h-4 mr-2" />
+              Generate New
+            </Button>
+          </div>
         </div>
 
         {error && (
