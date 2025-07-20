@@ -95,7 +95,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect 
           <CardContent className="p-6">
             <div className="space-y-4">
               <h4 className="text-sm font-medium text-gray-700 text-center">
-                {selectedChord.name} on Piano
+                {selectedChord.name.replace('Minor', 'minor')} on Piano
               </h4>
               <div className="flex justify-center">
                 <PianoKeyboard 
@@ -106,8 +106,8 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect 
                 />
               </div>
               <div className="text-center">
-                <div className="text-xs text-gray-600 font-mono">
-                  Notes: {formatChordNotes(selectedChord.notes)}
+                <div className="text-xs text-gray-600">
+                  {selectedChord.name.replace('Minor', 'minor')}
                 </div>
               </div>
             </div>

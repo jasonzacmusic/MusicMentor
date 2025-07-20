@@ -20,6 +20,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const [isLooping, setIsLooping] = useState(false);
   const [withMetronome, setWithMetronome] = useState(false);
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
+  const [inversionMode, setInversionMode] = useState<'auto' | 'root' | 'first' | 'second'>('auto');
   // Removed old useAudio hook - using direct audioEngine now
 
   const generateNew = useCallback(() => {
@@ -49,6 +50,26 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   
   // Store previous chord selection to detect changes
   const prevChordsRef = useRef<Chord[]>(selectedChords);
+
+  // Function to apply chord inversions
+  const applyInversion = (notes: string[], mode: string) => {
+    if (mode === 'auto' || notes.length !== 3) {
+      return notes; // Return as-is for auto mode or invalid input
+    }
+    
+    const [root, third, fifth] = notes;
+    
+    switch (mode) {
+      case 'root':
+        return [root, third, fifth]; // Root position
+      case 'first':
+        return [third, fifth, root]; // First inversion (third in bass)
+      case 'second':
+        return [fifth, root, third]; // Second inversion (fifth in bass)
+      default:
+        return notes;
+    }
+  };
 
   // EMERGENCY RESET FUNCTION - Completely stop all audio
   const emergencyReset = useCallback(() => {
@@ -114,8 +135,9 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
         
         if (selectedChord) {
           // CHORD: Play the selected chord for this position
-          const triadNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
-          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, triadNotes);
+          const baseNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
+          const triadNotes = applyInversion(baseNotes, inversionMode);
+          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, triadNotes, inversionMode !== 'auto' ? `(${inversionMode})` : '');
           
           // Schedule each note in the chord with slight stagger
           triadNotes.forEach((note, noteIndex) => {
