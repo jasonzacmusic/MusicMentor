@@ -100,7 +100,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     return (currentTime - startTime) * 1000;
   }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier]);
 
-  // Main play function
+  // Main play function - automatically loops continuously
   const handlePlay = useCallback(async () => {
     if (isPlaying) return;
     
@@ -110,29 +110,23 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       // Play the sequence once
       const sequenceDuration = await playSequenceOnce();
       
-      // If looping, set up interval to repeat
-      if (isLooping) {
-        loopIntervalRef.current = setInterval(async () => {
-          if (isLooping && isPlaying) {
-            await playSequenceOnce();
-          } else {
-            if (loopIntervalRef.current) {
-              clearInterval(loopIntervalRef.current);
-              loopIntervalRef.current = null;
-            }
+      // Always set up continuous looping when playing
+      loopIntervalRef.current = setInterval(async () => {
+        if (isPlaying) {
+          await playSequenceOnce();
+        } else {
+          if (loopIntervalRef.current) {
+            clearInterval(loopIntervalRef.current);
+            loopIntervalRef.current = null;
           }
-        }, sequenceDuration + 500); // Sequence duration + 500ms pause
-      } else {
-        // Wait for sequence to complete then stop
-        setTimeout(() => {
-          setIsPlaying(false);
-        }, sequenceDuration);
-      }
+        }
+      }, sequenceDuration); // Perfect timing - no extra pause
+      
     } catch (error) {
       console.error('Playback error:', error);
       setIsPlaying(false);
     }
-  }, [isPlaying, isLooping, playSequenceOnce]);
+  }, [isPlaying, playSequenceOnce]);
 
   // Precise chord progression playback
   const playChordProgression = useCallback(async () => {
@@ -373,14 +367,10 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
               Stop
             </Button>
           )}
-          <Button 
-            onClick={toggleLoop}
-            variant={isLooping ? "default" : "outline"}
-            className={isLooping ? "bg-orange-600 hover:bg-orange-700" : ""}
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Loop: {isLooping ? "ON" : "OFF"}
-          </Button>
+          <div className="text-sm text-gray-600 flex items-center">
+            <RotateCcw className="w-4 h-4 mr-1" />
+            Auto Loop: ON
+          </div>
           <Button onClick={generateNew} variant="outline">
             <Shuffle className="w-4 h-4 mr-2" />
             Generate New
