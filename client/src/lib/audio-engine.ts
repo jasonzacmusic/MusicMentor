@@ -29,15 +29,8 @@ export class AudioEngine {
       throw new Error('Audio context not initialized');
     }
 
-    let frequency = NOTE_FREQUENCIES[note];
-    if (!frequency) {
-      throw new Error(`Unknown note: ${note}`);
-    }
-
-    // Apply octave offset (each octave is double/half the frequency)
-    if (octaveOffset !== 0) {
-      frequency = frequency * Math.pow(2, octaveOffset);
-    }
+    // Use the getFrequency method for consistent note calculation
+    const frequency = this.getFrequency(note, octaveOffset);
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -83,7 +76,8 @@ export class AudioEngine {
       await this.initialize();
     }
 
-    const promises = notes.map(note => this.playNote(note, duration));
+    // Play all chord notes at octave 0 for correct pitch
+    const promises = notes.map(note => this.playNote(note, duration, 0));
     await Promise.all(promises);
   }
 
@@ -119,8 +113,8 @@ export class AudioEngine {
     
     for (let i = 0; i < notes.length && i < timings.length; i++) {
       const duration = beatDuration * timings[i];
-      // Note 3 plays an octave lower to ensure it's clearly lower than Note 1
-      const octaveOffset = i === 2 ? -1 : 0;
+      // Play all notes at their correct pitch (no octave offset)
+      const octaveOffset = 0;
       
       // Schedule the note to play at precise time
       this.scheduleNote(notes[i], currentTime, duration, octaveOffset);

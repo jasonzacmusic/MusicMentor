@@ -138,7 +138,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const scheduleNote = (note: string, startTime: number, duration: number, octaveOffset: number = 0) => {
     if (!audioEngine.audioContext || !audioEngine.masterGainNode) return;
 
-    const frequency = audioEngine.getFrequency(note, octaveOffset);
+    const frequency = audioEngine.getFrequency(note, 0); // Always use octave 0 for correct pitch
     
     const oscillator = audioEngine.audioContext.createOscillator();
     const gainNode = audioEngine.audioContext.createGain();
