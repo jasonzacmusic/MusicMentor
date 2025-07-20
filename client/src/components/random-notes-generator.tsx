@@ -20,7 +20,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const [isLooping, setIsLooping] = useState(false);
   const [withMetronome, setWithMetronome] = useState(false);
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
-  const { playSequence, playChord, isPlaying: audioIsPlaying, error } = useAudio();
+  // Removed old useAudio hook - using direct audioEngine now
 
   const generateNew = useCallback(() => {
     const chromaticNotes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -42,186 +42,144 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     onNotesChange?.(newNotes);
   }, [onNotesChange]);
 
-  // Store loop interval reference
+  // Single loop control ref 
   const loopIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Single sequence control ref
+  const isSequenceActiveRef = useRef(false);
   
   // Store previous chord selection to detect changes
   const prevChordsRef = useRef<Chord[]>(selectedChords);
 
-  // Single play function that plays the sequence once, synchronized to beat 1
+  // EMERGENCY RESET FUNCTION - Completely stop all audio
+  const emergencyReset = useCallback(() => {
+    console.log('🚨 EMERGENCY RESET - Clearing all audio');
+    
+    // Set flags to prevent new sequences
+    isSequenceActiveRef.current = false;
+    setIsPlaying(false);
+    
+    // Clear all intervals/timeouts
+    if (loopIntervalRef.current) {
+      clearInterval(loopIntervalRef.current);
+      loopIntervalRef.current = null;
+    }
+    
+    // Stop all oscillators
+    audioEngine.stopAll();
+    
+    console.log('✅ Emergency reset complete');
+  }, []);
+
+  // ATOMIC SEQUENCE PLAYER - Only one can run at a time
   const playSequenceOnce = useCallback(async () => {
-    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-      await audioEngine.initialize();
-    }
-
-    const beatDuration = 60 / tempo;
-    const chordDurations = [2, 2, 4]; // beats per position
-    
-    // Start immediately at the next audio context time (beat 1)
-    const startTime = audioEngine.audioContext!.currentTime + 0.01; // Small buffer for scheduling
-    let currentTime = startTime;
-
-    // Apply voice leading to selected chords for smooth transitions
-    const voiceLedChords = applyVoiceLeading(selectedChords, notes);
-
-    // Schedule metronome clicks if enabled
-    if (withMetronome) {
-      let metronomeInterval: number;
-      if (metronomeMultiplier === 1) {
-        metronomeInterval = beatDuration; // Quarter notes
-      } else if (metronomeMultiplier === 2) {
-        metronomeInterval = beatDuration / 2; // Eighth notes
-      } else if (metronomeMultiplier === 3) {
-        metronomeInterval = beatDuration / 3; // Triplets
-      } else {
-        metronomeInterval = beatDuration;
-      }
-
-      const totalDuration = 8 * beatDuration; // 8 beats total
-      let clickTime = startTime;
-      while (clickTime < startTime + totalDuration) {
-        scheduleMetronomeClick(clickTime);
-        clickTime += metronomeInterval;
-      }
-    }
-
-    // Check if we have chords selected or should play individual notes
-    const hasSelectedChords = selectedChords && selectedChords.length > 0;
-    console.log('Playback mode:', hasSelectedChords ? 'CHORDS' : 'NOTES', 'Selected chords:', selectedChords.length);
-
-    // Always play 3 sounds with specific pitch placement and voice leading
-    for (let i = 0; i < 3; i++) {
-      const duration = beatDuration * chordDurations[i];
-      
-      if (hasSelectedChords && voiceLedChords[i] && voiceLedChords[i].notes) {
-        // CHORD MODE: Play the selected chord for this position
-        const chord = voiceLedChords[i];
-        const triadNotes = chord.notes.slice(0, 3); // Ensure only 3 notes
-        console.log(`Playing chord ${i + 1}:`, chord.notes);
-        
-        triadNotes.forEach((note, noteIndex) => {
-          // Keep all chord notes within range: -1 octave to +1 octave from middle C
-          let octaveOffset = 0;  // All notes in same octave range
-          scheduleNote(note, currentTime + (noteIndex * 0.05), duration, octaveOffset);
-        });
-      } else if (hasSelectedChords && selectedChords.length > 0) {
-        // CHORD MODE but no chord for this position - use first available chord
-        const chord = selectedChords[0]; // Fallback to first selected chord
-        const triadNotes = chord.notes.slice(0, 3);
-        console.log(`Playing fallback chord ${i + 1}:`, chord.notes);
-        
-        triadNotes.forEach((note, noteIndex) => {
-          let octaveOffset = 0;
-          scheduleNote(note, currentTime + (noteIndex * 0.05), duration, octaveOffset);
-        });
-      } else {
-        // NOTE MODE: Play individual notes
-        console.log(`Playing note ${i + 1}:`, notes[i]);
-        let octaveOffset = 0;
-        if (i === 0) octaveOffset = 0;  // Note 1 around middle C
-        if (i === 1) octaveOffset = 0;  // Note 2 above Note 1 in same octave  
-        if (i === 2) octaveOffset = -1; // Note 3 below Note 1
-        
-        scheduleNote(notes[i], currentTime, duration, octaveOffset);
-      }
-      
-      currentTime += duration;
-    }
-
-    // Return total duration for timing
-    return (currentTime - startTime) * 1000;
-  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier]);
-
-  // Main play function - automatically loops continuously
-  const handlePlay = useCallback(async () => {
-    console.log('PLAY BUTTON PRESSED - Current isPlaying:', isPlaying);
-    if (isPlaying) {
-      console.log('Already playing, returning early');
-      return;
+    // Guard: Only allow one sequence at a time
+    if (isSequenceActiveRef.current) {
+      console.log('🚫 Sequence already active, skipping');
+      return 8000; // Return 8 second duration
     }
     
-    console.log('Setting isPlaying to true');
-    setIsPlaying(true);
+    isSequenceActiveRef.current = true;
+    console.log('🎵 Starting new sequence');
     
     try {
-      // Play the sequence once
-      const sequenceDuration = await playSequenceOnce();
-      console.log('Sequence duration:', sequenceDuration, 'ms');
+      if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+        await audioEngine.initialize();
+      }
+
+      const beatDuration = 60 / tempo;
+      const chordDurations = [2, 2, 4]; // beats per position
       
-      // Set up continuous looping - simplified approach
-      loopIntervalRef.current = setInterval(() => {
-        console.log('Loop interval triggered - playing sequence again');
-        playSequenceOnce();
-      }, sequenceDuration); // Perfect timing - no extra pause
+      // Start immediately at the next audio context time (beat 1)
+      const startTime = audioEngine.audioContext!.currentTime + 0.01;
+      let currentTime = startTime;
+
+      // Schedule metronome clicks if enabled
+      if (withMetronome) {
+        let metronomeInterval = beatDuration; // Quarter notes only for simplicity
+        const totalDuration = 8 * beatDuration; // 8 beats total
+        let clickTime = startTime;
+        while (clickTime < startTime + totalDuration) {
+          scheduleMetronomeClick(clickTime);
+          clickTime += metronomeInterval;
+        }
+      }
+
+      // Check if we have chords selected or should play individual notes
+      const hasSelectedChords = selectedChords && selectedChords.length > 0;
+      console.log('🎼 Mode:', hasSelectedChords ? 'CHORDS' : 'NOTES', 'Count:', selectedChords.length);
+
+      // Always play exactly 3 positions
+      for (let i = 0; i < 3; i++) {
+        const duration = beatDuration * chordDurations[i];
+        
+        if (hasSelectedChords) {
+          // CHORD MODE: Use selected chords, cycling if needed
+          const chordIndex = i % selectedChords.length;
+          const chord = selectedChords[chordIndex];
+          const triadNotes = chord.notes.slice(0, 3); // Ensure only 3 notes
+          console.log(`🎹 Chord ${i + 1}:`, chord.notes);
+          
+          triadNotes.forEach((note, noteIndex) => {
+            scheduleNote(note, currentTime + (noteIndex * 0.05), duration, 0);
+          });
+        } else {
+          // NOTE MODE: Play individual notes
+          console.log(`🎵 Note ${i + 1}:`, notes[i]);
+          let octaveOffset = 0;
+          if (i === 2) octaveOffset = -1; // Note 3 below Note 1
+          
+          scheduleNote(notes[i], currentTime, duration, octaveOffset);
+        }
+        
+        currentTime += duration;
+      }
+
+      // Return total duration for timing
+      const totalDuration = (currentTime - startTime) * 1000;
       
+      // Mark sequence as complete after duration
+      setTimeout(() => {
+        isSequenceActiveRef.current = false;
+        console.log('✅ Sequence complete');
+      }, totalDuration);
+      
+      return totalDuration;
     } catch (error) {
-      console.error('Playback error:', error);
-      setIsPlaying(false);
+      console.error('❌ Sequence error:', error);
+      isSequenceActiveRef.current = false;
+      return 8000;
     }
-  }, [playSequenceOnce, isPlaying]);
+  }, [selectedChords, notes, tempo, withMetronome]);
 
-  // Precise chord progression playback
-  const playChordProgression = useCallback(async () => {
-    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-      await audioEngine.initialize();
-    }
-
-    const beatDuration = 60 / tempo; // seconds per beat
-    const chordDurations = [2, 2, 4]; // beats per chord
-    const startTime = audioEngine.audioContext!.currentTime;
-    let currentTime = startTime;
-
-    // Calculate metronome interval
-    let metronomeInterval: number;
-    if (metronomeMultiplier === 1) {
-      metronomeInterval = beatDuration; // Quarter notes
-    } else if (metronomeMultiplier === 2) {
-      metronomeInterval = beatDuration / 2; // Eighth notes
-    } else if (metronomeMultiplier === 3) {
-      metronomeInterval = beatDuration / 3; // Triplets
-    } else {
-      metronomeInterval = beatDuration;
+  // NEW CLEAN PLAY FUNCTION
+  const handlePlay = useCallback(async () => {
+    console.log('▶️ PLAY PRESSED');
+    
+    if (isPlaying) {
+      // If already playing, stop
+      emergencyReset();
+      return;
     }
 
-    // Schedule metronome clicks for entire progression
-    if (withMetronome) {
-      const totalDuration = 8 * beatDuration; // 8 beats total
-      let clickTime = startTime;
-      while (clickTime < startTime + totalDuration) {
-        scheduleMetronomeClick(clickTime);
-        clickTime += metronomeInterval;
-      }
-    }
+    setIsPlaying(true);
 
-    // Schedule chord playback
-    for (let i = 0; i < 3; i++) {
-      const chord = selectedChords[i];
-      const duration = beatDuration * chordDurations[i];
+    try {
+      const sequenceDuration = await playSequenceOnce();
+      console.log('⏱️ Sequence duration:', sequenceDuration, 'ms');
       
-      if (chord && chord.notes) {
-        const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
-        scheduleChord(voiceLeadingNotes, currentTime, duration);
+      if (isLooping) {
+        loopIntervalRef.current = setInterval(() => {
+          console.log('🔄 Loop triggered');
+          playSequenceOnce();
+        }, sequenceDuration);
       }
-      
-      currentTime += duration;
-      
-      // Small gap between chords
-      if (i < 2) {
-        currentTime += 0.1;
-      }
+    } catch (error) {
+      console.error('❌ Play error:', error);
+      emergencyReset();
     }
+  }, [isPlaying, playSequenceOnce, isLooping, emergencyReset]);
 
-    // Wait for progression to complete
-    const totalDuration = (currentTime - startTime + 0.1) * 1000;
-    await new Promise(resolve => setTimeout(resolve, totalDuration));
-  }, [selectedChords, tempo, withMetronome, metronomeMultiplier]);
-
-  // Schedule a chord with precise timing
-  const scheduleChord = (notes: string[], startTime: number, duration: number) => {
-    notes.forEach(note => {
-      scheduleNote(note, startTime, duration);
-    });
-  };
+  // REMOVED OLD CONFLICTING AUDIO FUNCTIONS
 
   // Schedule a single note with precise timing
   const scheduleNote = (note: string, startTime: number, duration: number, octaveOffset: number = 0) => {
@@ -310,128 +268,88 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     });
   };
 
-  // Use audioEngine's metronome click method
-  const playMetronomeClick = () => {
-    audioEngine.playMetronomeClick();
-  };
-
-  // Apply voice leading for smoother chord progressions
-  const applyVoiceLeading = (chords: Chord[], notes: string[]) => {
-    if (!chords || chords.length === 0) {
-      return []; // No chords selected, return empty array
-    }
+  // Add generate function
+  const handleGenerate = useCallback(() => {
+    console.log('🎲 GENERATE PRESSED');
     
-    // Return the selected chords as-is for now
-    // Later we can add voice leading logic here
-    return chords;
-  };
+    // Always reset before generating
+    emergencyReset();
+    
+    // Generate new notes
+    generateNew();
+  }, [generateNew, emergencyReset]);
 
   const handleStop = useCallback(() => {
-    console.log('STOP BUTTON PRESSED - Force stopping everything');
-    
-    // Force stop all audio immediately
-    try {
-      audioEngine.stopAll();
-    } catch (error) {
-      console.error('Error stopping audio engine:', error);
-    }
-    
-    // Clear ALL intervals and timeouts
-    if (loopIntervalRef.current) {
-      clearInterval(loopIntervalRef.current);
-      loopIntervalRef.current = null;
-      console.log('Cleared loop interval');
-    }
-    
-    // Force stop Web Audio Context completely
-    try {
-      if (audioEngine.audioContext) {
-        // Suspend audio context to force stop all sounds
-        audioEngine.audioContext.suspend();
-        setTimeout(() => {
-          if (audioEngine.audioContext) {
-            audioEngine.audioContext.resume();
-          }
-        }, 100);
-      }
-    } catch (error) {
-      console.error('Error suspending audio context:', error);
-    }
-    
-    setIsPlaying(false);
-    console.log('Stop complete - isPlaying set to false');
-  }, []);
+    console.log('⏹️ STOP PRESSED');
+    emergencyReset();
+  }, [emergencyReset]);
 
   const toggleLoop = useCallback(() => {
     setIsLooping(!isLooping);
   }, [isLooping]);
 
-  // Monitor chord selection changes and restart playback immediately at beat 1
+  // Monitor chord selection changes and restart immediately
   useEffect(() => {
     const chordsChanged = JSON.stringify(prevChordsRef.current) !== JSON.stringify(selectedChords);
     
     if (isPlaying && chordsChanged) {
-      console.log('Chord selection changed - IMMEDIATE restart from beat 1');
+      console.log('🔄 Chord change detected - immediate restart');
       prevChordsRef.current = selectedChords;
       
-      // Stop all audio immediately
-      audioEngine.stopAll();
-      if (loopIntervalRef.current) {
-        clearInterval(loopIntervalRef.current);
-        loopIntervalRef.current = null;
-      }
+      // Emergency reset to stop everything
+      emergencyReset();
       
-      // Restart immediately from beat 1 - no delay
-      const immediateRestart = async () => {
-        if (isPlaying) {
+      // Restart after brief moment
+      setTimeout(() => {
+        setIsPlaying(true);
+        const startNewSequence = async () => {
           try {
             const sequenceDuration = await playSequenceOnce();
-            loopIntervalRef.current = setInterval(() => {
-              playSequenceOnce();
-            }, sequenceDuration);
+            if (isLooping) {
+              loopIntervalRef.current = setInterval(() => {
+                playSequenceOnce();
+              }, sequenceDuration);
+            }
           } catch (error) {
-            console.error('Immediate restart error:', error);
-            setIsPlaying(false);
+            console.error('❌ Restart error:', error);
+            emergencyReset();
           }
-        }
-      };
-      
-      immediateRestart();
+        };
+        startNewSequence();
+      }, 50);
     } else {
       prevChordsRef.current = selectedChords;
     }
-  }, [selectedChords, isPlaying, playSequenceOnce]);
+  }, [selectedChords, isPlaying, playSequenceOnce, isLooping, emergencyReset]);
 
-  // Monitor tempo and metronome changes for immediate restart
+  // Monitor tempo and metronome changes
   useEffect(() => {
     if (isPlaying) {
-      console.log('Tempo/metronome changed - IMMEDIATE restart from beat 1');
+      console.log('⚡ Settings changed - immediate restart');
       
-      // Stop all audio immediately
-      audioEngine.stopAll();
-      if (loopIntervalRef.current) {
-        clearInterval(loopIntervalRef.current);
-        loopIntervalRef.current = null;
-      }
+      // Emergency reset to stop everything  
+      emergencyReset();
       
-      // Restart immediately from beat 1 - no delay
-      const immediateRestart = async () => {
-        if (isPlaying) {
+      // Restart after brief moment
+      setTimeout(() => {
+        setIsPlaying(true);
+        const startNewSequence = async () => {
           try {
             const sequenceDuration = await playSequenceOnce();
-            loopIntervalRef.current = setInterval(() => {
-              playSequenceOnce();
-            }, sequenceDuration);
+            if (isLooping) {
+              loopIntervalRef.current = setInterval(() => {
+                playSequenceOnce();
+              }, sequenceDuration);
+            }
           } catch (error) {
-            console.error('Immediate restart error:', error);
-            setIsPlaying(false);
+            console.error('❌ Settings restart error:', error);
+            emergencyReset();
           }
-        }
-      };
-      
-      immediateRestart();
+        };
+        startNewSequence();
+      }, 50);
     }
-  }, [tempo, withMetronome, metronomeMultiplier, isPlaying, playSequenceOnce]);
+  }, [tempo, withMetronome, metronomeMultiplier, isPlaying, playSequenceOnce, isLooping, emergencyReset]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -471,14 +389,14 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           break;
         case 'KeyR':
           event.preventDefault();
-          generateNew();
+          handleGenerate();
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, generateNew]);
+  }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, handleGenerate]);
 
   // Update replit.md with the bug fixes
   useEffect(() => {
@@ -567,17 +485,13 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
             <RotateCcw className="w-4 h-4 mr-1" />
             Auto Loop: ON
           </div>
-          <Button onClick={generateNew} variant="outline">
+          <Button onClick={handleGenerate} variant="outline">
             <Shuffle className="w-4 h-4 mr-2" />
             Generate New <span className="text-xs opacity-75">(R)</span>
           </Button>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+
 
         {/* Keyboard shortcuts help */}
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
