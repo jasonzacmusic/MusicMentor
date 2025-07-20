@@ -10,10 +10,10 @@ import { audioEngine } from '@/lib/audio-engine';
 
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
-  selectedChords?: Chord[];
+  selectedChords?: (Chord | null)[];
 }
 
-export default function RandomNotesGenerator({ onNotesChange, selectedChords = [] }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, selectedChords = [null, null, null] }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,18 +104,18 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
         }
       }
 
-      // Check if we have chords selected or should play individual notes
-      const hasSelectedChords = selectedChords && selectedChords.length > 0;
-      console.log('🎼 Mode:', hasSelectedChords ? 'CHORDS' : 'NOTES', 'Count:', selectedChords.length);
-
-      if (hasSelectedChords) {
-        // CHORD MODE: Use selected chords, cycling if needed
-        for (let i = 0; i < 3; i++) {
-          const duration = beatDuration * chordDurations[i];
-          const chordIndex = i % selectedChords.length;
-          const chord = selectedChords[chordIndex];
-          const triadNotes = chord.notes.slice(0, 3); // Ensure only 3 notes
-          console.log(`🎹 Chord ${i + 1}:`, chord.notes);
+      // MIXED MODE: Check each position individually for chord or note
+      console.log('🎼 Mixed Mode - Checking each position:', selectedChords.map((c, i) => c ? `Pos${i+1}:Chord` : `Pos${i+1}:Note`));
+      
+      // Play each position individually (3 positions total)
+      for (let i = 0; i < 3; i++) {
+        const duration = beatDuration * chordDurations[i];
+        const selectedChord = selectedChords[i]; // Get chord for this specific position
+        
+        if (selectedChord) {
+          // CHORD: Play the selected chord for this position
+          const triadNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
+          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, triadNotes);
           
           // Schedule each note in the chord with slight stagger
           triadNotes.forEach((note, noteIndex) => {
@@ -123,26 +123,20 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
               audioEngine.playNote(note, duration * 1000, 0);
             }, (currentTime - startTime) * 1000 + (noteIndex * 50));
           });
-          
-          currentTime += duration;
-        }
-      } else {
-        // NOTE MODE: Play individual notes
-        console.log('🎵 Playing individual notes:', notes);
-        for (let i = 0; i < 3; i++) {
-          const duration = beatDuration * chordDurations[i];
+        } else {
+          // NOTE: Play individual note for this position
           let octaveOffset = 0;
           if (i === 2) octaveOffset = -1; // Note 3 below Note 1
           
-          console.log(`🎵 Note ${i + 1}:`, notes[i], 'octave:', octaveOffset);
+          console.log(`🎵 Position ${i + 1} - Note:`, notes[i], 'octave:', octaveOffset);
           
           // Schedule individual note
           setTimeout(() => {
             audioEngine.playNote(notes[i], duration * 1000, octaveOffset);
           }, (currentTime - startTime) * 1000);
-          
-          currentTime += duration;
         }
+        
+        currentTime += duration;
       }
 
       // Return total duration for timing

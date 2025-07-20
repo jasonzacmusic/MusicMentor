@@ -77,7 +77,7 @@ export default function Home() {
           <div>
             <RandomNotesGenerator 
               onNotesChange={handleNotesChange}
-              selectedChords={selectedChords.filter(chord => chord !== null) as Chord[]}
+              selectedChords={selectedChords}
             />
           </div>
 
