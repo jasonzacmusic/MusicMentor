@@ -23,8 +23,23 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const { playSequence, playChord, isPlaying: audioIsPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
-    // Always use the default Bb, D, G configuration
-    const newNotes = ['Bb', 'D', 'G'];
+    const chromaticNotes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+    
+    // Note 1: Random base note
+    const note1 = chromaticNotes[Math.floor(Math.random() * chromaticNotes.length)];
+    const note1Index = chromaticNotes.indexOf(note1);
+    
+    // Note 2: Higher than Note 1 (2-5 semitones up)
+    const note2Offset = 2 + Math.floor(Math.random() * 4); // 2-5 semitones
+    const note2Index = (note1Index + note2Offset) % 12;
+    const note2 = chromaticNotes[note2Index];
+    
+    // Note 3: Lower than Note 1 (2-5 semitones down)
+    const note3Offset = 2 + Math.floor(Math.random() * 4); // 2-5 semitones
+    const note3Index = (note1Index - note3Offset + 12) % 12;
+    const note3 = chromaticNotes[note3Index];
+    
+    const newNotes = [note1, note2, note3];
     setNotes(newNotes);
     onNotesChange?.(newNotes);
   }, [onNotesChange]);
@@ -36,25 +51,72 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     if (isPlaying) return; // Prevent multiple simultaneous plays
     
     setIsPlaying(true);
+    
+    const playOnce = async () => {
+      if (hasSelectedChords) {
+        // Play chord progression inline to avoid dependency issues
+        if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+          await audioEngine.initialize();
+        }
+
+        const beatDuration = 60 / tempo;
+        const chordDurations = [2, 2, 4];
+        const startTime = audioEngine.audioContext!.currentTime;
+        let currentTime = startTime;
+
+        // Schedule chord playback
+        for (let i = 0; i < 3; i++) {
+          const chord = selectedChords[i];
+          const duration = beatDuration * chordDurations[i];
+          
+          if (chord && chord.notes) {
+            // Play chord notes directly
+            chord.notes.forEach(note => {
+              scheduleNote(note, currentTime, duration);
+            });
+          }
+          
+          currentTime += duration;
+          if (i < 2) {
+            currentTime += 0.1;
+          }
+        }
+
+        // Wait for progression to complete
+        const totalDuration = (currentTime - startTime + 0.1) * 1000;
+        await new Promise(resolve => setTimeout(resolve, totalDuration));
+      } else {
+        // Play note sequence
+        await playSequence(notes, tempo, withMetronome, metronomeMultiplier);
+      }
+    };
+    
     try {
-      do {
-        if (hasSelectedChords) {
-          // Play chord progression with precise timing
-          await playChordProgression();
-        } else {
-          // Play note sequence
-          await playSequence(notes, tempo, withMetronome, metronomeMultiplier);
-        }
+      await playOnce();
+      
+      // If looping, schedule the next iteration
+      if (isLooping) {
+        const loopInterval = setInterval(async () => {
+          if (!isLooping || !isPlaying) {
+            clearInterval(loopInterval);
+            return;
+          }
+          await playOnce();
+        }, 1000); // 1 second pause between loops
         
-        // If looping, add a brief pause before repeating
-        if (isLooping && isPlaying) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      } while (isLooping && isPlaying);
-    } finally {
+        // Store interval reference for cleanup
+        (window as any).currentLoopInterval = loopInterval;
+      }
+    } catch (error) {
+      console.error('Playback error:', error);
       setIsPlaying(false);
     }
-  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, playSequence, isLooping, isPlaying]);
+    
+    // Only stop playing if not looping
+    if (!isLooping) {
+      setIsPlaying(false);
+    }
+  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, playSequence, isLooping]);
 
   // Precise chord progression playback
   const playChordProgression = useCallback(async () => {
@@ -110,7 +172,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     // Wait for progression to complete
     const totalDuration = (currentTime - startTime + 0.1) * 1000;
     await new Promise(resolve => setTimeout(resolve, totalDuration));
-  }, [selectedChords, tempo, withMetronome, metronomeMultiplier, isPlaying]);
+  }, [selectedChords, tempo, withMetronome, metronomeMultiplier]);
 
   // Schedule a chord with precise timing
   const scheduleChord = (notes: string[], startTime: number, duration: number) => {
@@ -202,14 +264,19 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     return notes; // Will enhance this with actual octave adjustments later
   };
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
+    // Clear any active loop interval
+    if ((window as any).currentLoopInterval) {
+      clearInterval((window as any).currentLoopInterval);
+      (window as any).currentLoopInterval = null;
+    }
     setIsPlaying(false);
     setIsLooping(false);
-  };
+  }, []);
 
-  const toggleLoop = () => {
+  const toggleLoop = useCallback(() => {
     setIsLooping(!isLooping);
-  };
+  }, [isLooping]);
 
   const beatTimings = [2, 2, 4];
 
