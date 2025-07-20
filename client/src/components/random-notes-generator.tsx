@@ -108,30 +108,41 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       const hasSelectedChords = selectedChords && selectedChords.length > 0;
       console.log('🎼 Mode:', hasSelectedChords ? 'CHORDS' : 'NOTES', 'Count:', selectedChords.length);
 
-      // Always play exactly 3 positions
-      for (let i = 0; i < 3; i++) {
-        const duration = beatDuration * chordDurations[i];
-        
-        if (hasSelectedChords) {
-          // CHORD MODE: Use selected chords, cycling if needed
+      if (hasSelectedChords) {
+        // CHORD MODE: Use selected chords, cycling if needed
+        for (let i = 0; i < 3; i++) {
+          const duration = beatDuration * chordDurations[i];
           const chordIndex = i % selectedChords.length;
           const chord = selectedChords[chordIndex];
           const triadNotes = chord.notes.slice(0, 3); // Ensure only 3 notes
           console.log(`🎹 Chord ${i + 1}:`, chord.notes);
           
+          // Schedule each note in the chord with slight stagger
           triadNotes.forEach((note, noteIndex) => {
-            scheduleNote(note, currentTime + (noteIndex * 0.05), duration, 0);
+            setTimeout(() => {
+              audioEngine.playNote(note, duration * 1000, 0);
+            }, (currentTime - startTime) * 1000 + (noteIndex * 50));
           });
-        } else {
-          // NOTE MODE: Play individual notes
-          console.log(`🎵 Note ${i + 1}:`, notes[i]);
+          
+          currentTime += duration;
+        }
+      } else {
+        // NOTE MODE: Play individual notes
+        console.log('🎵 Playing individual notes:', notes);
+        for (let i = 0; i < 3; i++) {
+          const duration = beatDuration * chordDurations[i];
           let octaveOffset = 0;
           if (i === 2) octaveOffset = -1; // Note 3 below Note 1
           
-          scheduleNote(notes[i], currentTime, duration, octaveOffset);
+          console.log(`🎵 Note ${i + 1}:`, notes[i], 'octave:', octaveOffset);
+          
+          // Schedule individual note
+          setTimeout(() => {
+            audioEngine.playNote(notes[i], duration * 1000, octaveOffset);
+          }, (currentTime - startTime) * 1000);
+          
+          currentTime += duration;
         }
-        
-        currentTime += duration;
       }
 
       // Return total duration for timing
