@@ -336,9 +336,15 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Update the chord selections
     onChordsChange?.(randomChords);
     
-    // Auto-restart playback if currently playing
+    // Always start playing after selecting random chords
     if (isPlaying) {
+      // If already playing, restart with new chords
       emergencyReset();
+      setTimeout(() => {
+        handlePlay();
+      }, 100);
+    } else {
+      // If not playing, start playing
       setTimeout(() => {
         handlePlay();
       }, 100);
