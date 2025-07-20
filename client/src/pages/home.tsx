@@ -13,12 +13,19 @@ export default function Home() {
   const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A']);
   const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null]);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
-  const [inversionMode, setInversionMode] = useState<'auto' | 'root' | 'first' | 'second'>('auto');
+  const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto']);
 
   const handleNotesChange = (notes: string[]) => {
     setActiveNotes(notes);
     setSelectedNote(notes[0]); // Use the first note (base note) for chord harmonization
     setSelectedChords([null, null, null]); // Reset selected chords when notes change
+    setInversionModes(['auto', 'auto', 'auto']); // Reset inversion modes
+  };
+
+  const handleInversionChange = (mode: 'auto' | 'root' | 'first' | 'second', noteIndex: number) => {
+    const newModes = [...inversionModes];
+    newModes[noteIndex] = mode;
+    setInversionModes(newModes);
   };
 
   const handleChordSelect = (chord: Chord | null, noteIndex: number) => {
@@ -79,7 +86,7 @@ export default function Home() {
             <RandomNotesGenerator 
               onNotesChange={handleNotesChange}
               selectedChords={selectedChords}
-              inversionMode={inversionMode}
+              inversionModes={inversionModes}
             />
           </div>
 
@@ -99,8 +106,8 @@ export default function Home() {
                     baseNote={note}
                     noteIndex={index}
                     onChordSelect={handleChordSelect}
-                    inversionMode={inversionMode}
-                    onInversionChange={setInversionMode}
+                    inversionMode={inversionModes[index]}
+                    onInversionChange={(mode) => handleInversionChange(mode, index)}
                   />
                 </div>
               );

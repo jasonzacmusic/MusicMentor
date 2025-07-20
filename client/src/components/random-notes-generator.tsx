@@ -11,10 +11,10 @@ import { audioEngine } from '@/lib/audio-engine';
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
   selectedChords?: (Chord | null)[];
-  inversionMode?: 'auto' | 'root' | 'first' | 'second';
+  inversionModes?: ('auto' | 'root' | 'first' | 'second')[];
 }
 
-export default function RandomNotesGenerator({ onNotesChange, selectedChords = [null, null, null], inversionMode = 'auto' }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'] }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -53,33 +53,37 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
 
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
-    if (mode === 'auto' || notes.length !== 3) {
+    if (mode === 'auto') {
       return notes.map(note => ({ note, octave: 0 })); // Return with octave info for auto mode
+    }
+    
+    if (notes.length !== 3) {
+      return notes.map(note => ({ note, octave: 0 }));
     }
     
     const [root, third, fifth] = notes;
     
     switch (mode) {
       case 'root':
-        // Root position: C E G (root in bass)
+        // Root position: C E G (lowest to highest)
         return [
-          { note: root, octave: 0 },
-          { note: third, octave: 0 },
-          { note: fifth, octave: 0 }
+          { note: root, octave: 0 },   // C4
+          { note: third, octave: 0 },  // E4
+          { note: fifth, octave: 0 }   // G4
         ];
       case 'first':
-        // First inversion: E G C (third in bass, root goes up an octave)
+        // First inversion: E G C (third becomes bass note)
         return [
-          { note: third, octave: 0 },
-          { note: fifth, octave: 0 },
-          { note: root, octave: 1 }
+          { note: third, octave: 0 },  // E4 (bass)
+          { note: fifth, octave: 0 },  // G4
+          { note: root, octave: 1 }    // C5 (up an octave)
         ];
       case 'second':
-        // Second inversion: G C E (fifth in bass, root and third go up an octave)
+        // Second inversion: G C E (fifth becomes bass note)
         return [
-          { note: fifth, octave: 0 },
-          { note: root, octave: 1 },
-          { note: third, octave: 1 }
+          { note: fifth, octave: 0 },  // G4 (bass)
+          { note: root, octave: 1 },   // C5 (up an octave)
+          { note: third, octave: 1 }   // E5 (up an octave)
         ];
       default:
         return notes.map(note => ({ note, octave: 0 }));
@@ -151,9 +155,10 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
         if (selectedChord) {
           // CHORD: Play the selected chord for this position
           const baseNotes = selectedChord.notes.slice(0, 3); // Ensure only 3 notes
-          const triadNotes = applyInversion(baseNotes, inversionMode);
+          const currentInversionMode = inversionModes[i]; // Get inversion mode for this specific position
+          const triadNotes = applyInversion(baseNotes, currentInversionMode);
           const noteNames = triadNotes.map(n => n.note);
-          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, noteNames, inversionMode !== 'auto' ? `(${inversionMode})` : '');
+          console.log(`🎹 Position ${i + 1} - Chord:`, selectedChord.name, noteNames, currentInversionMode !== 'auto' ? `(${currentInversionMode})` : '');
           
           // Schedule each note in the chord with slight stagger
           triadNotes.forEach((noteObj, noteIndex) => {
