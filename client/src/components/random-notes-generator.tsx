@@ -337,6 +337,42 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     }
   }, [selectedChords, isPlaying, playSequenceOnce]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input field
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (event.code) {
+        case 'Space':
+          event.preventDefault();
+          if (isPlaying) {
+            handleStop();
+          } else {
+            handlePlay();
+          }
+          break;
+        case 'KeyM':
+          event.preventDefault();
+          setWithMetronome(!withMetronome);
+          break;
+        case 'KeyL':
+          event.preventDefault();
+          toggleLoop();
+          break;
+        case 'KeyR':
+          event.preventDefault();
+          generateNew();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, generateNew]);
+
   const beatTimings = [2, 2, 4];
 
   return (
@@ -366,7 +402,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
                   onCheckedChange={setWithMetronome}
                 />
                 <label htmlFor="metronome" className="text-sm font-medium text-gray-700">
-                  Metronome
+                  Metronome <span className="text-xs opacity-75">(M)</span>
                 </label>
               </div>
               {withMetronome && (
@@ -405,7 +441,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
               className="bg-green-600 hover:bg-green-700"
             >
               <Play className="w-4 h-4 mr-2" />
-              Play
+              Play <span className="text-xs opacity-75">(Space)</span>
             </Button>
           ) : (
             <Button 
@@ -413,7 +449,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
               className="bg-red-600 hover:bg-red-700"
             >
               <Square className="w-4 h-4 mr-2" />
-              Stop
+              Stop <span className="text-xs opacity-75">(Space)</span>
             </Button>
           )}
           <div className="text-sm text-gray-600 flex items-center">
@@ -422,7 +458,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           </div>
           <Button onClick={generateNew} variant="outline">
             <Shuffle className="w-4 h-4 mr-2" />
-            Generate New
+            Generate New <span className="text-xs opacity-75">(R)</span>
           </Button>
         </div>
 
@@ -431,6 +467,16 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
+
+        {/* Keyboard shortcuts help */}
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="text-xs text-gray-600 flex flex-wrap gap-4 justify-center">
+            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Space</kbd> Play/Stop</span>
+            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">M</kbd> Metronome</span>
+            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">L</kbd> Loop</span>
+            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">R</kbd> Generate New</span>
+          </div>
+        </div>
 
         {/* Notes display */}
         <div className="grid grid-cols-3 gap-4">
