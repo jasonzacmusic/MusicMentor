@@ -25,18 +25,16 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const generateNew = useCallback(() => {
     const chromaticNotes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
     
-    // Note 1: Random base note
+    // Note 1: Any of the 12 chromatic notes (random base note)
     const note1 = chromaticNotes[Math.floor(Math.random() * chromaticNotes.length)];
     const note1Index = chromaticNotes.indexOf(note1);
     
-    // Note 2: Higher than Note 1 (2-5 semitones up)
-    const note2Offset = 2 + Math.floor(Math.random() * 4); // 2-5 semitones
-    const note2Index = (note1Index + note2Offset) % 12;
+    // Note 2: Major 3rd up from Note 1 (4 semitones up)
+    const note2Index = (note1Index + 4) % 12;
     const note2 = chromaticNotes[note2Index];
     
-    // Note 3: Lower than Note 1 (2-5 semitones down)
-    const note3Offset = 2 + Math.floor(Math.random() * 4); // 2-5 semitones
-    const note3Index = (note1Index - note3Offset + 12) % 12;
+    // Note 3: Minor 3rd down from Note 1 (3 semitones down)
+    const note3Index = (note1Index - 3 + 12) % 12;
     const note3 = chromaticNotes[note3Index];
     
     const newNotes = [note1, note2, note3];
