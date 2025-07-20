@@ -47,13 +47,34 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           </div>
         </div>
 
-        {/* Chord branches arranged in organized pattern */}
+        {/* Chord branches arranged with Major on right, Minor on left */}
         {availableChords.map((chord, index) => {
-          // Organize chords in clean symmetric pattern
-          // Top row: -120°, -60°, 60°, 120°
-          // Bottom row: -150°, 150°
-          const angles = [-120, -60, 60, 120, -150, 150];
-          const angle = angles[index];
+          // Separate Major and Minor chords by position
+          const isMajor = !chord.name.includes('m') || chord.name.includes('Major');
+          
+          // Right side angles for Major chords: 30°, 90°, 150°
+          // Left side angles for Minor chords: -30°, -90°, -150°
+          const rightAngles = [30, 90, 150];
+          const leftAngles = [-30, -90, -150];
+          
+          let angle;
+          let positionIndex;
+          
+          if (isMajor) {
+            // Count how many major chords we've seen so far
+            const majorCount = availableChords.slice(0, index).filter(c => 
+              !c.name.includes('m') || c.name.includes('Major')
+            ).length;
+            angle = rightAngles[majorCount % 3];
+            positionIndex = majorCount;
+          } else {
+            // Count how many minor chords we've seen so far
+            const minorCount = availableChords.slice(0, index).filter(c => 
+              c.name.includes('m') && !c.name.includes('Major')
+            ).length;
+            angle = leftAngles[minorCount % 3];
+            positionIndex = minorCount + 3; // Offset for color scheme
+          }
           
           const radius = 130;
           const x = Math.cos(angle * Math.PI / 180) * radius;
@@ -101,7 +122,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
             }
           ];
           
-          const colorScheme = chordColors[index];
+          const colorScheme = chordColors[positionIndex % 6];
           
           // Extract interval name from chord name
           const getIntervalName = (chordName: string) => {
