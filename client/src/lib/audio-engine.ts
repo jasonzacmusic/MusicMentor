@@ -240,6 +240,29 @@ export class AudioEngine {
     }
   }
 
+  getFrequency(note: string, octaveOffset: number = 0): number {
+    const baseOctave = 4;
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    
+    // Handle flats by converting to sharps
+    const flatToSharp: Record<string, string> = {
+      'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+    };
+    
+    const normalizedNote = flatToSharp[note] || note;
+    const noteIndex = notes.indexOf(normalizedNote);
+    
+    if (noteIndex === -1) {
+      console.warn(`Unknown note: ${note}`);
+      return 440; // Default to A4
+    }
+    
+    const octave = baseOctave + octaveOffset;
+    const semitones = (octave - 4) * 12 + noteIndex;
+    
+    return 440 * Math.pow(2, semitones / 12);
+  }
+
   destroy(): void {
     if (this.audioContext) {
       this.audioContext.close();
