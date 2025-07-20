@@ -68,46 +68,39 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
   };
 }
 
-// Apply chord inversion and calculate appropriate octave positions for smooth voice leading
+// Apply chord inversion for exactly 3 notes (root, 3rd, 5th)
 function applyInversion(notes: string[], inversion: number): { invertedNotes: string[], octaves: number[] } {
-  // Ensure we always work with exactly 3 notes (triad)
+  // Always work with exactly 3 notes (triad: root, 3rd, 5th)
   const triadNotes = notes.slice(0, 3);
   
   if (inversion === 0) {
-    // Root position - use close voicing with optimal spacing
+    // Root position: root, 3rd, 5th
     return {
       invertedNotes: [...triadNotes],
-      octaves: [0, 0, 1] // Root and 3rd in middle octave, 5th higher for better spacing
+      octaves: [0, 0, 0] // All in same octave for simple, clean sound
     };
   }
   
-  const invertedNotes = [...triadNotes];
-  
   if (inversion === 1) {
-    // First inversion: 3rd in bass
-    const bassNote = invertedNotes.shift()!; // Remove root
-    invertedNotes.push(bassNote); // Put root on top
+    // First inversion: 3rd, 5th, root
     return {
-      invertedNotes,
-      octaves: [0, 0, 1] // 3rd and 5th in middle, root higher
+      invertedNotes: [triadNotes[1], triadNotes[2], triadNotes[0]],
+      octaves: [0, 0, 0] // All in same octave
     };
   }
   
   if (inversion === 2) {
-    // Second inversion: 5th in bass  
-    const root = invertedNotes.shift()!; // Remove root
-    const third = invertedNotes.shift()!; // Remove 3rd
-    invertedNotes.push(third, root); // Put 3rd and root on top
+    // Second inversion: 5th, root, 3rd
     return {
-      invertedNotes,
-      octaves: [0, 1, 1] // 5th in bass, 3rd and root higher
+      invertedNotes: [triadNotes[2], triadNotes[0], triadNotes[1]],
+      octaves: [0, 0, 0] // All in same octave
     };
   }
   
-  // Default for other inversions - return triad
+  // Default - root position
   return {
     invertedNotes: triadNotes,
-    octaves: triadNotes.map(() => 0)
+    octaves: [0, 0, 0]
   };
 }
 

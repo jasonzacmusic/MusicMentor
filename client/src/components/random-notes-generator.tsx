@@ -89,17 +89,11 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       const chord = voiceLedChords[i];
       
       if (chord && chord.notes) {
-        // Play the selected chord with exactly 3 notes (triad only)
-        const triadNotes = chord.notes.slice(0, 3); // Use only first 3 notes for triads
+        // Play exactly 3 notes for each chord (simple triad: root, 3rd, 5th)
+        const triadNotes = chord.notes.slice(0, 3); // Ensure only 3 notes
         triadNotes.forEach((note, noteIndex) => {
-          // Use octave information from chord if available, otherwise apply voice leading
-          let octaveOffset = 0;
-          if (chord.octaves && chord.octaves[noteIndex] !== undefined) {
-            octaveOffset = chord.octaves[noteIndex];
-          } else {
-            // Default voice leading for smooth transitions
-            octaveOffset = noteIndex === 0 ? 0 : (noteIndex === 1 ? 0 : 1);
-          }
+          // Simple octave placement: root at middle C, 3rd same octave, 5th same or higher
+          const octaveOffset = noteIndex === 2 ? 1 : 0; // 5th goes up one octave for clarity
           scheduleNote(note, currentTime + (noteIndex * 0.05), duration, octaveOffset);
         });
       } else {
