@@ -275,15 +275,34 @@ export class AudioEngine {
   }
 
   stopAll(): void {
+    console.log('AudioEngine.stopAll() called - stopping', this.activeOscillators.size, 'oscillators');
+    
     // Stop all active oscillators immediately
     this.activeOscillators.forEach(oscillator => {
       try {
         oscillator.stop();
+        oscillator.disconnect();
       } catch (error) {
-        // Oscillator might already be stopped
+        // Oscillator might already be stopped - ignore error
       }
     });
     this.activeOscillators.clear();
+    
+    // Reset master gain to ensure silence
+    if (this.masterGainNode) {
+      try {
+        this.masterGainNode.gain.setValueAtTime(0, this.audioContext?.currentTime || 0);
+        setTimeout(() => {
+          if (this.masterGainNode) {
+            this.masterGainNode.gain.setValueAtTime(0.3, this.audioContext?.currentTime || 0);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error resetting master gain:', error);
+      }
+    }
+    
+    console.log('AudioEngine.stopAll() complete');
   }
 
   setMasterVolume(volume: number): void {

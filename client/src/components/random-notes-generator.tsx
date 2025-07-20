@@ -289,83 +289,55 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   };
 
   const handleStop = useCallback(() => {
-    // Stop all audio immediately
-    audioEngine.stopAll();
+    console.log('STOP BUTTON PRESSED - Force stopping everything');
     
-    // Clear loop interval if active
+    // Force stop all audio immediately
+    try {
+      audioEngine.stopAll();
+    } catch (error) {
+      console.error('Error stopping audio engine:', error);
+    }
+    
+    // Clear ALL intervals and timeouts
     if (loopIntervalRef.current) {
       clearInterval(loopIntervalRef.current);
       loopIntervalRef.current = null;
+      console.log('Cleared loop interval');
     }
+    
+    // Force stop Web Audio Context completely
+    try {
+      if (audioEngine.audioContext) {
+        // Suspend audio context to force stop all sounds
+        audioEngine.audioContext.suspend();
+        setTimeout(() => {
+          if (audioEngine.audioContext) {
+            audioEngine.audioContext.resume();
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error suspending audio context:', error);
+    }
+    
     setIsPlaying(false);
+    console.log('Stop complete - isPlaying set to false');
   }, []);
 
   const toggleLoop = useCallback(() => {
     setIsLooping(!isLooping);
   }, [isLooping]);
 
-  // Monitor changes that require playback restart during play
+  // Clean up on unmount
   useEffect(() => {
-    const chordsChanged = JSON.stringify(prevChordsRef.current) !== JSON.stringify(selectedChords);
-    
-    if (isPlaying && (chordsChanged)) {
-      prevChordsRef.current = selectedChords;
-      
-      // Stop all current audio immediately to prevent chaos
-      audioEngine.stopAll();
-      
-      // Clear interval
+    return () => {
       if (loopIntervalRef.current) {
         clearInterval(loopIntervalRef.current);
         loopIntervalRef.current = null;
       }
-      
-      const restartPlayback = async () => {
-        try {
-          // Small delay to ensure all audio has stopped
-          await new Promise(resolve => setTimeout(resolve, 50));
-          const sequenceDuration = await playSequenceOnce();
-          loopIntervalRef.current = setInterval(() => {
-            playSequenceOnce();
-          }, sequenceDuration);
-        } catch (error) {
-          console.error('Restart playback error:', error);
-        }
-      };
-      
-      restartPlayback();
-    } else {
-      prevChordsRef.current = selectedChords;
-    }
-  }, [selectedChords, isPlaying, playSequenceOnce]);
-
-  // Monitor tempo and metronome changes for seamless updates
-  useEffect(() => {
-    if (isPlaying) {
-      // Stop all current audio and restart with new settings
       audioEngine.stopAll();
-      
-      if (loopIntervalRef.current) {
-        clearInterval(loopIntervalRef.current);
-        loopIntervalRef.current = null;
-      }
-      
-      const restartWithNewSettings = async () => {
-        try {
-          // Small delay to ensure all audio has stopped
-          await new Promise(resolve => setTimeout(resolve, 50));
-          const sequenceDuration = await playSequenceOnce();
-          loopIntervalRef.current = setInterval(() => {
-            playSequenceOnce();
-          }, sequenceDuration);
-        } catch (error) {
-          console.error('Settings restart error:', error);
-        }
-      };
-      
-      restartWithNewSettings();
-    }
-  }, [tempo, withMetronome, metronomeMultiplier, isPlaying, playSequenceOnce]);
+    };
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
