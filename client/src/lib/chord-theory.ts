@@ -119,10 +119,18 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   const chords: Chord[] = [];
   
   // 1. Root Major (Root position)
-  chords.push(getChordFromNote(rootNote, 'major', 0));
+  const rootMajor = getChordFromNote(rootNote, 'major', 0);
+  chords.push({
+    ...rootMajor,
+    name: rootNote
+  });
   
   // 2. Root Minor (Root position) 
-  chords.push(getChordFromNote(rootNote, 'minor', 0));
+  const rootMinor = getChordFromNote(rootNote, 'minor', 0);
+  chords.push({
+    ...rootMinor,
+    name: `${rootNote}m`
+  });
   
   // 3. Perfect 4th Major with first inversion for better voice leading
   const p4Index = (rootIndex - 7 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
@@ -130,14 +138,14 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   const p4MajorChord = getChordFromNote(p4Note, 'major', 1); // Use first inversion
   chords.push({
     ...p4MajorChord,
-    name: `${p4MajorChord.rootNote} Major (${rootNote} is the P5)`
+    name: `${p4MajorChord.rootNote} (P5)`
   });
   
   // 4. Perfect 4th Minor with first inversion
   const p4MinorChord = getChordFromNote(p4Note, 'minor', 1);
   chords.push({
     ...p4MinorChord,
-    name: `${p4MinorChord.rootNote} Minor (${rootNote} is the P5)`
+    name: `${p4MinorChord.rootNote}m (P5)`
   });
   
   // 5. Major 6th Major with second inversion for smooth voice leading
@@ -146,7 +154,7 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   const m6MajorChord = getChordFromNote(m6Note, 'major', 2); // Use second inversion
   chords.push({
     ...m6MajorChord,
-    name: `${m6MajorChord.rootNote} Major (${rootNote} is the M3)`
+    name: `${m6MajorChord.rootNote} (M3)`
   });
   
   // 6. Minor 6th Minor with second inversion
@@ -155,7 +163,7 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   const m6MinorChord = getChordFromNote(m6MinorNote, 'minor', 2);
   chords.push({
     ...m6MinorChord,
-    name: `${m6MinorChord.rootNote} Minor (${rootNote} is the m3)`
+    name: `${m6MinorChord.rootNote}m (m3)`
   });
   
   return chords;

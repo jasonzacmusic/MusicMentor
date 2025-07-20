@@ -35,16 +35,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-gray-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Music className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Music className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-xl font-medium text-gray-900">ChordCraft</h1>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Chord Trees
+                </h1>
+                <p className="text-xs text-gray-500 -mt-1">Music Theory Practice</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm">
@@ -60,29 +65,31 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Skill Level Selector */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-medium text-gray-900">Practice Session</h2>
-              <p className="text-gray-600">Generate random notes and build chord progressions</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-600">Skill Level:</span>
-              <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Practice Session Header */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/20">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Practice Session</h2>
+                <p className="text-gray-600 text-lg">Explore chord relationships through interactive note sequences</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-gray-700">Skill Level:</span>
+                <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
+                  <SelectTrigger className="w-40 bg-white/80 border-gray-200 hover:bg-white transition-all">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">🌱 Beginner</SelectItem>
+                    <SelectItem value="intermediate">🌿 Intermediate</SelectItem>
+                    <SelectItem value="advanced">🌳 Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
           {/* Random Notes Generator */}
-          <div>
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/20">
             <RandomNotesGenerator 
               onNotesChange={handleNotesChange}
               onChordsChange={setSelectedChords}
@@ -91,29 +98,49 @@ export default function Home() {
             />
           </div>
 
-          {/* Chord Skill Level Selectors for each note */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {activeNotes.map((note, index) => {
-              const noteLabels = ['Note 1 (Base)', 'Note 2 (Major 3rd)', 'Note 3 (Minor 3rd)'];
-              const timings = ['2 beats', '2 beats', '4 beats'];
-              
-              return (
-                <div key={`${note}-${index}`} className="space-y-3">
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium text-gray-900">{noteLabels[index]}</h3>
-                    <p className="text-sm text-gray-600">{note} • {timings[index]}</p>
+          {/* Chord Trees - Visual tree structure for each note */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+            <h3 className="text-2xl font-bold text-center text-gray-900 mb-8">Chord Trees</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              {activeNotes.map((note, index) => {
+                const noteLabels = ['Note 1 (Base)', 'Note 2 (Major 3rd)', 'Note 3 (Minor 3rd)'];
+                const timings = ['2 beats', '2 beats', '4 beats'];
+                
+                return (
+                  <div key={`${note}-${index}`} className="relative">
+                    {/* Tree Container */}
+                    <div className="relative flex flex-col items-center">
+                      {/* Tree Title */}
+                      <div className="text-center mb-6">
+                        <h4 className="text-xl font-bold text-gray-900">{noteLabels[index]}</h4>
+                        <p className="text-sm text-gray-600">{timings[index]}</p>
+                      </div>
+
+                      {/* Root Note (Trunk) */}
+                      <div className="relative z-10 mb-8">
+                        <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                          <span className="text-2xl font-bold text-white">{note}</span>
+                        </div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-8 bg-gradient-to-b from-amber-600 to-amber-800"></div>
+                      </div>
+
+                      {/* Chord Selector with Tree Layout */}
+                      <div className="relative">
+                        <ChordSkillSelector
+                          baseNote={note}
+                          noteIndex={index}
+                          selectedChord={selectedChords[index]}
+                          onChordSelect={handleChordSelect}
+                          inversionMode={inversionModes[index]}
+                          onInversionChange={(mode) => handleInversionChange(mode, index)}
+                          treeLayout={true}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <ChordSkillSelector
-                    baseNote={note}
-                    noteIndex={index}
-                    selectedChord={selectedChords[index]}
-                    onChordSelect={handleChordSelect}
-                    inversionMode={inversionModes[index]}
-                    onInversionChange={(mode) => handleInversionChange(mode, index)}
-                  />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </main>

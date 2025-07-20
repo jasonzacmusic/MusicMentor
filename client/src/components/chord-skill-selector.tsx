@@ -77,7 +77,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
                 >
                   <div className="space-y-2">
                     <div className="font-medium text-gray-900 text-sm text-center">
-                      {chord.name.replace('Minor', 'minor')}
+                      {chord.name}
                     </div>
                     
                     {/* Show inversion controls only when this chord is selected */}
@@ -122,7 +122,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           <CardContent className="p-6">
             <div className="space-y-4">
               <h4 className="text-sm font-medium text-gray-700 text-center">
-                {selectedChord.name.replace('Minor', 'minor')} on Piano
+                {selectedChord.name} on Piano
               </h4>
               <div className="flex justify-center">
                 <PianoKeyboard 
@@ -134,7 +134,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
               </div>
               <div className="text-center">
                 <div className="text-xs text-gray-600">
-                  {selectedChord.name.replace('Minor', 'minor')}
+                  {selectedChord.name}
                 </div>
               </div>
             </div>
