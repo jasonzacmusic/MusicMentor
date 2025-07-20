@@ -1,10 +1,19 @@
-import { CHROMATIC_NOTES, CHORD_INTERVALS, CHORD_NAMES } from './music-constants';
+import { CHROMATIC_NOTES, MAJOR_CHORD_NOTES, MINOR_CHORD_NOTES, CHORD_INTERVALS, CHORD_NAMES } from './music-constants';
 
 export interface Chord {
   name: string;
   notes: string[];
   type: string;
   rootNote: string;
+}
+
+// Helper function to get proper note name based on chord type
+function getProperNoteName(chromaticIndex: number, chordType: 'major' | 'minor'): string {
+  if (chordType === 'major') {
+    return MAJOR_CHORD_NOTES[chromaticIndex];
+  } else {
+    return MINOR_CHORD_NOTES[chromaticIndex];
+  }
 }
 
 export function generateRandomNotes(): string[] {
@@ -31,16 +40,21 @@ export function getChordFromNote(rootNote: string, chordType: string): Chord {
     throw new Error(`Invalid root note or chord type: ${rootNote}, ${chordType}`);
   }
 
+  // Use proper note naming based on chord type
+  const chordTypeForNaming = (chordType === 'major' || chordType === 'major7' || chordType === 'dominant7' || chordType === 'augmented' || chordType === 'sus2' || chordType === 'sus4') ? 'major' : 'minor';
+  
+  const properRootNote = getProperNoteName(rootIndex, chordTypeForNaming);
+  
   const notes = intervals.map(interval => {
     const noteIndex = (rootIndex + interval) % CHROMATIC_NOTES.length;
-    return CHROMATIC_NOTES[noteIndex];
+    return getProperNoteName(noteIndex, chordTypeForNaming);
   });
 
   return {
-    name: `${rootNote} ${CHORD_NAMES[chordType]}`,
+    name: `${properRootNote} ${CHORD_NAMES[chordType]}`,
     notes,
     type: chordType,
-    rootNote
+    rootNote: properRootNote
   };
 }
 
@@ -62,31 +76,35 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   // 3. Perfect 4th Major (root note is the perfect 5th of this chord)
   const p4Index = (rootIndex - 7 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
   const p4Note = CHROMATIC_NOTES[p4Index];
+  const p4MajorChord = getChordFromNote(p4Note, 'major');
   chords.push({
-    ...getChordFromNote(p4Note, 'major'),
-    name: `${p4Note} Major (${rootNote} is the P5)`
+    ...p4MajorChord,
+    name: `${p4MajorChord.rootNote} Major (${rootNote} is the P5)`
   });
   
   // 4. Perfect 4th Minor (root note is the perfect 5th of this chord)
+  const p4MinorChord = getChordFromNote(p4Note, 'minor');
   chords.push({
-    ...getChordFromNote(p4Note, 'minor'),
-    name: `${p4Note} Minor (${rootNote} is the P5)`
+    ...p4MinorChord,
+    name: `${p4MinorChord.rootNote} Minor (${rootNote} is the P5)`
   });
   
   // 5. Major 6th Major (root note is the major 3rd of this chord)
   const m6Index = (rootIndex - 4 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
   const m6Note = CHROMATIC_NOTES[m6Index];
+  const m6MajorChord = getChordFromNote(m6Note, 'major');
   chords.push({
-    ...getChordFromNote(m6Note, 'major'),
-    name: `${m6Note} Major (${rootNote} is the M3)`
+    ...m6MajorChord,
+    name: `${m6MajorChord.rootNote} Major (${rootNote} is the M3)`
   });
   
   // 6. Minor 6th Minor (root note is the minor 3rd of this chord)
   const m6MinorIndex = (rootIndex - 3 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length;
   const m6MinorNote = CHROMATIC_NOTES[m6MinorIndex];
+  const m6MinorChord = getChordFromNote(m6MinorNote, 'minor');
   chords.push({
-    ...getChordFromNote(m6MinorNote, 'minor'),
-    name: `${m6MinorNote} Minor (${rootNote} is the m3)`
+    ...m6MinorChord,
+    name: `${m6MinorChord.rootNote} Minor (${rootNote} is the m3)`
   });
   
   return chords;
