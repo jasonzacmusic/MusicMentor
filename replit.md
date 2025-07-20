@@ -10,7 +10,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Latest)
 
-**July 20, 2025:**
+**July 20, 2025 - Latest Session:**
+- Fixed critical control responsiveness bugs:
+  - Metronome toggle now works seamlessly during playback without requiring "Generate New"
+  - Tempo and metronome speed changes apply instantly while music plays
+  - Chord selection changes now update immediately without delay
+  - All control changes restart playback smoothly for real-time responsiveness
+- Implemented strict chord audio constraints:
+  - All chords limited to exactly 3 notes (root, 3rd, 5th) 
+  - All chord notes constrained within 1 octave below to 1 octave above middle C
+  - Removed complex voice leading that was adding extra notes
+- Added comprehensive keyboard shortcuts:
+  - Space: Play/Stop toggle
+  - M: Metronome toggle  
+  - L: Loop toggle
+  - R: Generate new notes
+  - Keyboard shortcuts include visual indicators and help panel
+
+**July 20, 2025 - Earlier:**
 - Updated random note generation to use specific interval relationships:
   - Note 1: Any of the 12 chromatic notes (base note)
   - Note 2: Major 3rd up from Note 1 (4 semitones)

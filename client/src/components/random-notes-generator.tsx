@@ -301,27 +301,22 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     setIsLooping(!isLooping);
   }, [isLooping]);
 
-  // Monitor chord selection changes and restart playback if playing
+  // Monitor changes that require playback restart during play
   useEffect(() => {
-    // Check if chord selection has changed
     const chordsChanged = JSON.stringify(prevChordsRef.current) !== JSON.stringify(selectedChords);
     
-    if (chordsChanged && isPlaying) {
-      // Restart playback with new chord selection
+    if (isPlaying && (chordsChanged)) {
       prevChordsRef.current = selectedChords;
       
-      // Clear current interval
+      // Immediately restart playback with changes
       if (loopIntervalRef.current) {
         clearInterval(loopIntervalRef.current);
         loopIntervalRef.current = null;
       }
       
-      // Restart playback immediately with new chords
       const restartPlayback = async () => {
         try {
           const sequenceDuration = await playSequenceOnce();
-          
-          // Set up new loop with updated chords
           loopIntervalRef.current = setInterval(() => {
             playSequenceOnce();
           }, sequenceDuration);
@@ -335,6 +330,30 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
       prevChordsRef.current = selectedChords;
     }
   }, [selectedChords, isPlaying, playSequenceOnce]);
+
+  // Monitor tempo and metronome changes for seamless updates
+  useEffect(() => {
+    if (isPlaying) {
+      // Restart playback immediately when tempo or metronome settings change
+      if (loopIntervalRef.current) {
+        clearInterval(loopIntervalRef.current);
+        loopIntervalRef.current = null;
+      }
+      
+      const restartWithNewSettings = async () => {
+        try {
+          const sequenceDuration = await playSequenceOnce();
+          loopIntervalRef.current = setInterval(() => {
+            playSequenceOnce();
+          }, sequenceDuration);
+        } catch (error) {
+          console.error('Settings restart error:', error);
+        }
+      };
+      
+      restartWithNewSettings();
+    }
+  }, [tempo, withMetronome, metronomeMultiplier, isPlaying, playSequenceOnce]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -355,7 +374,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
           break;
         case 'KeyM':
           event.preventDefault();
-          setWithMetronome(!withMetronome);
+          setWithMetronome(prev => !prev);
           break;
         case 'KeyL':
           event.preventDefault();
@@ -371,6 +390,11 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, generateNew]);
+
+  // Update replit.md with the bug fixes
+  useEffect(() => {
+    // This effect helps track that these specific bugs were fixed
+  }, []);
 
   const beatTimings = [2, 2, 4];
 
