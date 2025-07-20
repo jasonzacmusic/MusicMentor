@@ -121,8 +121,8 @@ export class AudioEngine {
     
     for (let i = 0; i < notes.length && i < timings.length; i++) {
       const duration = beatDuration * timings[i];
-      // Play all notes at their correct pitch (no octave offset)
-      const octaveOffset = 0;
+      // Note 3 plays an octave lower to make it clearly lower than Note 1
+      const octaveOffset = i === 2 ? -1 : 0;
       
       // Schedule the note to play at precise time
       this.scheduleNote(notes[i], currentTime, duration, octaveOffset);

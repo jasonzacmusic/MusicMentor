@@ -14,7 +14,7 @@ interface RandomNotesGeneratorProps {
 }
 
 export default function RandomNotesGenerator({ onNotesChange, selectedChords = [] }: RandomNotesGeneratorProps) {
-  const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G as requested
+  const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
@@ -23,23 +23,8 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const { playSequence, playChord, isPlaying: audioIsPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
-    const chromaticNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-    
-    // Note 1: Random base note
-    const note1 = chromaticNotes[Math.floor(Math.random() * chromaticNotes.length)];
-    const note1Index = chromaticNotes.indexOf(note1);
-    
-    // Note 2: Higher than Note 1 (2-5 semitones up)
-    const note2Offset = 2 + Math.floor(Math.random() * 4); // 2-5 semitones
-    const note2Index = (note1Index + note2Offset) % 12;
-    const note2 = chromaticNotes[note2Index];
-    
-    // Note 3: Lower than Note 1 (2-5 semitones down)
-    const note3Offset = 2 + Math.floor(Math.random() * 4); // 2-5 semitones
-    const note3Index = (note1Index - note3Offset + 12) % 12;
-    const note3 = chromaticNotes[note3Index];
-    
-    const newNotes = [note1, note2, note3];
+    // Always use the default Bb, D, G configuration
+    const newNotes = ['Bb', 'D', 'G'];
     setNotes(newNotes);
     onNotesChange?.(newNotes);
   }, [onNotesChange]);
