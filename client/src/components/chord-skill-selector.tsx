@@ -23,6 +23,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, onChordSelect 
   }, [baseNote, onChordSelect, noteIndex]);
 
   const handleSelectChord = (chord: Chord) => {
+    console.log(`Selecting chord for note ${noteIndex}:`, chord);
     setSelectedChord(chord);
     onChordSelect(chord, noteIndex);
   };

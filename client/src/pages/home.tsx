@@ -20,10 +20,12 @@ export default function Home() {
     setSelectedChords([null, null, null]); // Reset selected chords when notes change
   };
 
-  const handleChordSelect = (chord: Chord, noteIndex: number) => {
+  const handleChordSelect = (chord: Chord | null, noteIndex: number) => {
+    console.log(`Home: Handling chord selection for note ${noteIndex}:`, chord);
     const newSelectedChords = [...selectedChords];
     newSelectedChords[noteIndex] = chord;
     setSelectedChords(newSelectedChords);
+    console.log('Updated selectedChords:', newSelectedChords);
   };
 
   return (
