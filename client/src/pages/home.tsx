@@ -3,12 +3,16 @@ import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector from '@/components/chord-skill-selector';
 import { Music, HelpCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Chord } from '@/lib/chord-theory';
+
+type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export default function Home() {
   const [selectedNote, setSelectedNote] = useState('C');
   const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A']);
   const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null]);
+  const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
 
   const handleNotesChange = (notes: string[]) => {
     setActiveNotes(notes);
@@ -48,6 +52,27 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
+          {/* Skill Level Selector */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-medium text-gray-900">Practice Session</h2>
+              <p className="text-gray-600">Generate random notes and build chord progressions</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">Skill Level:</span>
+              <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">Beginner</SelectItem>
+                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                  <SelectItem value="advanced">Advanced</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Random Notes Generator */}
           <div>
             <RandomNotesGenerator 

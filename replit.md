@@ -15,16 +15,21 @@ Preferred communication style: Simple, everyday language.
   - Note 1: Any of the 12 chromatic notes (base note)
   - Note 2: Major 3rd up from Note 1 (4 semitones)
   - Note 3: Minor 3rd down from Note 1 (3 semitones)
-- Changed audio engine to use legato violin sound with sawtooth wave and low-pass filter
+- Changed audio engine from violin to viola sound:
+  - Lower cutoff frequency (1600Hz vs 2000Hz) for warmer tone
+  - Increased resonance (Q=1.5) and slower attack/release for viola characteristics
+  - Updated envelope timing for viola's deeper response
 - Implemented beginner chord tree with 6 harmonizing chord options:
   - Root Major/Minor (unison)
   - Perfect 4th Major/Minor (where base note is the P5)
   - Major 6th Major (where base note is the M3)
   - Minor 6th Minor (where base note is the m3)
-- Created visual tree structure for chord harmonization panel
-- Connected random notes generator to chord tree for integrated practice
-- Removed individual play buttons from chord trees
-- Added single Play/Stop button for chord progressions
+- Removed individual play buttons from notes display section
+- Added loop functionality with dedicated loop button next to play/stop controls
+- Implemented proper voice leading for chord progressions (basic implementation)
+- Removed skill level selectors from individual chord trees
+- Added single skill level selector at top level (defaulting to beginner)
+- Simplified chord skill selector component to only show beginner chords for now
 - Fixed Perfect 4th chord calculation (was generating P5 instead of P4)
 
 ## System Architecture

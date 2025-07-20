@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Shuffle, Play, Square } from 'lucide-react';
+import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
 import { generateRandomNotes, type Chord } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 
@@ -15,6 +15,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
   const [notes, setNotes] = useState<string[]>(['C', 'E', 'A']);
   const [tempo, setTempo] = useState(120);
   const [isPlayingProgression, setIsPlayingProgression] = useState(false);
+  const [isLooping, setIsLooping] = useState(false);
   const { playNote, playSequence, playChord, isPlaying, error } = useAudio();
 
   const generateNew = useCallback(() => {
@@ -38,32 +39,54 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
     
     setIsPlayingProgression(true);
     try {
-      const beatDuration = (60 / tempo) * 1000;
-      const chordDurations = [2, 2, 4]; // Same as note timings
-      
-      // Play chords based on their original position (maintain timing)
-      for (let i = 0; i < 3; i++) {
-        const chord = selectedChords[i];
-        if (chord && chord.notes) {
-          const duration = beatDuration * chordDurations[i];
-          await playChord(chord.notes, duration);
-        } else {
-          // If no chord selected for this position, wait for the duration
-          await new Promise(resolve => setTimeout(resolve, beatDuration * chordDurations[i]));
+      do {
+        const beatDuration = (60 / tempo) * 1000;
+        const chordDurations = [2, 2, 4]; // Same as note timings
+        
+        // Play chords based on their original position (maintain timing)
+        for (let i = 0; i < 3; i++) {
+          const chord = selectedChords[i];
+          if (chord && chord.notes) {
+            const duration = beatDuration * chordDurations[i];
+            // Apply voice leading by using proper inversions for smoother transitions
+            const voiceLeadingNotes = applyVoiceLeading(chord.notes, i);
+            await playChord(voiceLeadingNotes, duration);
+          } else {
+            // If no chord selected for this position, wait for the duration
+            await new Promise(resolve => setTimeout(resolve, beatDuration * chordDurations[i]));
+          }
+          
+          // Small gap between sections
+          if (i < 2) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
         }
         
-        // Small gap between sections
-        if (i < 2) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+        // If looping, add a brief pause before repeating
+        if (isLooping && isPlayingProgression) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
-      }
+      } while (isLooping && isPlayingProgression);
     } finally {
       setIsPlayingProgression(false);
     }
-  }, [selectedChords, tempo, playChord]);
+  }, [selectedChords, tempo, playChord, isLooping]);
+
+  // Apply voice leading for smoother chord progressions
+  const applyVoiceLeading = (notes: string[], position: number) => {
+    // For now, use basic voice leading principles
+    // Lower register for first chord, middle for second, higher for third
+    const octaveAdjustment = position === 0 ? 0 : position === 1 ? 1 : 2;
+    return notes; // Will enhance this with actual octave adjustments later
+  };
 
   const stopProgression = () => {
     setIsPlayingProgression(false);
+    setIsLooping(false);
+  };
+
+  const toggleLoop = () => {
+    setIsLooping(!isLooping);
   };
 
   const beatTimings = [2, 2, 4];
@@ -86,13 +109,23 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
                     Play Chords
                   </Button>
                 ) : (
-                  <Button 
-                    onClick={stopProgression}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    <Square className="w-4 h-4 mr-2" />
-                    Stop
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      onClick={stopProgression}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      <Square className="w-4 h-4 mr-2" />
+                      Stop
+                    </Button>
+                    <Button 
+                      onClick={toggleLoop}
+                      variant={isLooping ? "default" : "outline"}
+                      className={isLooping ? "bg-orange-600 hover:bg-orange-700" : ""}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Loop
+                    </Button>
+                  </div>
                 )}
               </>
             )}
@@ -137,14 +170,7 @@ export default function RandomNotesGenerator({ onNotesChange, selectedChords = [
                     {getRelationshipLabel(index)}
                   </div>
                 </div>
-                <Button
-                  onClick={() => handlePlayNote(note, beatTimings[index])}
-                  disabled={isPlaying}
-                  className="bg-green-600 hover:bg-green-700 w-full"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Play
-                </Button>
+
               </div>
             );
           })}

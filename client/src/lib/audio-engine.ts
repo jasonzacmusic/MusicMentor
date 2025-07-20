@@ -41,23 +41,23 @@ export class AudioEngine {
     gainNode.connect(this.masterGainNode);
 
     oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-    oscillator.type = 'sawtooth'; // Violin-like sawtooth wave
+    oscillator.type = 'sawtooth'; // Viola-like sawtooth wave
 
-    // Create a filter for violin-like timbre
+    // Create a filter for viola-like timbre (deeper and warmer than violin)
     const filter = this.audioContext.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(2000, this.audioContext.currentTime);
-    filter.Q.setValueAtTime(1, this.audioContext.currentTime);
+    filter.frequency.setValueAtTime(1600, this.audioContext.currentTime); // Lower cutoff for warmer sound
+    filter.Q.setValueAtTime(1.5, this.audioContext.currentTime); // Slightly higher resonance
 
     oscillator.connect(filter);
     filter.connect(gainNode);
 
-    // Legato violin ADSR envelope - smoother attack and longer sustain
+    // Legato viola ADSR envelope - smoother attack and longer sustain with warmer tone
     const now = this.audioContext.currentTime;
-    const attackTime = 0.2; // Slower attack for legato
-    const decayTime = 0.15;
-    const sustainLevel = 0.8; // Higher sustain for legato
-    const releaseTime = 0.4; // Longer release for legato
+    const attackTime = 0.25; // Slightly slower attack for viola's deeper response
+    const decayTime = 0.2;
+    const sustainLevel = 0.75; // Rich sustain for viola's warmth
+    const releaseTime = 0.5; // Longer release for viola's resonance
 
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(0.8, now + attackTime);
