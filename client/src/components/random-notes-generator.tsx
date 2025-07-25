@@ -165,9 +165,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const beatDuration = 60 / tempo;
       const chordDurations = [2, 2, 4]; // beats per position
       
-      // Debug timing calculations
+      // Debug timing calculations with simple alert
       const durations = chordDurations.map(beats => beatDuration * beats);
-      alert(`Timing Debug - BPM:${tempo}, BeatDur:${beatDuration.toFixed(2)}s, Durations:${durations.map(d => d.toFixed(2)).join('s, ')}s`);
+      const timingInfo = `BPM:${tempo}, Durations:${durations.map(d => d.toFixed(2)).join(',')}`;
 
       // Start immediately at the next audio context time (beat 1)
       const startTime = audioEngine.audioContext!.currentTime + 0.01;
@@ -202,10 +202,16 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.log("🔍 DEBUG: selectedChords state:", selectedChords);
       console.log("🔍 DEBUG: chordDurations:", chordDurations);
 
+      // Create timing debug string
+      let timingDebug = '';
+      
       // Play each position individually (3 positions total)
       for (let i = 0; i < 3; i++) {
         const duration = beatDuration * chordDurations[i];
         const selectedChord = selectedChords[i]; // Get chord for this specific position
+        
+        const noteStartTime = (currentTime - startTime) * 1000;
+        timingDebug += `Note${i+1}:Start=${noteStartTime.toFixed(0)}ms,Dur=${(duration*1000).toFixed(0)}ms | `;
         
         console.log(`🎯 Position ${i + 1}: duration=${duration.toFixed(3)}s (${chordDurations[i]} beats), hasChord=${!!selectedChord}`);
 
@@ -268,9 +274,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           const noteStartTime = (currentTime - startTime) * 1000;
           const noteDurationMs = duration * 1000;
           
-          // Debug ALL note timings with alert
-          alert(`Note ${i+1} (${notes[i]}): Start=${noteStartTime.toFixed(0)}ms, Duration=${noteDurationMs.toFixed(0)}ms, CurrentTime=${currentTime.toFixed(3)}`);
-          
+
 
           // Schedule individual note
           const timeout = setTimeout(
@@ -292,6 +296,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
         currentTime += duration;
       }
+      
+      // Show consolidated timing debug after loop
+      alert(`${timingInfo} | ${timingDebug}`);
 
       // Calculate actual duration in milliseconds
       const totalDurationSeconds = currentTime - startTime;
@@ -318,9 +325,6 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     console.log('▶️ PLAY PRESSED - Starting sequence');
     console.log('🔍 Current selectedChords state:', selectedChords);
     console.log('🔍 Current notes state:', notes);
-    
-    // Also add alert for visibility
-    alert(`Play pressed! Chords: ${selectedChords.map(c => c?.name || 'None').join(', ')}`);
     
     if (isPlaying) {
       console.log('⏸️ Already playing - stopping');
