@@ -11,6 +11,12 @@ export class AudioEngine {
 
     try {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Resume context if it's suspended (required for user interaction)
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+      
       this.masterGainNode = this.audioContext.createGain();
       this.masterGainNode.connect(this.audioContext.destination);
       this.masterGainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
@@ -74,16 +80,30 @@ export class AudioEngine {
     // Track active oscillators
     this.activeOscillators.add(oscillator);
     
-    oscillator.start(now);
-    oscillator.stop(now + (duration / 1000));
-    
-    // Remove from tracking when it ends
+    // Remove from tracking when it ends and resolve promise
     oscillator.addEventListener('ended', () => {
       this.activeOscillators.delete(oscillator);
     });
 
-    return new Promise((resolve) => {
-      oscillator.onended = () => resolve();
+    return new Promise<void>((resolve) => {
+      // Set a timeout to ensure promise resolves even if onended fails
+      const timeout = setTimeout(() => {
+        resolve();
+      }, duration + 1000); // Resolve after duration + 1 second buffer
+
+      oscillator.onended = () => {
+        clearTimeout(timeout);
+        resolve();
+      };
+
+      try {
+        oscillator.start(now);
+        oscillator.stop(now + (duration / 1000));
+      } catch (error) {
+        console.error('Error starting/stopping oscillator:', error);
+        clearTimeout(timeout);
+        resolve(); // Resolve even on error to prevent hanging
+      }
     });
   }
 
@@ -92,9 +112,19 @@ export class AudioEngine {
       await this.initialize();
     }
 
-    // Play all chord notes at their correct pitch
-    const promises = notes.map(note => this.playNote(note, duration));
-    await Promise.all(promises);
+    try {
+      // Play all chord notes at their correct pitch with error handling
+      const promises = notes.map(note => 
+        this.playNote(note, duration).catch(error => {
+          console.error('Error playing chord note:', note, error);
+          return Promise.resolve(); // Return resolved promise to continue with other notes
+        })
+      );
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('Error in playChord:', error);
+      // Don't re-throw to prevent unhandled rejection
+    }
   }
 
   async playSequence(notes: string[], tempo: number = 120, withMetronome: boolean = false, metronomeMultiplier: number = 1): Promise<void> {
@@ -143,9 +173,18 @@ export class AudioEngine {
       }
     }
     
-    // Wait for the entire sequence to complete
+    // Wait for the entire sequence to complete with proper error handling
     const totalDuration = (currentTime - startTime + 0.1) * 1000; // Convert to ms
-    await new Promise(resolve => setTimeout(resolve, totalDuration));
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        resolve();
+      }, totalDuration);
+      
+      // Ensure cleanup happens
+      setTimeout(() => {
+        clearTimeout(timeout);
+      }, totalDuration + 1000);
+    });
   }
 
   private scheduleNote(note: string, startTime: number, duration: number, octaveOffset: number = 0): void {
