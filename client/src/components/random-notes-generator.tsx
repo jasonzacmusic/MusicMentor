@@ -315,11 +315,35 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const sequenceDuration = await playSequenceOnce();
       console.log('⏱️ Duration:', sequenceDuration, 'ms');
       
-      // Single play only - set playing to false after sequence completes
-      console.log('🔇 Playing once only');
-      setTimeout(() => {
-        setIsPlaying(false);
-      }, sequenceDuration);
+      // Check if we should loop or play once
+      const currentShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
+      
+      if (currentShouldLoop) {
+        console.log('🔄 Auto Loop enabled - seamless continuous playback');
+        
+        // Schedule immediate next sequence when current ends (no gap)
+        const loopTimeout = setTimeout(async () => {
+          // Only continue if still looping and playing
+          if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
+            console.log('🔄 Loop iteration - starting next sequence');
+            try {
+              // Directly call playSequenceOnce for seamless loop
+              await playSequenceOnce();
+            } catch (error) {
+              console.error('Loop iteration error:', error);
+              setIsPlaying(false);
+            }
+          }
+        }, sequenceDuration);
+        
+        activeTimeoutsRef.current.add(loopTimeout);
+      } else {
+        // Single play - stop after completion
+        console.log('🔇 Single play - stopping after sequence');
+        setTimeout(() => {
+          setIsPlaying(false);
+        }, sequenceDuration);
+      }
     } catch (error) {
       console.error('❌ Play error:', error);
       setIsPlaying(false);
@@ -403,7 +427,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Resetting the sequence active flag
     isSequenceActiveRef.current = false; // Prevents any new sequences from starting
     
-    // Exit auto loop when stopping (if feature enabled)
+    // Exit auto loop when stopping
     if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
       setIsLooping(false);
       console.log('🔄 Exiting Auto Loop mode');
@@ -423,6 +447,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     setIsLooping(newLoopState);
     console.log(`🔄 Auto Loop ${newLoopState ? 'ENABLED' : 'DISABLED'}`);
   }, [isLooping]);
+
+
 
 
 
@@ -477,10 +503,29 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           const sequenceDuration = await playSequenceOnce();
           console.log('⏱️ Restarted duration:', sequenceDuration, 'ms');
           
-          // Single playback only
-          setTimeout(() => {
-            setIsPlaying(false);
-          }, sequenceDuration);
+          // Handle restart with loop consideration
+          const restartShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
+          
+          if (restartShouldLoop) {
+            // Continue looping after restart
+            const loopTimeout = setTimeout(async () => {
+              if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
+                console.log('🔄 Restart loop iteration');
+                try {
+                  await playSequenceOnce();
+                } catch (error) {
+                  console.error('Restart loop error:', error);
+                  setIsPlaying(false);
+                }
+              }
+            }, sequenceDuration);
+            activeTimeoutsRef.current.add(loopTimeout);
+          } else {
+            // Single playback
+            setTimeout(() => {
+              setIsPlaying(false);
+            }, sequenceDuration);
+          }
         } catch (error) {
           console.error('❌ Restart error:', error);
           setIsPlaying(false);
