@@ -268,10 +268,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           const noteStartTime = (currentTime - startTime) * 1000;
           const noteDurationMs = duration * 1000;
           
-          // Debug each note timing with alert
-          if (i === 0) {
-            alert(`Note ${i+1} (${notes[i]}): Start=${noteStartTime.toFixed(0)}ms, Duration=${noteDurationMs.toFixed(0)}ms`);
-          }
+          // Debug ALL note timings with alert
+          alert(`Note ${i+1} (${notes[i]}): Start=${noteStartTime.toFixed(0)}ms, Duration=${noteDurationMs.toFixed(0)}ms, CurrentTime=${currentTime.toFixed(3)}`);
+          
 
           // Schedule individual note
           const timeout = setTimeout(
