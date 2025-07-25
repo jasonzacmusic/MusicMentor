@@ -42,7 +42,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     const newNotes = [note1, note2, note3];
     setNotes(newNotes);
     onNotesChange?.(newNotes);
-  }, [onNotesChange]);
+    
+    // Clear all chord selections when generating new notes
+    const clearedChords: (Chord | null)[] = [null, null, null];
+    onChordsChange?.(clearedChords);
+    console.log('🧹 Cleared chord selections after generating new notes');
+  }, [onNotesChange, onChordsChange]);
 
   // Single loop control ref 
   const loopIntervalRef = useRef<NodeJS.Timeout | null>(null);
