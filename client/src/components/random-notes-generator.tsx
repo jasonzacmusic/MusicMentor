@@ -192,11 +192,15 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           c ? `Pos${i + 1}:Chord` : `Pos${i + 1}:Note`,
         ),
       );
+      console.log("🔍 DEBUG: selectedChords state:", selectedChords);
+      console.log("🔍 DEBUG: chordDurations:", chordDurations);
 
       // Play each position individually (3 positions total)
       for (let i = 0; i < 3; i++) {
         const duration = beatDuration * chordDurations[i];
         const selectedChord = selectedChords[i]; // Get chord for this specific position
+        
+        console.log(`🎯 Position ${i + 1}: duration=${duration.toFixed(3)}s (${chordDurations[i]} beats), hasChord=${!!selectedChord}`);
 
         if (selectedChord) {
           // CHORD: Play the selected chord for this position - STRICT 3 NOTES ONLY
@@ -397,9 +401,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Always reset before generating
     emergencyReset();
     
-    // Generate new notes
+    // Generate new notes and clear chords
     generateNew();
-  }, [generateNew, emergencyReset]);
+    
+    // Add small delay to ensure state has updated
+    setTimeout(() => {
+      console.log('🔄 Post-generate chord state check:', selectedChords);
+    }, 50);
+  }, [generateNew, emergencyReset, selectedChords]);
 
   const handleStop = useCallback(() => {
     console.log('⏹️ STOP PRESSED');
