@@ -324,8 +324,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         // Create recursive loop function
         const scheduleNextLoop = () => {
           const loopTimeout = setTimeout(async () => {
-            // Only continue if still looping and playing
-            if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
+            // Only continue if still looping - don't check isPlaying here
+            if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
               console.log('🔄 Loop iteration - starting next sequence');
               try {
                 const nextDuration = await playSequenceOnce();
@@ -517,7 +517,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             // Continue looping after restart
             const scheduleRestartLoop = () => {
               const loopTimeout = setTimeout(async () => {
-                if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
+                if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
                   console.log('🔄 Restart loop iteration');
                   try {
                     const nextDuration = await playSequenceOnce();
