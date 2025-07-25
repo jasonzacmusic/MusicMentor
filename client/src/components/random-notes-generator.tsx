@@ -224,31 +224,16 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             `✅ Validated: Playing exactly ${baseNotes.length} notes`,
           );
 
-          // Schedule ONLY these 3 notes with slight stagger - NO ADDITIONAL PROCESSING
+          // Schedule ONLY these 3 notes with Web Audio timing - NO setTimeout
           baseNotes.forEach((note, noteIndex) => {
-            const delayMs = (currentTime - startTime) * 1000 + noteIndex * 50;
-            const timeout = setTimeout(
-              () => {
-                //SRI: if stop is pressed before the chord note plays, don't play it
-                if (!isSequenceActiveRef.current) {
-                  console.log("✅ Stopped before chord note could play");
-                  return;
-                }
-
-                console.log(
-                  `🔊 Playing chord note ${noteIndex + 1}/3: ${note}`,
-                );
-                audioEngine.playNote(note, duration * 1000, 0).catch(err => {
-                  console.error('Error playing chord note:', err);
-                });
-              },
-              delayMs,
-            );
-            // Track timeout for cancellation
-            activeTimeoutsRef.current.add(timeout);
+            const noteStartTime = currentTime + (noteIndex * 0.05); // 50ms stagger
+            console.log(`🔊 Scheduling chord note ${noteIndex + 1}/3: ${note} at time ${noteStartTime.toFixed(3)}`);
+            audioEngine.playNote(note, duration * 1000, 0, noteStartTime).catch(err => {
+              console.error('Error playing chord note:', err);
+            });
           });
         } else {
-          // NOTE: Play individual note for this position
+          // NOTE: Play individual note for this position using Web Audio scheduling
           let octaveOffset = 0;
           if (i === 2) octaveOffset = -1; // Note 3 below Note 1
 
@@ -259,25 +244,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             octaveOffset,
           );
 
-          // Use IDENTICAL scheduling approach as chords for consistent timing
-          const delayMs = (currentTime - startTime) * 1000;
-          const timeout = setTimeout(
-            () => {
-              //SRI: if stop is pressed before the note plays, don't play it
-              if (!isSequenceActiveRef.current) {
-                console.log("✅ Stopped before note could play");
-                return;
-              }
-              console.log(`🔊 Playing individual note: ${notes[i]} (delay was ${delayMs}ms)`);
-              // Play note immediately when timeout fires - no additional delay
-              audioEngine.playNote(notes[i], duration * 1000, octaveOffset).catch(err => {
-                console.error('Error playing note:', err);
-              });
-            },
-            delayMs,
-          );
-          // Track timeout for cancellation
-          activeTimeoutsRef.current.add(timeout);
+          // Use Web Audio scheduling directly - no setTimeout delays
+          console.log(`🔊 Scheduling note: ${notes[i]} at time ${currentTime.toFixed(3)}`);
+          audioEngine.playNote(notes[i], duration * 1000, octaveOffset, currentTime).catch(err => {
+            console.error('Error playing note:', err);
+          });
         }
 
         currentTime += duration;
@@ -287,12 +258,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const totalDurationSeconds = currentTime - startTime;
       const totalDurationMs = totalDurationSeconds * 1000;
 
-      // Mark sequence as complete after duration
+      // Mark sequence as complete after duration - still use setTimeout for completion tracking
       const completionTimeout = setTimeout(() => {
         isSequenceActiveRef.current = false;
         console.log("✅ Sequence complete");
       }, totalDurationMs);
-      // Track completion timeout for cancellation
       activeTimeoutsRef.current.add(completionTimeout);
 
       return totalDurationMs;

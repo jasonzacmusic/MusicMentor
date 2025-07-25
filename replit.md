@@ -23,12 +23,12 @@ Preferred communication style: Simple, everyday language.
   - Fixed branch line positioning to properly connect center to chord circles
   - Removed duplicate interval labels (p5, M3, m3) for cleaner interface
   - Applied consistent angle positioning: Major (30°, 90°, 150°), Minor (-30°, -90°, -150°)
-- Investigating 1-2-4 timing issue with individual notes:
-  - Root cause: Audio envelope release time (500ms) was cutting short perceived note duration
-  - Fixed ADSR envelope timing: reduced attack to 50ms, release to 15% of duration (max 150ms)
-  - Added audio context state checking and pre-initialization
-  - Increased audio context startup buffer from 10ms to 100ms for timing stability
-  - Issue persists on every playback - continuing investigation
+- Final attempt to fix 1-2-4 timing issue with individual notes:
+  - Completely replaced setTimeout scheduling with Web Audio API scheduling
+  - Individual notes now use audioEngine.playNote() with startTime parameter
+  - Chords also converted to Web Audio scheduling for consistency
+  - Reduced envelope attack to 20ms and release to 10% for immediate onset
+  - This eliminates JavaScript timing delays that caused the 1-beat offset
 
 **July 20, 2025 - Evening Session:**
 - Major UI cleanup and visual improvements:

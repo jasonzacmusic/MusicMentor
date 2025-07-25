@@ -27,7 +27,7 @@ export class AudioEngine {
     }
   }
 
-  async playNote(note: string, duration: number = 1000, octaveOffset: number = 0): Promise<void> {
+  async playNote(note: string, duration: number = 1000, octaveOffset: number = 0, startTime?: number): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -69,12 +69,12 @@ export class AudioEngine {
     filter.connect(gainNode);
     gainNode.connect(this.masterGainNode);
 
-    // Legato viola ADSR envelope - smoother attack and longer sustain with warmer tone
-    const now = this.audioContext.currentTime;
-    const attackTime = 0.05; // Very fast attack to eliminate perceived delay
-    const decayTime = 0.05;
+    // Use precise Web Audio timing instead of currentTime when startTime is provided
+    const now = startTime || this.audioContext.currentTime;
+    const attackTime = 0.02; // Minimal attack for immediate onset
+    const decayTime = 0.03;
     const sustainLevel = 0.75; // Rich sustain for viola's warmth
-    const releaseTime = Math.min(0.15, (duration / 1000) * 0.15); // Shorter release to preserve timing
+    const releaseTime = Math.min(0.1, (duration / 1000) * 0.1); // Minimal release
 
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(0.8, now + attackTime);
