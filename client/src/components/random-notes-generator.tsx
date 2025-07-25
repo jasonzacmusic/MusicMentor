@@ -321,22 +321,29 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       if (currentShouldLoop) {
         console.log('🔄 Auto Loop enabled - seamless continuous playback');
         
-        // Schedule immediate next sequence when current ends (no gap)
-        const loopTimeout = setTimeout(async () => {
-          // Only continue if still looping and playing
-          if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
-            console.log('🔄 Loop iteration - starting next sequence');
-            try {
-              // Directly call playSequenceOnce for seamless loop
-              await playSequenceOnce();
-            } catch (error) {
-              console.error('Loop iteration error:', error);
-              setIsPlaying(false);
+        // Create recursive loop function
+        const scheduleNextLoop = () => {
+          const loopTimeout = setTimeout(async () => {
+            // Only continue if still looping and playing
+            if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
+              console.log('🔄 Loop iteration - starting next sequence');
+              try {
+                const nextDuration = await playSequenceOnce();
+                console.log('⏱️ Loop duration:', nextDuration, 'ms');
+                // Schedule the next loop iteration
+                scheduleNextLoop();
+              } catch (error) {
+                console.error('Loop iteration error:', error);
+                setIsPlaying(false);
+              }
             }
-          }
-        }, sequenceDuration);
+          }, sequenceDuration);
+          
+          activeTimeoutsRef.current.add(loopTimeout);
+        };
         
-        activeTimeoutsRef.current.add(loopTimeout);
+        // Start the loop
+        scheduleNextLoop();
       } else {
         // Single play - stop after completion
         console.log('🔇 Single play - stopping after sequence');
@@ -508,18 +515,27 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           
           if (restartShouldLoop) {
             // Continue looping after restart
-            const loopTimeout = setTimeout(async () => {
-              if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
-                console.log('🔄 Restart loop iteration');
-                try {
-                  await playSequenceOnce();
-                } catch (error) {
-                  console.error('Restart loop error:', error);
-                  setIsPlaying(false);
+            const scheduleRestartLoop = () => {
+              const loopTimeout = setTimeout(async () => {
+                if (isFeatureEnabled('AUTO_LOOP') && isLooping && isPlaying) {
+                  console.log('🔄 Restart loop iteration');
+                  try {
+                    const nextDuration = await playSequenceOnce();
+                    console.log('⏱️ Restart loop duration:', nextDuration, 'ms');
+                    // Schedule the next loop iteration
+                    scheduleRestartLoop();
+                  } catch (error) {
+                    console.error('Restart loop error:', error);
+                    setIsPlaying(false);
+                  }
                 }
-              }
-            }, sequenceDuration);
-            activeTimeoutsRef.current.add(loopTimeout);
+              }, sequenceDuration);
+              
+              activeTimeoutsRef.current.add(loopTimeout);
+            };
+            
+            // Start the restart loop
+            scheduleRestartLoop();
           } else {
             // Single playback
             setTimeout(() => {
