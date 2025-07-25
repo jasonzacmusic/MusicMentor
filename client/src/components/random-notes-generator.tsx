@@ -165,8 +165,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const beatDuration = 60 / tempo;
       const chordDurations = [2, 2, 4]; // beats per position
       
-      // Start immediately at the next audio context time (beat 1)
-      const startTime = audioEngine.audioContext!.currentTime + 0.01;
+      // Start with a small buffer to ensure timing stability
+      const startTime = audioEngine.audioContext!.currentTime + 0.1; // 100ms buffer for stability
       let currentTime = startTime;
 
       // Schedule metronome clicks if enabled
@@ -303,17 +303,25 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // SIMPLIFIED PLAY FUNCTION  
   const handlePlay = useCallback(async () => {
     console.log('▶️ PLAY PRESSED - Starting sequence');
-    console.log('🔍 Current selectedChords state:', selectedChords);
-    console.log('🔍 Current notes state:', notes);
     
-    if (isPlaying) {
-      console.log('⏸️ Already playing - stopping');
+    if (isPlaying) {      
       emergencyReset();
       return;
     }
 
+    // Pre-initialize audio context and wait for it to be ready
+    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+      await audioEngine.initialize();
+    }
+    
+    // Ensure audio context is running and stable
+    if (audioEngine.audioContext?.state === 'suspended') {
+      await audioEngine.audioContext.resume();
+      // Small delay to ensure context is fully running
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
     setIsPlaying(true);
-    console.log('🎬 About to call playSequenceOnce...');
 
     try {
       const sequenceDuration = await playSequenceOnce();
