@@ -21,7 +21,12 @@ Preferred communication style: Simple, everyday language.
   - Added safety check to prevent clicks beyond sequence duration
   - Ensures precise timing: 1x=8 clicks, 2x=16 clicks, 3x=24 clicks
 - **STABLE STATE**: Core functionality now works reliably without looping complications
-- User requested code preservation strategy for future feature development
+- **NEW DEVELOPMENT APPROACH**: Implemented feature toggle system for safe development:
+  - Created `client/src/lib/feature-flags.ts` for controlling new features
+  - Set up backup system in `backups/` directory with rollback commands
+  - All future features will use FEATURE_FLAGS to avoid breaking stable code
+  - User can instantly disable new features by setting flags to false
+  - Created `ROLLBACK-GUIDE.md` with simple restore commands
 
 **July 25, 2025 - Early Morning Session:**
 - Fixed critical DOMException errors in audio engine:
