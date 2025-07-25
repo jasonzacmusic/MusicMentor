@@ -391,6 +391,67 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     }
   }, [notes, tempo, withMetronome, metronomeMultiplier]);
 
+  // PLAY FUNCTION WITH SPECIFIC CHORDS - bypasses prop timing issues
+  const handlePlayWithChords = useCallback(async (chordsToUse: (Chord | null)[]) => {
+    console.log('▶️ PLAY WITH CHORDS - Using provided chords:', chordsToUse.map(c => c?.name || 'Note'));
+    
+    if (isPlaying) {      
+      emergencyReset();
+      return;
+    }
+
+    // Pre-initialize audio context
+    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+      await audioEngine.initialize();
+    }
+    
+    if (audioEngine.audioContext?.state === 'suspended') {
+      await audioEngine.audioContext.resume();
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    setIsPlaying(true);
+
+    try {
+      const sequenceDuration = await playSequenceWithChords(chordsToUse);
+      console.log('⏱️ Duration with specific chords:', sequenceDuration, 'ms');
+      
+      // Check if we should loop or play once
+      const currentShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
+      
+      if (currentShouldLoop) {
+        console.log('🔄 Auto Loop enabled for specific chords');
+        
+        const scheduleNextLoop = () => {
+          const loopTimeout = setTimeout(async () => {
+            if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
+              console.log('🔄 Loop iteration with specific chords');
+              try {
+                const nextDuration = await playSequenceWithChords(chordsToUse);
+                console.log('⏱️ Loop duration:', nextDuration, 'ms');
+                scheduleNextLoop();
+              } catch (error) {
+                console.error('Loop iteration error:', error);
+                setIsPlaying(false);
+              }
+            }
+          }, sequenceDuration);
+          
+          activeTimeoutsRef.current.add(loopTimeout);
+        };
+        
+        scheduleNextLoop();
+      } else {
+        setTimeout(() => {
+          setIsPlaying(false);
+        }, sequenceDuration);
+      }
+    } catch (error) {
+      console.error('❌ Play with chords error:', error);
+      setIsPlaying(false);
+    }
+  }, [isPlaying, isLooping, emergencyReset, playSequenceWithChords]);
+
   // SIMPLIFIED PLAY FUNCTION  
   const handlePlay = useCallback(async () => {
     console.log('▶️ PLAY PRESSED - Starting sequence');
@@ -592,63 +653,17 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Update the chord selections
     onChordsChange?.(randomChords);
     
+    // Store the random chords in a ref to avoid prop timing issues
+    const randomChordsRef = useRef<(Chord | null)[]>(randomChords);
+    randomChordsRef.current = randomChords;
+
     // Always start playing after selecting random chords
     setTimeout(() => {
       emergencyReset(); // Always reset first to clear any existing audio
-      setTimeout(async () => {
-        // Use the freshly generated chords directly to avoid prop timing issues
-        console.log('🎯 Playing with fresh random chords:', randomChords.map(c => c?.name || 'None'));
-        
-        // Pre-initialize audio context
-        if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-          await audioEngine.initialize();
-        }
-        
-        if (audioEngine.audioContext?.state === 'suspended') {
-          await audioEngine.audioContext.resume();
-        }
-
-        setIsPlaying(true);
-
-        try {
-          // Use randomChords directly instead of selectedChords prop
-          const sequenceDuration = await playSequenceWithChords(randomChords);
-          console.log('⏱️ Random chord sequence duration:', sequenceDuration, 'ms');
-          
-          // Handle looping with the fresh chords
-          const shouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
-          
-          if (shouldLoop) {
-            console.log('🔄 Random chord Auto Loop enabled');
-            
-            const scheduleRandomLoop = () => {
-              const loopTimeout = setTimeout(async () => {
-                if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
-                  console.log('🔄 Random chord loop iteration');
-                  try {
-                    const nextDuration = await playSequenceWithChords(randomChords);
-                    console.log('⏱️ Random chord loop duration:', nextDuration, 'ms');
-                    scheduleRandomLoop();
-                  } catch (error) {
-                    console.error('Random chord loop error:', error);
-                    setIsPlaying(false);
-                  }
-                }
-              }, sequenceDuration);
-              
-              activeTimeoutsRef.current.add(loopTimeout);
-            };
-            
-            scheduleRandomLoop();
-          } else {
-            setTimeout(() => {
-              setIsPlaying(false);
-            }, sequenceDuration);
-          }
-        } catch (error) {
-          console.error('❌ Random chord play error:', error);
-          setIsPlaying(false);
-        }
+      setTimeout(() => {
+        // Use the stored random chords directly instead of relying on prop updates
+        console.log('🎯 Playing with stored random chords:', randomChordsRef.current.map(c => c?.name || 'None'));
+        handlePlayWithChords(randomChordsRef.current);
       }, 100);
     }, 50);
   }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset]);
