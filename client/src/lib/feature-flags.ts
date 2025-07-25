@@ -6,8 +6,8 @@
  */
 
 export const FEATURE_FLAGS = {
-  // Auto Loop functionality - REMOVED for stability
-  AUTO_LOOP: false,
+  // Auto Loop functionality - UI ONLY for testing
+  AUTO_LOOP: true,
   
   // Future features can be added here
   ADVANCED_CHORD_INVERSIONS: false,

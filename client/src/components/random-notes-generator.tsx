@@ -7,6 +7,7 @@ import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
 import { generateRandomNotes, getChordFromNote, getBeginnerChordsForNote, type Chord, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
+import { isFeatureEnabled } from '@/lib/feature-flags';
 
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
@@ -19,7 +20,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
-
+  
+  // Auto Loop state - only active when feature flag is enabled
+  const [isLooping, setIsLooping] = useState(false);
+  
   const [withMetronome, setWithMetronome] = useState(false);
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
   // Removed old useAudio hook - using direct audioEngine now
@@ -396,10 +400,29 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   const handleStop = useCallback(() => {
     console.log('⏹️ STOP PRESSED');
-     // Resetting the sequence active flag
+    // Resetting the sequence active flag
     isSequenceActiveRef.current = false; // Prevents any new sequences from starting
+    
+    // Exit auto loop when stopping (if feature enabled)
+    if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
+      setIsLooping(false);
+      console.log('🔄 Exiting Auto Loop mode');
+    }
+    
     emergencyReset();
-  }, [emergencyReset]);
+  }, [emergencyReset, isLooping]);
+
+  // Auto Loop toggle function - only works if feature enabled
+  const toggleLoop = useCallback(() => {
+    if (!isFeatureEnabled('AUTO_LOOP')) {
+      console.log('🚫 Auto Loop feature disabled');
+      return;
+    }
+    
+    const newLoopState = !isLooping;
+    setIsLooping(newLoopState);
+    console.log(`🔄 Auto Loop ${newLoopState ? 'ENABLED' : 'DISABLED'}`);
+  }, [isLooping]);
 
 
 
@@ -498,7 +521,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           event.preventDefault();
           setWithMetronome(prev => !prev);
           break;
-
+        case 'KeyL':
+          // Only enable keyboard shortcut if feature is enabled
+          if (isFeatureEnabled('AUTO_LOOP')) {
+            event.preventDefault();
+            toggleLoop();
+          }
+          break;
         case 'KeyR':
           event.preventDefault();
           handleGenerate();
@@ -508,7 +537,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, withMetronome, handlePlay, handleStop, handleGenerate]);
+  }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, handleGenerate]);
 
   // Update replit.md with the bug fixes
   useEffect(() => {
@@ -604,7 +633,17 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               Random Chords
             </Button>
 
-
+            {/* Auto Loop Button - only show if feature enabled */}
+            {isFeatureEnabled('AUTO_LOOP') && (
+              <Button
+                onClick={toggleLoop}
+                variant={isLooping ? "default" : "outline"}
+                className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'} min-w-[120px] ${isLooping ? 'text-white' : 'text-blue-600'}`}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Auto Loop (L)
+              </Button>
+            )}
             
             <Button
               onClick={handleGenerate}
@@ -626,7 +665,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <div className="text-xs text-gray-600 flex flex-wrap gap-4 justify-center">
             <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Space</kbd> Play/Stop</span>
             <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">M</kbd> Metronome</span>
-
+            {/* Only show L shortcut if Auto Loop feature is enabled */}
+            {isFeatureEnabled('AUTO_LOOP') && (
+              <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">L</kbd> Loop</span>
+            )}
             <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">R</kbd> Generate New</span>
           </div>
         </div>
