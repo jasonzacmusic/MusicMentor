@@ -48,6 +48,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const loopIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Single sequence control ref
   const isSequenceActiveRef = useRef(false);
+  // Track all active timeouts for immediate cancellation
+  const activeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  // Track all scheduled timeouts for cancellation
+  const scheduledTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
   
   // Store previous chord selection to detect changes
   const prevChordsRef = useRef<(Chord | null)[]>(selectedChords);
@@ -109,7 +113,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.log('🔄 Cleared loop interval');
     }
     
-    // Stop all oscillators
+    // Cancel all scheduled timeouts immediately
+    activeTimeoutsRef.current.forEach(timeout => {
+      clearTimeout(timeout);
+    });
+    activeTimeoutsRef.current.clear();
+    console.log('🔄 Cancelled all scheduled audio');
+    
+    // Stop all oscillators immediately
     audioEngine.stopAll();
     
     console.log('✅ Emergency reset complete');
@@ -200,7 +211,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
           // Schedule ONLY these 3 notes with slight stagger - NO ADDITIONAL PROCESSING
           baseNotes.forEach((note, noteIndex) => {
-            setTimeout(
+            const timeout = setTimeout(
               () => {
                 //SRI: if stop is pressed before the chord note plays, don't play it - this is a workaround for the bug where the chord note plays after the sequence is stopped
                 if (!isSequenceActiveRef.current) {
@@ -217,6 +228,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               },
               (currentTime - startTime) * 1000 + noteIndex * 50,
             );
+            // Track timeout for cancellation
+            activeTimeoutsRef.current.add(timeout);
           });
         } else {
           // NOTE: Play individual note for this position
@@ -231,7 +244,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           );
 
           // Schedule individual note
-          setTimeout(
+          const timeout = setTimeout(
             () => {
               //SRI: if stop is pressed before the note plays, don't play it - this is a workaround for the bug where the note plays after the sequence is stopped
               if (!isSequenceActiveRef.current) {
@@ -244,6 +257,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             },
             (currentTime - startTime) * 1000,
           );
+          // Track timeout for cancellation
+          activeTimeoutsRef.current.add(timeout);
         }
 
         currentTime += duration;
@@ -254,10 +269,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const totalDurationMs = totalDurationSeconds * 1000;
 
       // Mark sequence as complete after duration
-      setTimeout(() => {
+      const completionTimeout = setTimeout(() => {
         isSequenceActiveRef.current = false;
         console.log("✅ Sequence complete");
       }, totalDurationMs);
+      // Track completion timeout for cancellation
+      activeTimeoutsRef.current.add(completionTimeout);
 
       return totalDurationMs;
     } catch (error) {

@@ -346,7 +346,7 @@ export class AudioEngine {
       }
     });
     this.activeOscillators.clear();
-    
+
     // Reset master gain to ensure silence
     if (this.masterGainNode) {
       try {
