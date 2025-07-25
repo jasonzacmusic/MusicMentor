@@ -362,8 +362,21 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
         gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
 
-        oscillator.start(time);
-        oscillator.stop(time + clickDuration);
+        // Track metronome oscillators in audio engine for proper stopping
+        audioEngine.activeOscillators.add(oscillator);
+
+        try {
+          oscillator.start(time);
+          oscillator.stop(time + clickDuration);
+        } catch (error) {
+          console.error('Error with metronome click:', error);
+          audioEngine.activeOscillators.delete(oscillator);
+        }
+        
+        // Remove from tracking when it ends
+        oscillator.addEventListener('ended', () => {
+          audioEngine.activeOscillators.delete(oscillator);
+        });
         
         console.log(`🥁 Metronome click scheduled at ${time.toFixed(3)}`);
       }
