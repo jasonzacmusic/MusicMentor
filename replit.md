@@ -16,6 +16,10 @@ Preferred communication style: Simple, everyday language.
   - Auto Loop now properly continues until user manually stops or disables loop
   - Fixed both main loop and restart loop conditions for consistent behavior
   - Auto Loop UI button and keyboard shortcut (L) properly functional when feature flag enabled
+- Improved loop timing precision for both notes and chords:
+  - Replaced floating-point timing calculation with exact beat-based duration calculation
+  - Fixed accumulating timing delays that affected seamless looping after 2nd iteration
+  - Both chord and note loops now maintain precise timing across all loop iterations
 
 **July 25, 2025 - Afternoon Session:**
 - Successfully removed Auto Loop feature to simplify codebase:

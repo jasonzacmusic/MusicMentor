@@ -267,20 +267,20 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         currentTime += duration;
       }
 
-      // Calculate actual duration in milliseconds
-      const totalDurationSeconds = currentTime - startTime;
-      const totalDurationMs = totalDurationSeconds * 1000;
+      // Calculate exact duration from beats for precise timing
+      const exactDurationSeconds = (chordDurations[0] + chordDurations[1] + chordDurations[2]) * beatDuration;
+      const exactDurationMs = exactDurationSeconds * 1000;
 
-      console.log(`⏱️ Sequence duration calculated: ${totalDurationMs}ms (${totalDurationSeconds.toFixed(3)}s)`);
+      console.log(`⏱️ Sequence duration: ${exactDurationMs}ms (${exactDurationSeconds.toFixed(3)}s) - using beat-based calculation`);
 
-      // Mark sequence as complete after duration
+      // Mark sequence as complete after duration - use exact beat-based timing
       const completionTimeout = setTimeout(() => {
         isSequenceActiveRef.current = false;
         console.log("✅ Sequence complete");
-      }, totalDurationMs);
+      }, exactDurationMs);
       activeTimeoutsRef.current.add(completionTimeout);
 
-      return totalDurationMs;
+      return exactDurationMs;
     } catch (error) {
       console.error("❌ Sequence error:", error);
       isSequenceActiveRef.current = false;
