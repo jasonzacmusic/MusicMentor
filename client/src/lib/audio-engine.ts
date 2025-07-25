@@ -36,6 +36,12 @@ export class AudioEngine {
       throw new Error('Audio context not initialized');
     }
 
+    // Always ensure audio context is running before playing notes
+    if (this.audioContext.state === 'suspended') {
+      console.log('🔊 Resuming suspended audio context for individual note');
+      await this.audioContext.resume();
+    }
+
     // Use the original NOTE_FREQUENCIES for correct pitches
     let frequency = NOTE_FREQUENCIES[note];
     if (!frequency) {
@@ -66,10 +72,10 @@ export class AudioEngine {
 
     // Legato viola ADSR envelope - smoother attack and longer sustain with warmer tone
     const now = this.audioContext.currentTime;
-    const attackTime = 0.15; // Faster attack to preserve note duration
-    const decayTime = 0.1;
+    const attackTime = 0.05; // Very fast attack to eliminate perceived delay
+    const decayTime = 0.05;
     const sustainLevel = 0.75; // Rich sustain for viola's warmth
-    const releaseTime = Math.min(0.2, (duration / 1000) * 0.2); // Release proportional to duration, max 200ms
+    const releaseTime = Math.min(0.15, (duration / 1000) * 0.15); // Shorter release to preserve timing
 
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(0.8, now + attackTime);

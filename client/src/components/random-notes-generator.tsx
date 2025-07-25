@@ -258,12 +258,6 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             octaveOffset,
           );
 
-          // Debug timing for first note only
-          const delayMs = (currentTime - startTime) * 1000;
-          if (i === 0) {
-            console.log(`🔍 First note timing: delay=${delayMs}ms, startTime=${startTime.toFixed(3)}, currentTime=${currentTime.toFixed(3)}`);
-          }
-
           // Schedule individual note with precise Web Audio timing
           const timeout = setTimeout(
             () => {
@@ -277,7 +271,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 console.error('Error playing note:', err);
               });
             },
-            delayMs,
+            (currentTime - startTime) * 1000,
           );
           // Track timeout for cancellation
           activeTimeoutsRef.current.add(timeout);
