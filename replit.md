@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Latest)
 
+**July 25, 2025 - Early Morning Session:**
+- Fixed critical DOMException errors in audio engine:
+  - Removed duplicate audio node connections in playNote method 
+  - Fixed Web Audio API graph where oscillator was connected to both gainNode directly AND through filter
+  - Corrected audio chain to: oscillator → filter → gainNode → masterGain
+  - Added comprehensive promise rejection handling throughout audio system
+  - Made audioContext and masterGainNode public properties for proper access
+  - Fixed TypeScript errors in checkbox handlers and ref types
+- Enhanced chord tree layout:
+  - Organized Major chords on right side, Minor chords on left side of orange notes
+  - Fixed branch line positioning to properly connect center to chord circles
+  - Removed duplicate interval labels (p5, M3, m3) for cleaner interface
+  - Applied consistent angle positioning: Major (30°, 90°, 150°), Minor (-30°, -90°, -150°)
+
 **July 20, 2025 - Evening Session:**
 - Major UI cleanup and visual improvements:
   - Removed redundant timing info boxes ("G 2 beats, B 2 beats, E 4 beats")

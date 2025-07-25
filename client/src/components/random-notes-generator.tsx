@@ -50,7 +50,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const isSequenceActiveRef = useRef(false);
   
   // Store previous chord selection to detect changes
-  const prevChordsRef = useRef<Chord[]>(selectedChords);
+  const prevChordsRef = useRef<(Chord | null)[]>(selectedChords);
 
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
@@ -211,7 +211,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 console.log(
                   `🔊 Playing chord note ${noteIndex + 1}/3: ${note}`,
                 );
-                audioEngine.playNote(note, duration * 1000, 0); // All notes at same octave
+                audioEngine.playNote(note, duration * 1000, 0).catch(err => {
+                  console.error('Error playing chord note:', err);
+                }); // All notes at same octave
               },
               (currentTime - startTime) * 1000 + noteIndex * 50,
             );
@@ -236,7 +238,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 console.log("✅ Stopped before note could play");
                 return; // Exit if stop pressed
               }
-              audioEngine.playNote(notes[i], duration * 1000, octaveOffset);
+              audioEngine.playNote(notes[i], duration * 1000, octaveOffset).catch(err => {
+            console.error('Error playing note:', err);
+          });
             },
             (currentTime - startTime) * 1000,
           );
@@ -286,7 +290,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         
         loopIntervalRef.current = setInterval(() => {
           console.log('🔄 Loop trigger');
-          playSequenceOnce();
+          playSequenceOnce().catch(error => {
+            console.error('Loop playback error:', error);
+          });
         }, loopDelay);
       } else {
         console.log('🔇 Auto Loop disabled - playing once only');
@@ -307,7 +313,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const scheduleNote = (note: string, startTime: number, duration: number, octaveOffset: number = 0) => {
     try {
       // Use audioEngine's built-in playNote method instead
-      audioEngine.playNote(note, duration * 1000, octaveOffset);
+      audioEngine.playNote(note, duration * 1000, octaveOffset).catch(error => {
+        console.error('Note scheduling error:', error);
+      });
     } catch (error) {
       console.error('Note scheduling error:', error);
     }
@@ -493,7 +501,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 <Checkbox
                   id="metronome"
                   checked={withMetronome}
-                  onCheckedChange={setWithMetronome}
+                  onCheckedChange={(checked) => setWithMetronome(checked === true)}
                 />
                 <label htmlFor="metronome" className="text-sm font-medium text-gray-700">
                   Metronome <span className="text-xs opacity-75">(M)</span>

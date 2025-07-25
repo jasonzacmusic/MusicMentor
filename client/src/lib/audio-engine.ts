@@ -1,8 +1,8 @@
 import { NOTE_FREQUENCIES } from './music-constants';
 
 export class AudioEngine {
-  private audioContext: AudioContext | null = null;
-  private masterGainNode: GainNode | null = null;
+  public audioContext: AudioContext | null = null;
+  public masterGainNode: GainNode | null = null;
   private isInitialized = false;
   public activeOscillators: Set<OscillatorNode> = new Set();
 
