@@ -133,6 +133,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // ATOMIC SEQUENCE PLAYER - Only one can run at a time
   const playSequenceOnce = useCallback(async () => {
+    console.log("🎯 playSequenceOnce called!");
+    
     // Guard: Only allow one sequence at a time
     if (isSequenceActiveRef.current) {
       console.log("🚫 Sequence already active, skipping");
@@ -148,6 +150,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     isSequenceActiveRef.current = true;
     console.log("🎵 Starting new sequence");
+    console.log("🔍 selectedChords at playback start:", selectedChords);
 
     try {
       if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
@@ -300,14 +303,18 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // SIMPLIFIED PLAY FUNCTION
   const handlePlay = useCallback(async () => {
-    console.log('▶️ PLAY PRESSED');
+    console.log('▶️ PLAY PRESSED - Starting sequence');
+    console.log('🔍 Current selectedChords state:', selectedChords);
+    console.log('🔍 Current notes state:', notes);
     
     if (isPlaying) {
+      console.log('⏸️ Already playing - stopping');
       emergencyReset();
       return;
     }
 
     setIsPlaying(true);
+    console.log('🎬 About to call playSequenceOnce...');
 
     try {
       const sequenceDuration = await playSequenceOnce();
