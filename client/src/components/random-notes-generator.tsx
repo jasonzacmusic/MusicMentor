@@ -305,31 +305,18 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       
       // Only loop if Auto Loop is enabled
       if (isLooping) {
-        console.log('🔄 Setting up immediate seamless loop - no gaps');
+        console.log('🔄 Setting up seamless loop');
         
-        // Schedule next sequence to start immediately when current ends
-        const loopTimeout = setTimeout(async () => {
+        loopIntervalRef.current = setInterval(async () => {
           if (isLooping && isPlaying) {
-            console.log('🔄 Loop trigger - seamless restart');
+            console.log('🔄 Loop trigger');
             try {
-              // Recursively call playSequenceOnce for perfect timing
-              const nextDuration = await playSequenceOnce();
-              console.log('🔄 Loop sequence completed:', nextDuration, 'ms');
-              
-              // If still looping, schedule the next one
-              if (isLooping && isPlaying) {
-                const nextTimeout = setTimeout(async () => {
-                  handlePlay(); // Use handlePlay for full loop setup
-                }, nextDuration);
-                activeTimeoutsRef.current.add(nextTimeout);
-              }
+              await playSequenceOnce();
             } catch (error) {
               console.error('Loop playback error:', error);
             }
           }
         }, sequenceDuration);
-        
-        activeTimeoutsRef.current.add(loopTimeout);
       } else {
         console.log('🔇 Auto Loop disabled - playing once only');
         // Set playing to false after the sequence completes
@@ -478,22 +465,16 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           console.log('⏱️ Restarted duration:', sequenceDuration, 'ms');
           
           if (isLooping) {
-            // Use same seamless loop approach in restart scenario
-            const loopTimeout = setTimeout(async () => {
+            loopIntervalRef.current = setInterval(async () => {
               if (isLooping && isPlaying) {
                 console.log('🔄 Restart loop trigger');
                 try {
-                  const nextDuration = await playSequenceOnce();
-                  if (isLooping && isPlaying) {
-                    const nextTimeout = setTimeout(() => handlePlay(), nextDuration);
-                    activeTimeoutsRef.current.add(nextTimeout);
-                  }
+                  await playSequenceOnce();
                 } catch (error) {
                   console.error('Restart loop error:', error);
                 }
               }
             }, sequenceDuration);
-            activeTimeoutsRef.current.add(loopTimeout);
           } else {
             setTimeout(() => {
               setIsPlaying(false);
