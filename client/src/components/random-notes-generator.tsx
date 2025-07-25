@@ -252,7 +252,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
           console.log(
             `🎵 Position ${i + 1} - Note:`,
-            notes[i],s
+            notes[i],
             "octave:",
             octaveOffset,
           );
