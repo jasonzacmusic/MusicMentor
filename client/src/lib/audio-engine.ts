@@ -44,9 +44,6 @@ export class AudioEngine {
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(this.masterGainNode);
-
     oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
     oscillator.type = 'sawtooth'; // Viola-like sawtooth wave
 
@@ -56,8 +53,10 @@ export class AudioEngine {
     filter.frequency.setValueAtTime(1600, this.audioContext.currentTime); // Lower cutoff for warmer sound
     filter.Q.setValueAtTime(1.5, this.audioContext.currentTime); // Slightly higher resonance
 
+    // Correct audio chain: oscillator -> filter -> gainNode -> masterGain
     oscillator.connect(filter);
     filter.connect(gainNode);
+    gainNode.connect(this.masterGainNode);
 
     // Legato viola ADSR envelope - smoother attack and longer sustain with warmer tone
     const now = this.audioContext.currentTime;
