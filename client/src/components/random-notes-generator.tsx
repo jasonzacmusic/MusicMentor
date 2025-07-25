@@ -261,12 +261,16 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       console.log(`⏱️ Sequence duration calculated: ${totalDurationMs}ms (${totalDurationSeconds.toFixed(3)}s)`);
 
-      // Mark sequence as complete after duration - still use setTimeout for completion tracking
-      const completionTimeout = setTimeout(() => {
-        isSequenceActiveRef.current = false;
-        console.log("✅ Sequence complete");
-      }, totalDurationMs);
-      activeTimeoutsRef.current.add(completionTimeout);
+      // Only mark sequence as complete if not looping
+      if (!isLooping) {
+        const completionTimeout = setTimeout(() => {
+          isSequenceActiveRef.current = false;
+          console.log("✅ Sequence complete - not looping");
+        }, totalDurationMs);
+        activeTimeoutsRef.current.add(completionTimeout);
+      } else {
+        console.log("🔄 Sequence complete but looping continues");
+      }
 
       return totalDurationMs;
     } catch (error) {
@@ -309,17 +313,25 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         
         // Create a recursive loop function
         const scheduleNextLoop = (duration: number) => {
+          console.log(`🔄 Scheduling next loop in ${duration}ms, isLooping=${isLooping}, isPlaying=${isPlaying}`);
           const loopTimeout = setTimeout(async () => {
+            console.log(`🔄 Loop timeout fired: isLooping=${isLooping}, isPlaying=${isPlaying}`);
             if (isLooping && isPlaying) {
               console.log('🔄 Loop trigger - seamless restart');
               try {
+                // Reset sequence state for next iteration
+                isSequenceActiveRef.current = true;
                 const nextDuration = await playSequenceOnce();
                 console.log('🔄 Loop sequence completed:', nextDuration, 'ms');
                 // Schedule the next iteration
-                scheduleNextLoop(nextDuration);
+                if (nextDuration) {
+                  scheduleNextLoop(nextDuration);
+                }
               } catch (error) {
                 console.error('Loop playback error:', error);
               }
+            } else {
+              console.log('🔄 Loop conditions not met, stopping');
             }
           }, duration);
           activeTimeoutsRef.current.add(loopTimeout);
@@ -481,8 +493,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 if (isLooping && isPlaying) {
                   console.log('🔄 Restart loop trigger');
                   try {
+                    isSequenceActiveRef.current = true;
                     const nextDuration = await playSequenceOnce();
-                    scheduleNextLoop(nextDuration);
+                    if (nextDuration) {
+                      scheduleNextLoop(nextDuration);
+                    }
                   } catch (error) {
                     console.error('Restart loop error:', error);
                   }
