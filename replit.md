@@ -23,6 +23,11 @@ Preferred communication style: Simple, everyday language.
   - Fixed branch line positioning to properly connect center to chord circles
   - Removed duplicate interval labels (p5, M3, m3) for cleaner interface
   - Applied consistent angle positioning: Major (30°, 90°, 150°), Minor (-30°, -90°, -150°)
+- Resolved 1-2-4 timing issue with individual notes:
+  - Root cause: Audio envelope release time (500ms) was cutting short perceived note duration
+  - Fixed ADSR envelope timing: reduced attack to 50ms, release to 15% of duration (max 150ms)
+  - Added audio context state checking before individual note playback
+  - Issue now only occurs on very first playback (audio context initialization)
 
 **July 20, 2025 - Evening Session:**
 - Major UI cleanup and visual improvements:
