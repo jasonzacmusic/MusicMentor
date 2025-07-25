@@ -259,6 +259,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const totalDurationSeconds = currentTime - startTime;
       const totalDurationMs = totalDurationSeconds * 1000;
 
+      console.log(`⏱️ Sequence duration calculated: ${totalDurationMs}ms (${totalDurationSeconds.toFixed(3)}s)`);
+
       // Mark sequence as complete after duration - still use setTimeout for completion tracking
       const completionTimeout = setTimeout(() => {
         isSequenceActiveRef.current = false;
@@ -306,11 +308,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         // Use the actual sequence duration to prevent overlap
         console.log('🔄 Setting up loop with duration:', sequenceDuration, 'ms');
         
-        loopIntervalRef.current = setInterval(() => {
+        loopIntervalRef.current = setInterval(async () => {
           console.log('🔄 Loop trigger');
-          playSequenceOnce().catch(error => {
+          try {
+            const newSequenceDuration = await playSequenceOnce();
+            console.log('🔄 Loop sequence completed:', newSequenceDuration, 'ms');
+          } catch (error) {
             console.error('Loop playback error:', error);
-          });
+          }
         }, sequenceDuration);
       } else {
         console.log('🔇 Auto Loop disabled - playing once only');
@@ -460,11 +465,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           console.log('⏱️ Restarted duration:', sequenceDuration, 'ms');
           
           if (isLooping) {
-            loopIntervalRef.current = setInterval(() => {
+            loopIntervalRef.current = setInterval(async () => {
               console.log('🔄 Loop trigger');
-              playSequenceOnce().catch(error => {
+              try {
+                const newSequenceDuration = await playSequenceOnce();
+                console.log('🔄 Loop sequence completed:', newSequenceDuration, 'ms');
+              } catch (error) {
                 console.error('Loop playback error:', error);
-              });
+              }
             }, sequenceDuration);
           } else {
             setTimeout(() => {
