@@ -332,21 +332,17 @@ export class AudioEngine {
   stopAll(): void {
     console.log('AudioEngine.stopAll() called - stopping', this.activeOscillators.size, 'oscillators');
     
-    // Stop all active oscillators immediately with proper state checking
+    // Stop all active oscillators immediately
     this.activeOscillators.forEach(oscillator => {
       try {
-        // Check if oscillator is still in a stoppable state
-        if (oscillator.context && oscillator.context.state !== 'closed') {
-          oscillator.stop();
-        }
+        oscillator.stop();
         oscillator.disconnect();
       } catch (error) {
-        // Oscillator might already be stopped - ignore DOMException
-        console.log('Oscillator already stopped:', error.message);
+        // Oscillator might already be stopped - ignore error
       }
     });
     this.activeOscillators.clear();
-
+    
     // Reset master gain to ensure silence
     if (this.masterGainNode) {
       try {
