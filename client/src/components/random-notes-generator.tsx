@@ -304,7 +304,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.log('⏱️ Duration:', sequenceDuration, 'ms');
       
       // Only loop if Auto Loop is enabled
-      if (isLooping) {
+      if (isLoop    ing) {
         console.log('🔄 Setting up immediate seamless loop - no gaps');
         
         // Schedule next sequence to start immediately when current ends
