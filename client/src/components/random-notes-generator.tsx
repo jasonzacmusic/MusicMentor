@@ -288,6 +288,109 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     }
   }, [selectedChords, notes, tempo, withMetronome, inversionModes]);
 
+  // DEDICATED FUNCTION FOR RANDOM CHORD PLAYBACK - Uses chord array directly
+  const playSequenceWithChords = useCallback(async (chordsToPlay: (Chord | null)[]) => {
+    console.log("🎯 playSequenceWithChords called with:", chordsToPlay.map(c => c?.name || 'Note'));
+    
+    // Guard: Only allow one sequence at a time
+    if (isSequenceActiveRef.current) {
+      console.log("🚫 Sequence already active, skipping");
+      return 8000;
+    }
+
+    isSequenceActiveRef.current = true;
+    console.log("🎵 Starting chord sequence");
+
+    try {
+      if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+        await audioEngine.initialize();
+      }
+      
+      if (audioEngine.audioContext?.state === 'suspended') {
+        await audioEngine.audioContext.resume();
+      }
+
+      const beatDuration = 60 / tempo;
+      const chordDurations = [2, 2, 4]; // beats per position
+      
+      const startTime = audioEngine.audioContext!.currentTime + 0.1;
+      let currentTime = startTime;
+
+      // Schedule metronome clicks if enabled
+      if (withMetronome) {
+        console.log(`🥁 Metronome enabled for chord sequence`);
+        let metronomeInterval = beatDuration / metronomeMultiplier;
+        const totalDuration = 8 * beatDuration;
+        const totalClicks = Math.floor((totalDuration / metronomeInterval) + 0.0001);
+        
+        for (let clickCount = 0; clickCount < totalClicks; clickCount++) {
+          const clickTime = startTime + (clickCount * metronomeInterval);
+          if (clickTime >= startTime + totalDuration) break;
+          scheduleMetronomeClick(clickTime);
+        }
+      }
+
+      // Play each position using the provided chords
+      for (let i = 0; i < 3; i++) {
+        const duration = beatDuration * chordDurations[i];
+        const chordToPlay = chordsToPlay[i];
+        
+        console.log(`🎯 Position ${i + 1}: duration=${duration.toFixed(3)}s, hasChord=${!!chordToPlay}`);
+
+        if (chordToPlay) {
+          // CHORD: Play the chord notes
+          const baseNotes = chordToPlay.notes.slice(0, 3);
+
+          if (baseNotes.length !== 3) {
+            console.error(`❌ ERROR: Chord has ${baseNotes.length} notes, expected exactly 3!`);
+            return 8000;
+          }
+
+          console.log(`🎹 Position ${i + 1} - Chord:`, chordToPlay.name, baseNotes);
+
+          baseNotes.forEach((note, noteIndex) => {
+            const noteStartTime = currentTime + (noteIndex * 0.05);
+            console.log(`🔊 Scheduling chord note ${noteIndex + 1}/3: ${note} at time ${noteStartTime.toFixed(3)}`);
+            audioEngine.playNote(note, duration * 1000, 0, noteStartTime).catch(err => {
+              console.error('Error playing chord note:', err);
+            });
+          });
+        } else {
+          // NOTE: Play individual note fallback
+          let octaveOffset = 0;
+          if (i === 2) octaveOffset = -1;
+
+          console.log(`🎵 Position ${i + 1} - Note:`, notes[i], "octave:", octaveOffset);
+          console.log(`🔊 Scheduling note: ${notes[i]} at time ${currentTime.toFixed(3)}`);
+          audioEngine.playNote(notes[i], duration * 1000, octaveOffset, currentTime).catch(err => {
+            console.error('Error playing note:', err);
+          });
+        }
+
+        currentTime += duration;
+      }
+
+      // Calculate exact duration from beats for precise timing
+      const exactDurationSeconds = (chordDurations[0] + chordDurations[1] + chordDurations[2]) * beatDuration;
+      const exactDurationMs = exactDurationSeconds * 1000;
+
+      console.log(`⏱️ Chord sequence duration: ${exactDurationMs}ms (${exactDurationSeconds.toFixed(3)}s)`);
+
+      // Mark sequence as complete after duration
+      const completionTimeout = setTimeout(() => {
+        isSequenceActiveRef.current = false;
+        console.log("✅ Chord sequence complete");
+      }, exactDurationMs);
+      activeTimeoutsRef.current.add(completionTimeout);
+
+      return exactDurationMs;
+    } catch (error) {
+      console.error("❌ Chord sequence error:", error);
+      isSequenceActiveRef.current = false;
+      return 8000;
+    }
+  }, [notes, tempo, withMetronome, metronomeMultiplier]);
+
   // SIMPLIFIED PLAY FUNCTION  
   const handlePlay = useCallback(async () => {
     console.log('▶️ PLAY PRESSED - Starting sequence');
@@ -492,9 +595,61 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Always start playing after selecting random chords
     setTimeout(() => {
       emergencyReset(); // Always reset first to clear any existing audio
-      setTimeout(() => {
-        handlePlay();
-      }, 150);
+      setTimeout(async () => {
+        // Use the freshly generated chords directly to avoid prop timing issues
+        console.log('🎯 Playing with fresh random chords:', randomChords.map(c => c?.name || 'None'));
+        
+        // Pre-initialize audio context
+        if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+          await audioEngine.initialize();
+        }
+        
+        if (audioEngine.audioContext?.state === 'suspended') {
+          await audioEngine.audioContext.resume();
+        }
+
+        setIsPlaying(true);
+
+        try {
+          // Use randomChords directly instead of selectedChords prop
+          const sequenceDuration = await playSequenceWithChords(randomChords);
+          console.log('⏱️ Random chord sequence duration:', sequenceDuration, 'ms');
+          
+          // Handle looping with the fresh chords
+          const shouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
+          
+          if (shouldLoop) {
+            console.log('🔄 Random chord Auto Loop enabled');
+            
+            const scheduleRandomLoop = () => {
+              const loopTimeout = setTimeout(async () => {
+                if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
+                  console.log('🔄 Random chord loop iteration');
+                  try {
+                    const nextDuration = await playSequenceWithChords(randomChords);
+                    console.log('⏱️ Random chord loop duration:', nextDuration, 'ms');
+                    scheduleRandomLoop();
+                  } catch (error) {
+                    console.error('Random chord loop error:', error);
+                    setIsPlaying(false);
+                  }
+                }
+              }, sequenceDuration);
+              
+              activeTimeoutsRef.current.add(loopTimeout);
+            };
+            
+            scheduleRandomLoop();
+          } else {
+            setTimeout(() => {
+              setIsPlaying(false);
+            }, sequenceDuration);
+          }
+        } catch (error) {
+          console.error('❌ Random chord play error:', error);
+          setIsPlaying(false);
+        }
+      }, 100);
     }, 50);
   }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset]);
 
