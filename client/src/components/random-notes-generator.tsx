@@ -228,10 +228,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           baseNotes.forEach((note, noteIndex) => {
             const timeout = setTimeout(
               () => {
-                //SRI: if stop is pressed before the chord note plays, don't play it - this is a workaround for the bug where the chord note plays after the sequence is stopped
+                //SRI: if stop is pressed before the chord note plays, don't play it
                 if (!isSequenceActiveRef.current) {
                   console.log("✅ Stopped before chord note could play");
-                  return; // Exit if stop pressed
+                  return;
                 }
 
                 console.log(
@@ -239,7 +239,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 );
                 audioEngine.playNote(note, duration * 1000, 0).catch(err => {
                   console.error('Error playing chord note:', err);
-                }); // All notes at same octave
+                });
               },
               (currentTime - startTime) * 1000 + noteIndex * 50,
             );
@@ -258,25 +258,26 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             octaveOffset,
           );
 
-          // Calculate timing for this note
-          const noteStartTime = (currentTime - startTime) * 1000;
-          const noteDurationMs = duration * 1000;
-          
+          // Debug timing for first note only
+          const delayMs = (currentTime - startTime) * 1000;
+          if (i === 0) {
+            console.log(`🔍 First note timing: delay=${delayMs}ms, startTime=${startTime.toFixed(3)}, currentTime=${currentTime.toFixed(3)}`);
+          }
 
-
-          // Schedule individual note
+          // Schedule individual note with precise Web Audio timing
           const timeout = setTimeout(
             () => {
-              //SRI: if stop is pressed before the note plays, don't play it - this is a workaround for the bug where the note plays after the sequence is stopped
+              //SRI: if stop is pressed before the note plays, don't play it
               if (!isSequenceActiveRef.current) {
                 console.log("✅ Stopped before note could play");
-                return; // Exit if stop pressed
+                return;
               }
+              // Play note immediately when timeout fires - no additional delay
               audioEngine.playNote(notes[i], duration * 1000, octaveOffset).catch(err => {
                 console.error('Error playing note:', err);
               });
             },
-            noteStartTime,
+            delayMs,
           );
           // Track timeout for cancellation
           activeTimeoutsRef.current.add(timeout);
