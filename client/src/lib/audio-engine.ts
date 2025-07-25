@@ -66,10 +66,10 @@ export class AudioEngine {
 
     // Legato viola ADSR envelope - smoother attack and longer sustain with warmer tone
     const now = this.audioContext.currentTime;
-    const attackTime = 0.25; // Slightly slower attack for viola's deeper response
-    const decayTime = 0.2;
+    const attackTime = 0.15; // Faster attack to preserve note duration
+    const decayTime = 0.1;
     const sustainLevel = 0.75; // Rich sustain for viola's warmth
-    const releaseTime = 0.5; // Longer release for viola's resonance
+    const releaseTime = Math.min(0.2, (duration / 1000) * 0.2); // Release proportional to duration, max 200ms
 
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(0.8, now + attackTime);
