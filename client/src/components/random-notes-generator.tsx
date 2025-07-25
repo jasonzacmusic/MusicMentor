@@ -171,15 +171,16 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       // Schedule metronome clicks if enabled
       if (withMetronome) {
-        console.log("🥁 Metronome enabled - scheduling clicks");
-        let metronomeInterval = beatDuration; // Quarter notes only for simplicity
+        console.log(`🥁 Metronome enabled - scheduling clicks at ${metronomeMultiplier}x speed`);
+        // Apply multiplier: 1x = quarter notes, 2x = eighth notes, 3x = eighth note triplets
+        let metronomeInterval = beatDuration / metronomeMultiplier;
         const totalDuration = 8 * beatDuration; // 8 beats total
         let clickTime = startTime;
         let clickCount = 0;
         while (clickTime < startTime + totalDuration) {
           scheduleMetronomeClick(clickTime);
           console.log(
-            `⏰ Scheduling metronome click ${clickCount + 1} at time ${clickTime.toFixed(3)}`,
+            `⏰ Scheduling metronome click ${clickCount + 1} at time ${clickTime.toFixed(3)} (${metronomeMultiplier}x speed)`,
           );
           clickTime += metronomeInterval;
           clickCount++;
