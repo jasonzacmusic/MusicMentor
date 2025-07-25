@@ -19,7 +19,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLooping, setIsLooping] = useState(false);
+
   const [withMetronome, setWithMetronome] = useState(false);
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
   // Removed old useAudio hook - using direct audioEngine now
@@ -312,7 +312,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.error('❌ Play error:', error);
       setIsPlaying(false);
     }
-  }, [isPlaying, isLooping, playSequenceOnce, emergencyReset]);
+  }, [isPlaying, playSequenceOnce, emergencyReset]);
 
   // REMOVED OLD CONFLICTING AUDIO FUNCTIONS
 
@@ -393,9 +393,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     emergencyReset();
   }, [emergencyReset]);
 
-  const toggleLoop = useCallback(() => {
-    setIsLooping(!isLooping);
-  }, [isLooping]);
+
 
   // RANDOM HARMONIZER - Select random chords from available options for each note
   const handleRandomHarmonize = useCallback(() => {
@@ -448,31 +446,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           const sequenceDuration = await playSequenceOnce();
           console.log('⏱️ Restarted duration:', sequenceDuration, 'ms');
           
-          if (isLooping) {
-            // Use same seamless loop approach in restart scenario
-            const scheduleNextLoop = (duration: number) => {
-              const loopTimeout = setTimeout(async () => {
-                if (isLooping && isPlaying) {
-                  console.log('🔄 Restart loop trigger');
-                  try {
-                    isSequenceActiveRef.current = true;
-                    const nextDuration = await playSequenceOnce();
-                    if (nextDuration) {
-                      scheduleNextLoop(nextDuration);
-                    }
-                  } catch (error) {
-                    console.error('Restart loop error:', error);
-                  }
-                }
-              }, duration);
-              activeTimeoutsRef.current.add(loopTimeout);
-            };
-            scheduleNextLoop(sequenceDuration);
-          } else {
-            setTimeout(() => {
-              setIsPlaying(false);
-            }, sequenceDuration);
-          }
+          // Single playback only
+          setTimeout(() => {
+            setIsPlaying(false);
+          }, sequenceDuration);
         } catch (error) {
           console.error('❌ Restart error:', error);
           setIsPlaying(false);
@@ -513,10 +490,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           event.preventDefault();
           setWithMetronome(prev => !prev);
           break;
-        case 'KeyL':
-          event.preventDefault();
-          toggleLoop();
-          break;
+
         case 'KeyR':
           event.preventDefault();
           handleGenerate();
@@ -526,7 +500,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, handleGenerate]);
+  }, [isPlaying, withMetronome, handlePlay, handleStop, handleGenerate]);
 
   // Update replit.md with the bug fixes
   useEffect(() => {
@@ -622,14 +596,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               Random Chords
             </Button>
 
-            <Button
-              onClick={toggleLoop}
-              variant={isLooping ? "default" : "outline"}
-              className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'} min-w-[120px] ${isLooping ? 'text-white' : 'text-blue-600'}`}
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Auto Loop: {isLooping ? 'ON' : 'OFF'}
-            </Button>
+
             
             <Button
               onClick={handleGenerate}
@@ -651,7 +618,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <div className="text-xs text-gray-600 flex flex-wrap gap-4 justify-center">
             <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Space</kbd> Play/Stop</span>
             <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">M</kbd> Metronome</span>
-            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">L</kbd> Loop</span>
+
             <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">R</kbd> Generate New</span>
           </div>
         </div>
