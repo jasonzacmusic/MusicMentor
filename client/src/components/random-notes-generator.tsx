@@ -146,7 +146,19 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     try {
       if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+        console.log('🔧 Initializing audio engine...');
         await audioEngine.initialize();
+      }
+      
+      // Check audio context state
+      console.log('🔊 Audio context state:', audioEngine.audioContext?.state);
+      console.log('🔊 Master gain node exists:', !!audioEngine.masterGainNode);
+      
+      // Resume context if suspended
+      if (audioEngine.audioContext?.state === 'suspended') {
+        console.log('▶️ Resuming suspended audio context...');
+        await audioEngine.audioContext.resume();
+        console.log('✅ Audio context resumed, state:', audioEngine.audioContext.state);
       }
 
       const beatDuration = 60 / tempo;
@@ -220,9 +232,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 }
 
                 console.log(
-                  `🔊 Playing chord note ${noteIndex + 1}/3: ${note}`,
+                  `🔊 Playing chord note ${noteIndex + 1}/3: ${note} (duration: ${duration * 1000}ms)`,
                 );
-                audioEngine.playNote(note, duration * 1000, 0).catch(err => {
+                audioEngine.playNote(note, duration * 1000, 0).then(() => {
+                  console.log(`✅ Successfully started chord note: ${note}`);
+                }).catch(err => {
                   console.error('Error playing chord note:', err);
                 }); // All notes at same octave
               },
@@ -251,9 +265,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 console.log("✅ Stopped before note could play");
                 return; // Exit if stop pressed
               }
-              audioEngine.playNote(notes[i], duration * 1000, octaveOffset).catch(err => {
-            console.error('Error playing note:', err);
-          });
+              console.log(`🎵 Playing note: ${notes[i]} (duration: ${duration * 1000}ms, octave: ${octaveOffset})`);
+              audioEngine.playNote(notes[i], duration * 1000, octaveOffset).then(() => {
+                console.log(`✅ Successfully started note: ${notes[i]}`);
+              }).catch(err => {
+                console.error('Error playing note:', err);
+              });
             },
             (currentTime - startTime) * 1000,
           );
