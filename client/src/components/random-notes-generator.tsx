@@ -304,32 +304,29 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.log('⏱️ Duration:', sequenceDuration, 'ms');
       
       // Only loop if Auto Loop is enabled
-      if (isLoop    ing) {
+      if (isLooping) {
         console.log('🔄 Setting up immediate seamless loop - no gaps');
         
-        // Schedule next sequence to start immediately when current ends
-        const loopTimeout = setTimeout(async () => {
-          if (isLooping && isPlaying) {
-            console.log('🔄 Loop trigger - seamless restart');
-            try {
-              // Recursively call playSequenceOnce for perfect timing
-              const nextDuration = await playSequenceOnce();
-              console.log('🔄 Loop sequence completed:', nextDuration, 'ms');
-              
-              // If still looping, schedule the next one
-              if (isLooping && isPlaying) {
-                const nextTimeout = setTimeout(async () => {
-                  handlePlay(); // Use handlePlay for full loop setup
-                }, nextDuration);
-                activeTimeoutsRef.current.add(nextTimeout);
+        // Create a recursive loop function
+        const scheduleNextLoop = (duration: number) => {
+          const loopTimeout = setTimeout(async () => {
+            if (isLooping && isPlaying) {
+              console.log('🔄 Loop trigger - seamless restart');
+              try {
+                const nextDuration = await playSequenceOnce();
+                console.log('🔄 Loop sequence completed:', nextDuration, 'ms');
+                // Schedule the next iteration
+                scheduleNextLoop(nextDuration);
+              } catch (error) {
+                console.error('Loop playback error:', error);
               }
-            } catch (error) {
-              console.error('Loop playback error:', error);
             }
-          }
-        }, sequenceDuration);
+          }, duration);
+          activeTimeoutsRef.current.add(loopTimeout);
+        };
         
-        activeTimeoutsRef.current.add(loopTimeout);
+        // Start the loop
+        scheduleNextLoop(sequenceDuration);
       } else {
         console.log('🔇 Auto Loop disabled - playing once only');
         // Set playing to false after the sequence completes
@@ -479,21 +476,21 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           
           if (isLooping) {
             // Use same seamless loop approach in restart scenario
-            const loopTimeout = setTimeout(async () => {
-              if (isLooping && isPlaying) {
-                console.log('🔄 Restart loop trigger');
-                try {
-                  const nextDuration = await playSequenceOnce();
-                  if (isLooping && isPlaying) {
-                    const nextTimeout = setTimeout(() => handlePlay(), nextDuration);
-                    activeTimeoutsRef.current.add(nextTimeout);
+            const scheduleNextLoop = (duration: number) => {
+              const loopTimeout = setTimeout(async () => {
+                if (isLooping && isPlaying) {
+                  console.log('🔄 Restart loop trigger');
+                  try {
+                    const nextDuration = await playSequenceOnce();
+                    scheduleNextLoop(nextDuration);
+                  } catch (error) {
+                    console.error('Restart loop error:', error);
                   }
-                } catch (error) {
-                  console.error('Restart loop error:', error);
                 }
-              }
-            }, sequenceDuration);
-            activeTimeoutsRef.current.add(loopTimeout);
+              }, duration);
+              activeTimeoutsRef.current.add(loopTimeout);
+            };
+            scheduleNextLoop(sequenceDuration);
           } else {
             setTimeout(() => {
               setIsPlaying(false);
