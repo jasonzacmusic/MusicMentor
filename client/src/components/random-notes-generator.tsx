@@ -146,19 +146,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     try {
       if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-        console.log('🔧 Initializing audio engine...');
         await audioEngine.initialize();
       }
       
-      // Check audio context state
-      console.log('🔊 Audio context state:', audioEngine.audioContext?.state);
-      console.log('🔊 Master gain node exists:', !!audioEngine.masterGainNode);
-      
-      // Resume context if suspended
+      // Always ensure audio context is running
       if (audioEngine.audioContext?.state === 'suspended') {
-        console.log('▶️ Resuming suspended audio context...');
         await audioEngine.audioContext.resume();
-        console.log('✅ Audio context resumed, state:', audioEngine.audioContext.state);
       }
 
       const beatDuration = 60 / tempo;
@@ -232,11 +225,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 }
 
                 console.log(
-                  `🔊 Playing chord note ${noteIndex + 1}/3: ${note} (duration: ${duration * 1000}ms)`,
+                  `🔊 Playing chord note ${noteIndex + 1}/3: ${note}`,
                 );
-                audioEngine.playNote(note, duration * 1000, 0).then(() => {
-                  console.log(`✅ Successfully started chord note: ${note}`);
-                }).catch(err => {
+                audioEngine.playNote(note, duration * 1000, 0).catch(err => {
                   console.error('Error playing chord note:', err);
                 }); // All notes at same octave
               },
@@ -265,10 +256,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 console.log("✅ Stopped before note could play");
                 return; // Exit if stop pressed
               }
-              console.log(`🎵 Playing note: ${notes[i]} (duration: ${duration * 1000}ms, octave: ${octaveOffset})`);
-              audioEngine.playNote(notes[i], duration * 1000, octaveOffset).then(() => {
-                console.log(`✅ Successfully started note: ${notes[i]}`);
-              }).catch(err => {
+              audioEngine.playNote(notes[i], duration * 1000, octaveOffset).catch(err => {
                 console.error('Error playing note:', err);
               });
             },
@@ -445,43 +433,37 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     }, 50);
   }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset]);
 
-  // Monitor tempo/metronome changes only - NOT chord changes 
+  // Monitor tempo/metronome changes and restart if playing
   useEffect(() => {
     if (isPlaying) {
       console.log('🔄 Settings changed - restarting playback');
+      // Reset and restart manually to avoid handlePlay dependency
       emergencyReset();
-      // Restart after brief delay
       setTimeout(async () => {
         setIsPlaying(true);
         try {
           const sequenceDuration = await playSequenceOnce();
-          console.log('⏱️ Duration:', sequenceDuration, 'ms');
+          console.log('⏱️ Restarted duration:', sequenceDuration, 'ms');
           
-          // Only loop if Auto Loop is enabled
           if (isLooping) {
-            const loopDelay = 0;
-            console.log('🔄 Setting up loop with delay:', loopDelay, 'ms');
-            
             loopIntervalRef.current = setInterval(() => {
               console.log('🔄 Loop trigger');
               playSequenceOnce().catch(error => {
                 console.error('Loop playback error:', error);
               });
-            }, loopDelay);
+            }, 0);
           } else {
-            console.log('🔇 Auto Loop disabled - playing once only');
-            // Set playing to false after the sequence completes
             setTimeout(() => {
               setIsPlaying(false);
             }, sequenceDuration);
           }
         } catch (error) {
-          console.error('❌ Play error:', error);
+          console.error('❌ Restart error:', error);
           setIsPlaying(false);
         }
       }, 100);
     }
-  }, [tempo, withMetronome, isPlaying, isLooping, playSequenceOnce]); // Include dependencies needed
+  }, [tempo, withMetronome]); // Only tempo and metronome, no other deps to avoid loops
 
   // Clean up on unmount
   useEffect(() => {
