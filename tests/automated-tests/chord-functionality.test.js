@@ -5,10 +5,10 @@
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import RandomNotesGenerator from '../client/src/components/random-notes-generator';
+import RandomNotesGenerator from '../../client/src/components/random-notes-generator';
 
 // Mock audio engine to avoid browser audio API in tests
-vi.mock('../client/src/lib/audio-engine', () => ({
+vi.mock('../../client/src/lib/audio-engine', () => ({
   audioEngine: {
     initialize: vi.fn().mockResolvedValue(undefined),
     playNote: vi.fn().mockResolvedValue(undefined),
@@ -23,7 +23,7 @@ vi.mock('../client/src/lib/audio-engine', () => ({
 }));
 
 // Mock chord theory functions
-vi.mock('../client/src/lib/chord-theory', () => ({
+vi.mock('../../client/src/lib/chord-theory', () => ({
   getBeginnerChordsForNote: vi.fn().mockReturnValue([
     { name: 'C Major', notes: ['C', 'E', 'G'] },
     { name: 'F Major', notes: ['F', 'A', 'C'] },
@@ -99,7 +99,7 @@ describe('Random Chord Functionality', () => {
   });
 
   test('Emergency reset clears all audio state properly', async () => {
-    const { audioEngine } = await import('../client/src/lib/audio-engine');
+    const { audioEngine } = await import('../../client/src/lib/audio-engine');
     
     render(
       <RandomNotesGenerator 
@@ -127,7 +127,7 @@ describe('Random Chord Functionality', () => {
 describe('Auto Loop Functionality', () => {
   test('Auto Loop timing precision (regression test)', async () => {
     // Mock feature flag
-    vi.mock('../client/src/lib/feature-flags', () => ({
+    vi.mock('../../client/src/lib/feature-flags', () => ({
       isFeatureEnabled: vi.fn().mockReturnValue(true)
     }));
 
@@ -163,7 +163,7 @@ describe('Auto Loop Functionality', () => {
 
 describe('Audio Engine Integration', () => {
   test('Chord notes are scheduled with proper timing', async () => {
-    const { audioEngine } = await import('../client/src/lib/audio-engine');
+    const { audioEngine } = await import('../../client/src/lib/audio-engine');
     
     render(
       <RandomNotesGenerator 
@@ -191,7 +191,7 @@ describe('Audio Engine Integration', () => {
   });
 
   test('Individual notes use correct octave offsets', async () => {
-    const { audioEngine } = await import('../client/src/lib/audio-engine');
+    const { audioEngine } = await import('../../client/src/lib/audio-engine');
     
     render(
       <RandomNotesGenerator 
