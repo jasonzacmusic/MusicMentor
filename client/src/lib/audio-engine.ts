@@ -102,6 +102,8 @@ export class AudioEngine {
       } catch (error) {
         console.error('Error starting/stopping oscillator:', error);
         clearTimeout(timeout);
+        // Remove from tracking if it failed
+        this.activeOscillators.delete(oscillator);
         resolve(); // Resolve even on error to prevent hanging
       }
     });
@@ -232,9 +234,14 @@ export class AudioEngine {
     // Track oscillator
     this.activeOscillators.add(oscillator);
     
-    // Start and stop
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
+    // Start and stop with error handling
+    try {
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    } catch (error) {
+      console.error('Error with scheduled note:', error);
+      this.activeOscillators.delete(oscillator);
+    }
     
     // Remove from tracking when it ends
     oscillator.addEventListener('ended', () => {
@@ -273,8 +280,13 @@ export class AudioEngine {
     // Track metronome oscillators
     this.activeOscillators.add(oscillator);
     
-    oscillator.start(time);
-    oscillator.stop(time + clickDuration);
+    try {
+      oscillator.start(time);
+      oscillator.stop(time + clickDuration);
+    } catch (error) {
+      console.error('Error with metronome click:', error);
+      this.activeOscillators.delete(oscillator);
+    }
     
     oscillator.addEventListener('ended', () => {
       this.activeOscillators.delete(oscillator);
@@ -304,8 +316,13 @@ export class AudioEngine {
     // Track immediate metronome clicks too
     this.activeOscillators.add(oscillator);
     
-    oscillator.start(now);
-    oscillator.stop(now + clickDuration);
+    try {
+      oscillator.start(now);
+      oscillator.stop(now + clickDuration);
+    } catch (error) {
+      console.error('Error with immediate metronome click:', error);
+      this.activeOscillators.delete(oscillator);
+    }
     
     oscillator.addEventListener('ended', () => {
       this.activeOscillators.delete(oscillator);
@@ -315,13 +332,17 @@ export class AudioEngine {
   stopAll(): void {
     console.log('AudioEngine.stopAll() called - stopping', this.activeOscillators.size, 'oscillators');
     
-    // Stop all active oscillators immediately
+    // Stop all active oscillators immediately with proper state checking
     this.activeOscillators.forEach(oscillator => {
       try {
-        oscillator.stop();
+        // Check if oscillator is still in a stoppable state
+        if (oscillator.context && oscillator.context.state !== 'closed') {
+          oscillator.stop();
+        }
         oscillator.disconnect();
       } catch (error) {
-        // Oscillator might already be stopped - ignore error
+        // Oscillator might already be stopped - ignore DOMException
+        console.log('Oscillator already stopped:', error.message);
       }
     });
     this.activeOscillators.clear();
