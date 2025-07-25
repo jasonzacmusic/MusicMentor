@@ -226,6 +226,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
           // Schedule ONLY these 3 notes with slight stagger - NO ADDITIONAL PROCESSING
           baseNotes.forEach((note, noteIndex) => {
+            const delayMs = (currentTime - startTime) * 1000 + noteIndex * 50;
             const timeout = setTimeout(
               () => {
                 //SRI: if stop is pressed before the chord note plays, don't play it
@@ -241,7 +242,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                   console.error('Error playing chord note:', err);
                 });
               },
-              (currentTime - startTime) * 1000 + noteIndex * 50,
+              delayMs,
             );
             // Track timeout for cancellation
             activeTimeoutsRef.current.add(timeout);
@@ -258,7 +259,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             octaveOffset,
           );
 
-          // Schedule individual note with precise Web Audio timing
+          // Use IDENTICAL scheduling approach as chords for consistent timing
+          const delayMs = (currentTime - startTime) * 1000;
           const timeout = setTimeout(
             () => {
               //SRI: if stop is pressed before the note plays, don't play it
@@ -266,12 +268,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 console.log("✅ Stopped before note could play");
                 return;
               }
+              console.log(`🔊 Playing individual note: ${notes[i]} (delay was ${delayMs}ms)`);
               // Play note immediately when timeout fires - no additional delay
               audioEngine.playNote(notes[i], duration * 1000, octaveOffset).catch(err => {
                 console.error('Error playing note:', err);
               });
             },
-            (currentTime - startTime) * 1000,
+            delayMs,
           );
           // Track timeout for cancellation
           activeTimeoutsRef.current.add(timeout);

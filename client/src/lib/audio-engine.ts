@@ -38,7 +38,6 @@ export class AudioEngine {
 
     // Always ensure audio context is running before playing notes
     if (this.audioContext.state === 'suspended') {
-      console.log('🔊 Resuming suspended audio context for individual note');
       await this.audioContext.resume();
     }
 
