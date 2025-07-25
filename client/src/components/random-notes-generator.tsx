@@ -234,7 +234,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       
       // Only loop if Auto Loop is enabled
       if (isLooping) {
-        const loopDelay = Math.max(sequenceDuration, 4000); // Minimum 4 seconds
+        //SRI: Commenting as loopDelay should be 0. Otherwise autoloop has a 4ms delay at the end// const loopDelay = Math.max(sequenceDuration, 4000); // Minimum 4 seconds
+        const loopDelay = 0;
         console.log('🔄 Setting up loop with delay:', loopDelay, 'ms');
         
         loopIntervalRef.current = setInterval(() => {
