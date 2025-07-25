@@ -303,16 +303,15 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       
       // Only loop if Auto Loop is enabled
       if (isLooping) {
-        //Commenting as loopDelay should be 0. Otherwise autoloop has a 4ms delay at the end// const loopDelay = Math.max(sequenceDuration, 4000); // Minimum 4 seconds
-        const loopDelay = 0;
-        console.log('🔄 Setting up loop with delay:', loopDelay, 'ms');
+        // Use the actual sequence duration to prevent overlap
+        console.log('🔄 Setting up loop with duration:', sequenceDuration, 'ms');
         
         loopIntervalRef.current = setInterval(() => {
           console.log('🔄 Loop trigger');
           playSequenceOnce().catch(error => {
             console.error('Loop playback error:', error);
           });
-        }, loopDelay);
+        }, sequenceDuration);
       } else {
         console.log('🔇 Auto Loop disabled - playing once only');
         // Set playing to false after the sequence completes
@@ -466,7 +465,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               playSequenceOnce().catch(error => {
                 console.error('Loop playback error:', error);
               });
-            }, 0);
+            }, sequenceDuration);
           } else {
             setTimeout(() => {
               setIsPlaying(false);
