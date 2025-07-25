@@ -64,6 +64,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   
   // Store previous chord selection to detect changes
   const prevChordsRef = useRef<(Chord | null)[]>(selectedChords);
+  // Store random chords to avoid prop timing issues
+  const randomChordsRef = useRef<(Chord | null)[]>([null, null, null]);
 
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
@@ -653,8 +655,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Update the chord selections
     onChordsChange?.(randomChords);
     
-    // Store the random chords in a ref to avoid prop timing issues
-    const randomChordsRef = useRef<(Chord | null)[]>(randomChords);
+    // Store the random chords in the ref to avoid prop timing issues
     randomChordsRef.current = randomChords;
 
     // Always start playing after selecting random chords
