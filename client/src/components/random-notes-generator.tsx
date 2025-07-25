@@ -434,11 +434,37 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.log('🔄 Settings changed - restarting playback');
       emergencyReset();
       // Restart after brief delay
-      setTimeout(() => {
-        handlePlay();
+      setTimeout(async () => {
+        setIsPlaying(true);
+        try {
+          const sequenceDuration = await playSequenceOnce();
+          console.log('⏱️ Duration:', sequenceDuration, 'ms');
+          
+          // Only loop if Auto Loop is enabled
+          if (isLooping) {
+            const loopDelay = 0;
+            console.log('🔄 Setting up loop with delay:', loopDelay, 'ms');
+            
+            loopIntervalRef.current = setInterval(() => {
+              console.log('🔄 Loop trigger');
+              playSequenceOnce().catch(error => {
+                console.error('Loop playback error:', error);
+              });
+            }, loopDelay);
+          } else {
+            console.log('🔇 Auto Loop disabled - playing once only');
+            // Set playing to false after the sequence completes
+            setTimeout(() => {
+              setIsPlaying(false);
+            }, sequenceDuration);
+          }
+        } catch (error) {
+          console.error('❌ Play error:', error);
+          setIsPlaying(false);
+        }
       }, 100);
     }
-  }, [tempo, withMetronome]); // Only tempo and metronome, NOT selectedChords
+  }, [tempo, withMetronome, isPlaying, isLooping, playSequenceOnce]); // Include dependencies needed
 
   // Clean up on unmount
   useEffect(() => {
