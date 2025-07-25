@@ -301,11 +301,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     }
   }, [selectedChords, notes, tempo, withMetronome, inversionModes]);
 
-  // SIMPLIFIED PLAY FUNCTION
+  // SIMPLIFIED PLAY FUNCTION  
   const handlePlay = useCallback(async () => {
     console.log('▶️ PLAY PRESSED - Starting sequence');
     console.log('🔍 Current selectedChords state:', selectedChords);
     console.log('🔍 Current notes state:', notes);
+    
+    // Also add alert for visibility
+    alert(`Play pressed! Chords: ${selectedChords.map(c => c?.name || 'None').join(', ')}`);
     
     if (isPlaying) {
       console.log('⏸️ Already playing - stopping');
