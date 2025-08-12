@@ -41,9 +41,9 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
     // Tree layout with chords arranged in a circle around the central note
     return (
       <div className="relative w-96 h-96 mx-auto flex items-center justify-center">
-        {/* Central Root Note (Orange Circle) */}
+        {/* Central Root Note (Warm Orange Circle) */}
         <div className="absolute z-20 flex items-center justify-center">
-          <div className="w-24 h-24 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+          <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
             <span className="text-3xl font-bold text-white">{baseNote}</span>
           </div>
         </div>
@@ -61,43 +61,43 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           
           const isSelected = selectedChord?.name === chord.name;
           
-          // Unique colors for each chord position
+          // Attractive colors for student-friendly chord visualization
           const chordColors = [
-            { // Position 0
-              default: 'from-blue-200 to-blue-400 border-blue-300 text-blue-800',
-              selected: 'from-blue-500 to-blue-700 border-blue-400 text-white',
-              hover: 'hover:from-blue-300 hover:to-blue-500',
-              branch: '#3b82f6'
-            },
-            { // Position 1
-              default: 'from-purple-200 to-purple-400 border-purple-300 text-purple-800',
-              selected: 'from-purple-500 to-purple-700 border-purple-400 text-white',
-              hover: 'hover:from-purple-300 hover:to-purple-500',
-              branch: '#8b5cf6'
-            },
-            { // Position 2
-              default: 'from-red-200 to-red-400 border-red-300 text-red-800',
-              selected: 'from-red-500 to-red-700 border-red-400 text-white',
-              hover: 'hover:from-red-300 hover:to-red-500',
-              branch: '#ef4444'
-            },
-            { // Position 3
-              default: 'from-pink-200 to-pink-400 border-pink-300 text-pink-800',
-              selected: 'from-pink-500 to-pink-700 border-pink-400 text-white',
-              hover: 'hover:from-pink-300 hover:to-pink-500',
-              branch: '#ec4899'
-            },
-            { // Position 4
-              default: 'from-green-200 to-green-400 border-green-300 text-green-800',
-              selected: 'from-green-500 to-green-700 border-green-400 text-white',
-              hover: 'hover:from-green-300 hover:to-green-500',
+            { // Position 0 - Emerald
+              default: 'from-emerald-200 to-emerald-400 border-emerald-300 text-emerald-800',
+              selected: 'from-emerald-500 to-emerald-700 border-emerald-400 text-white',
+              hover: 'hover:from-emerald-300 hover:to-emerald-500',
               branch: '#10b981'
             },
-            { // Position 5
+            { // Position 1 - Teal
               default: 'from-teal-200 to-teal-400 border-teal-300 text-teal-800',
               selected: 'from-teal-500 to-teal-700 border-teal-400 text-white',
               hover: 'hover:from-teal-300 hover:to-teal-500',
               branch: '#14b8a6'
+            },
+            { // Position 2 - Cyan
+              default: 'from-cyan-200 to-cyan-400 border-cyan-300 text-cyan-800',
+              selected: 'from-cyan-500 to-cyan-700 border-cyan-400 text-white',
+              hover: 'hover:from-cyan-300 hover:to-cyan-500',
+              branch: '#06b6d4'
+            },
+            { // Position 3 - Sky
+              default: 'from-sky-200 to-sky-400 border-sky-300 text-sky-800',
+              selected: 'from-sky-500 to-sky-700 border-sky-400 text-white',
+              hover: 'hover:from-sky-300 hover:to-sky-500',
+              branch: '#0ea5e9'
+            },
+            { // Position 4 - Indigo
+              default: 'from-indigo-200 to-indigo-400 border-indigo-300 text-indigo-800',
+              selected: 'from-indigo-500 to-indigo-700 border-indigo-400 text-white',
+              hover: 'hover:from-indigo-300 hover:to-indigo-500',
+              branch: '#6366f1'
+            },
+            { // Position 5 - Purple
+              default: 'from-purple-200 to-purple-400 border-purple-300 text-purple-800',
+              selected: 'from-purple-500 to-purple-700 border-purple-400 text-white',
+              hover: 'hover:from-purple-300 hover:to-purple-500',
+              branch: '#8b5cf6'
             }
           ];
           

@@ -35,97 +35,135 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-gray-200/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="bg-white/90 backdrop-blur-sm shadow-lg border-b border-emerald-200/50">
+        <div className="max-w-full mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Music className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Music className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                   Chord Trees
                 </h1>
-                <p className="text-xs text-gray-500 -mt-1">Music Theory Practice</p>
+                <p className="text-sm text-emerald-600 -mt-1">Interactive Music Learning</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <HelpCircle className="w-5 h-5 text-gray-500" />
+              <Button variant="ghost" size="sm" className="text-emerald-600 hover:bg-emerald-50">
+                <HelpCircle className="w-5 h-5" />
               </Button>
-              <Button variant="ghost" size="sm">
-                <Settings className="w-5 h-5 text-gray-500" />
+              <Button variant="ghost" size="sm" className="text-emerald-600 hover:bg-emerald-50">
+                <Settings className="w-5 h-5" />
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Practice Session Header */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/20">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Practice Session</h2>
-                <p className="text-gray-600 text-lg">Explore chord relationships through interactive note sequences</p>
+      <main className="max-w-full mx-auto px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-120px)]">
+          {/* Left Panel - Controls */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Practice Session Info & Skill Level */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/30">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-emerald-800 mb-2">Practice Session</h2>
+                <p className="text-emerald-600">Master chord relationships through interactive exploration</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-gray-700">Skill Level:</span>
-                <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-40 bg-white/80 border-gray-200 hover:bg-white transition-all">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">🌱 Beginner</SelectItem>
-                    <SelectItem value="intermediate">🌿 Intermediate</SelectItem>
-                    <SelectItem value="advanced">🌳 Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-emerald-700 mb-2">Skill Level</label>
+                  <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
+                    <SelectTrigger className="w-full bg-emerald-50/80 border-emerald-200 hover:bg-emerald-50 transition-all text-emerald-800">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">🌱 Beginner - Major & Minor</SelectItem>
+                      <SelectItem value="intermediate">🌿 Intermediate - Sus & 7ths</SelectItem>
+                      <SelectItem value="advanced">🌳 Advanced - Extended Chords</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            </div>
+
+            {/* Controls Panel */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/30">
+              <h3 className="text-xl font-bold text-emerald-800 mb-4">Controls</h3>
+              <RandomNotesGenerator 
+                onNotesChange={handleNotesChange}
+                onChordsChange={setSelectedChords}
+                selectedChords={selectedChords}
+                inversionModes={inversionModes}
+                skillLevel={skillLevel}
+              />
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-gradient-to-br from-emerald-100/80 to-teal-100/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-emerald-200/50">
+              <h3 className="text-lg font-bold text-emerald-800 mb-3">How to Practice</h3>
+              <ul className="space-y-2 text-sm text-emerald-700">
+                <li className="flex items-start space-x-2">
+                  <span className="text-emerald-500 font-bold">1.</span>
+                  <span>Click "Generate" to create new note sequences</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-emerald-500 font-bold">2.</span>
+                  <span>Explore the 6 chord branches around each note</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-emerald-500 font-bold">3.</span>
+                  <span>Use "Random" for automatic chord selection</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-emerald-500 font-bold">4.</span>
+                  <span>Adjust tempo and try different skill levels</span>
+                </li>
+              </ul>
             </div>
           </div>
 
-          {/* Random Notes Generator */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/20">
-            <RandomNotesGenerator 
-              onNotesChange={handleNotesChange}
-              onChordsChange={setSelectedChords}
-              selectedChords={selectedChords}
-              inversionModes={inversionModes}
-              skillLevel={skillLevel}
-            />
-          </div>
-
-          {/* Chord Trees - Visual tree structure for each note */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
-            <div className="text-center mb-8">
-              <p className="text-lg text-gray-700 mb-2">Click on any of the Chord Branches and see how they sound with the Melody Note</p>
-              <p className="text-sm text-gray-600">Each orange note has 6 different chords you can explore</p>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 justify-items-center">
-              {activeNotes.map((note, index) => {
-                return (
-                  <div key={`${note}-${index}`} className="relative flex justify-center items-center min-h-[480px]">
-                    {/* Tree Container - centered */}
-                    <div className="relative flex flex-col items-center justify-center">
-                      {/* Chord Selector with Tree Layout - includes center note */}
-                      <ChordSkillSelector
-                        baseNote={note}
-                        noteIndex={index}
-                        selectedChord={selectedChords[index]}
-                        onChordSelect={handleChordSelect}
-                        inversionMode={inversionModes[index]}
-                        onInversionChange={(mode) => handleInversionChange(mode, index)}
-                        skillLevel={skillLevel}
-                        treeLayout={true}
-                      />
+          {/* Right Panel - Chord Trees */}
+          <div className="lg:col-span-8">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/30 h-full">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-emerald-800 mb-2">Chord Trees</h3>
+                <p className="text-emerald-600">Click any chord branch to hear how it harmonizes with the melody</p>
+              </div>
+              
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 justify-items-center h-[calc(100%-120px)] overflow-y-auto">
+                {activeNotes.map((note, index) => {
+                  return (
+                    <div key={`${note}-${index}`} className="relative flex justify-center items-center min-h-[450px]">
+                      {/* Tree Container - centered */}
+                      <div className="relative flex flex-col items-center justify-center">
+                        {/* Note Label */}
+                        <div className="mb-4">
+                          <span className="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                            Note {index + 1}
+                          </span>
+                        </div>
+                        
+                        {/* Chord Selector with Tree Layout */}
+                        <ChordSkillSelector
+                          baseNote={note}
+                          noteIndex={index}
+                          selectedChord={selectedChords[index]}
+                          onChordSelect={handleChordSelect}
+                          inversionMode={inversionModes[index]}
+                          onInversionChange={(mode) => handleInversionChange(mode, index)}
+                          skillLevel={skillLevel}
+                          treeLayout={true}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
