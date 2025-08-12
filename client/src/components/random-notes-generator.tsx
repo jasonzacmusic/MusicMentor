@@ -690,6 +690,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     if (isPlaying && (tempoChanged || metronomeChanged)) {
       console.log('🔄 Settings changed - restarting playback');
+      // FORCE reset sequence flag to allow restart during playback
+      isSequenceActiveRef.current = false;
       // Reset and restart manually to avoid handlePlay dependency
       emergencyReset();
       setTimeout(async () => {
