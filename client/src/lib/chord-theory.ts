@@ -175,6 +175,27 @@ export function getChordsForNote(rootNote: string): Chord[] {
   );
 }
 
+// Skill level definitions for chord complexity
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
+
+const SKILL_CHORD_TYPES: Record<SkillLevel, string[]> = {
+  beginner: ['major', 'minor', 'diminished', 'augmented'],
+  intermediate: ['major', 'minor', 'diminished', 'augmented', 'sus2', 'sus4', 'major7', 'minor7', 'dominant7', 'minor7b5', 'diminished7', 'major6', 'minor6'],
+  advanced: ['major', 'minor', 'diminished', 'augmented', 'sus2', 'sus4', 'major7', 'minor7', 'dominant7', 'minor7b5', 'diminished7', 'major6', 'minor6', 'major9', 'minor9', 'dominant9', 'major11', 'minor11', 'major13', 'dominant13', 'altered', 'add9', 'madd9', 'sharp11', 'flat13']
+};
+
+export function getChordsForNoteBySkill(rootNote: string, skillLevel: SkillLevel = 'beginner'): Chord[] {
+  const chordTypes = SKILL_CHORD_TYPES[skillLevel];
+  return chordTypes.map(type => {
+    try {
+      return getChordFromNote(rootNote, type);
+    } catch (error) {
+      console.warn(`Could not create chord: ${rootNote} ${type}`, error);
+      return null;
+    }
+  }).filter((chord): chord is Chord => chord !== null);
+}
+
 export function formatChordNotes(notes: string[]): string {
   return notes.join(' - ');
 }

@@ -28,27 +28,69 @@ export const NOTE_FREQUENCIES: Record<string, number> = {
 };
 
 export const CHORD_INTERVALS: Record<string, number[]> = {
+  // Basic triads (Beginner)
   'major': [0, 4, 7],
   'minor': [0, 3, 7],
   'diminished': [0, 3, 6],
   'augmented': [0, 4, 8],
+  
+  // Intermediate chords
+  'sus2': [0, 2, 7],
+  'sus4': [0, 5, 7],
   'major7': [0, 4, 7, 11],
   'minor7': [0, 3, 7, 10],
   'dominant7': [0, 4, 7, 10],
-  'sus2': [0, 2, 7],
-  'sus4': [0, 5, 7]
+  'minor7b5': [0, 3, 6, 10], // Half-diminished
+  'diminished7': [0, 3, 6, 9],
+  'major6': [0, 4, 7, 9],
+  'minor6': [0, 3, 7, 9],
+  
+  // Advanced chords
+  'major9': [0, 4, 7, 11, 14], // Note: 14 = 2 + 12 (9th in next octave)
+  'minor9': [0, 3, 7, 10, 14],
+  'dominant9': [0, 4, 7, 10, 14],
+  'major11': [0, 4, 7, 11, 14, 17], // Note: 17 = 5 + 12 (11th in next octave)
+  'minor11': [0, 3, 7, 10, 14, 17],
+  'major13': [0, 4, 7, 11, 14, 17, 21], // Note: 21 = 9 + 12 (13th in next octave)
+  'dominant13': [0, 4, 7, 10, 14, 17, 21],
+  'altered': [0, 4, 6, 10, 13], // Dominant with b5, #9
+  'add9': [0, 4, 7, 14], // Major add 9 (no 7th)
+  'madd9': [0, 3, 7, 14], // Minor add 9 (no 7th)
+  'sharp11': [0, 4, 7, 11, 18], // Major 7 #11
+  'flat13': [0, 4, 7, 10, 20] // Dominant 7 b13
 };
 
 export const CHORD_NAMES: Record<string, string> = {
+  // Basic triads (Beginner)
   'major': 'Major',
   'minor': 'Minor',
   'diminished': 'Diminished',
   'augmented': 'Augmented',
+  
+  // Intermediate chords
+  'sus2': 'sus2',
+  'sus4': 'sus4',
   'major7': 'Major 7th',
   'minor7': 'Minor 7th',
   'dominant7': '7th',
-  'sus2': 'sus2',
-  'sus4': 'sus4'
+  'minor7b5': 'Minor 7♭5',
+  'diminished7': 'Diminished 7th',
+  'major6': 'Major 6th',
+  'minor6': 'Minor 6th',
+  
+  // Advanced chords
+  'major9': 'Major 9th',
+  'minor9': 'Minor 9th',
+  'dominant9': '9th',
+  'major11': 'Major 11th',
+  'minor11': 'Minor 11th',
+  'major13': 'Major 13th',
+  'dominant13': '13th',
+  'altered': 'Altered',
+  'add9': 'add9',
+  'madd9': 'Minor add9',
+  'sharp11': 'Major 7♯11',
+  'flat13': '7♭13'
 };
 
 export const INTERVALS: Record<string, { semitones: number; name: string }> = {

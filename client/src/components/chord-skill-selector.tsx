@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getBeginnerChordsForNote, formatChordNotes, type Chord } from '@/lib/chord-theory';
+import { getBeginnerChordsForNote, getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
 
@@ -13,9 +13,11 @@ interface ChordSkillSelectorProps {
   inversionMode?: 'auto' | 'root' | 'first' | 'second';
   onInversionChange?: (mode: 'auto' | 'root' | 'first' | 'second') => void;
   treeLayout?: boolean;
+  skillLevel?: SkillLevel;
+  onSkillLevelChange?: (level: SkillLevel) => void;
 }
 
-export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord: parentSelectedChord, onChordSelect, inversionMode = 'auto', onInversionChange, treeLayout = false }: ChordSkillSelectorProps) {
+export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord: parentSelectedChord, onChordSelect, inversionMode = 'auto', onInversionChange, treeLayout = false, skillLevel = 'beginner', onSkillLevelChange }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord, isPlaying } = useAudio();
 
@@ -23,10 +25,10 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
   const selectedChord = parentSelectedChord;
 
   useEffect(() => {
-    // Always use beginner chords
-    const chords = getBeginnerChordsForNote(baseNote);
+    // Use skill-based chord selection
+    const chords = skillLevel ? getChordsForNoteBySkill(baseNote, skillLevel) : getBeginnerChordsForNote(baseNote);
     setAvailableChords(chords);
-  }, [baseNote]);
+  }, [baseNote, skillLevel]);
 
   const handleSelectChord = (chord: Chord) => {
     onChordSelect(chord, noteIndex);
@@ -39,7 +41,35 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
   if (treeLayout) {
     // Tree layout with chords arranged in a circle around the central note
     return (
-      <div className="relative w-96 h-96 mx-auto flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        {/* Skill Level Selector */}
+        {onSkillLevelChange && (
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={skillLevel === 'beginner' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onSkillLevelChange('beginner')}
+            >
+              Beginner
+            </Button>
+            <Button
+              variant={skillLevel === 'intermediate' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onSkillLevelChange('intermediate')}
+            >
+              Intermediate
+            </Button>
+            <Button
+              variant={skillLevel === 'advanced' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onSkillLevelChange('advanced')}
+            >
+              Advanced
+            </Button>
+          </div>
+        )}
+        
+        <div className="relative w-96 h-96 mx-auto flex items-center justify-center">
         {/* Central Root Note (Orange Circle) */}
         <div className="absolute z-20 flex items-center justify-center">
           <div className="w-24 h-24 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
@@ -177,6 +207,7 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
             </Button>
           </div>
         )}
+      </div>
       </div>
     );
   }

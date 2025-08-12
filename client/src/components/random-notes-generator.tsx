@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
-import { generateRandomNotes, getChordFromNote, getBeginnerChordsForNote, type Chord, applyVoiceLeading } from '@/lib/chord-theory';
+import { generateRandomNotes, getChordFromNote, getBeginnerChordsForNote, type Chord, type SkillLevel, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
 import { isFeatureEnabled } from '@/lib/feature-flags';
@@ -26,6 +26,18 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   
   const [withMetronome, setWithMetronome] = useState(false);
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
+  
+  // Skill level state for chord selection
+  const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
+  
+  // Handle skill level change and automatically clear chord selections
+  const handleSkillLevelChange = useCallback((newSkillLevel: SkillLevel) => {
+    setSkillLevel(newSkillLevel);
+    // Clear all chord selections when skill level changes to force re-selection
+    const clearedChords: (Chord | null)[] = [null, null, null];
+    onChordsChange?.(clearedChords);
+    console.log(`🎯 Skill level changed to ${newSkillLevel}, cleared chord selections`);
+  }, [onChordsChange]);
   // Removed old useAudio hook - using direct audioEngine now
 
   const generateNew = useCallback(() => {
