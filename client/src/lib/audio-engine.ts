@@ -18,8 +18,18 @@ export class AudioEngine {
       }
       
       this.masterGainNode = this.audioContext.createGain();
-      this.masterGainNode.connect(this.audioContext.destination);
-      this.masterGainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+      
+      // Piano-like master compression and limiting
+      const compressor = this.audioContext.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-24, this.audioContext.currentTime);
+      compressor.knee.setValueAtTime(30, this.audioContext.currentTime);
+      compressor.ratio.setValueAtTime(3, this.audioContext.currentTime);
+      compressor.attack.setValueAtTime(0.003, this.audioContext.currentTime);
+      compressor.release.setValueAtTime(0.25, this.audioContext.currentTime);
+      
+      this.masterGainNode.connect(compressor);
+      compressor.connect(this.audioContext.destination);
+      this.masterGainNode.gain.setValueAtTime(0.4, this.audioContext.currentTime); // Slightly louder for piano
       this.isInitialized = true;
     } catch (error) {
       console.error('Failed to initialize audio context:', error);
@@ -52,43 +62,109 @@ export class AudioEngine {
       frequency = frequency * Math.pow(2, octaveOffset);
     }
 
-    const oscillator = this.audioContext.createOscillator();
+    // Create piano-like sound using multiple oscillators for harmonic richness
+    const fundamentalOsc = this.audioContext.createOscillator();
+    const harmonic2Osc = this.audioContext.createOscillator();
+    const harmonic3Osc = this.audioContext.createOscillator();
+    const subOsc = this.audioContext.createOscillator();
+    
     const gainNode = this.audioContext.createGain();
+    const harmonic2Gain = this.audioContext.createGain();
+    const harmonic3Gain = this.audioContext.createGain();
+    const subGain = this.audioContext.createGain();
 
-    oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-    oscillator.type = 'sawtooth'; // Viola-like sawtooth wave
+    // Piano frequency setup with harmonics
+    fundamentalOsc.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+    harmonic2Osc.frequency.setValueAtTime(frequency * 2, this.audioContext.currentTime); // Second harmonic
+    harmonic3Osc.frequency.setValueAtTime(frequency * 3, this.audioContext.currentTime); // Third harmonic
+    subOsc.frequency.setValueAtTime(frequency * 0.5, this.audioContext.currentTime); // Sub-harmonic for bass
 
-    // Create a filter for viola-like timbre (deeper and warmer than violin)
+    // Piano-like waveforms - mix of sine and triangle for realistic timbre
+    fundamentalOsc.type = 'triangle'; // Main body of piano sound
+    harmonic2Osc.type = 'sine'; // Clean second harmonic
+    harmonic3Osc.type = 'sine'; // Subtle third harmonic
+    subOsc.type = 'sine'; // Bass foundation
+
+    // Piano harmonic balance - lower frequencies have more harmonics
+    const bassBoost = frequency < 200 ? 1.5 : 1.0;
+    const trebleAttenuate = frequency > 1000 ? 0.7 : 1.0;
+    
+    harmonic2Gain.gain.setValueAtTime(0.3 * bassBoost, this.audioContext.currentTime);
+    harmonic3Gain.gain.setValueAtTime(0.15 * bassBoost, this.audioContext.currentTime);
+    subGain.gain.setValueAtTime(0.4 * bassBoost * trebleAttenuate, this.audioContext.currentTime);
+
+    // Piano-like filtering - warm but clear
     const filter = this.audioContext.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1600, this.audioContext.currentTime); // Lower cutoff for warmer sound
-    filter.Q.setValueAtTime(1.5, this.audioContext.currentTime); // Slightly higher resonance
+    filter.frequency.setValueAtTime(3000 + (frequency * 0.5), this.audioContext.currentTime); // Dynamic cutoff
+    filter.Q.setValueAtTime(0.8, this.audioContext.currentTime); // Gentle resonance
 
-    // Correct audio chain: oscillator -> filter -> gainNode -> masterGain
-    oscillator.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(this.masterGainNode);
+    // Piano resonance simulation with slight reverb
+    const convolver = this.audioContext.createConvolver();
+    const reverbGain = this.audioContext.createGain();
+    reverbGain.gain.setValueAtTime(0.15, this.audioContext.currentTime); // Subtle reverb
 
-    // Use precise Web Audio timing instead of currentTime when startTime is provided
+    // Create simple impulse response for piano-like resonance
+    const impulseLength = Math.round(this.audioContext.sampleRate * 0.8); // 0.8 second reverb
+    const impulseBuffer = this.audioContext.createBuffer(2, impulseLength, this.audioContext.sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulseBuffer.getChannelData(channel);
+      for (let i = 0; i < impulseLength; i++) {
+        channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - (i / impulseLength), 2);
+      }
+    }
+    convolver.buffer = impulseBuffer;
+
+    // Connect piano sound chain: oscillators -> gains -> filter -> master + reverb
+    fundamentalOsc.connect(gainNode);
+    harmonic2Osc.connect(harmonic2Gain);
+    harmonic3Osc.connect(harmonic3Gain);
+    subOsc.connect(subGain);
+    
+    harmonic2Gain.connect(gainNode);
+    harmonic3Gain.connect(gainNode);
+    subGain.connect(gainNode);
+    
+    gainNode.connect(filter);
+    filter.connect(this.masterGainNode);
+    
+    // Add subtle reverb
+    filter.connect(convolver);
+    convolver.connect(reverbGain);
+    reverbGain.connect(this.masterGainNode);
+
+    // Track all oscillators
+    this.activeOscillators.add(fundamentalOsc);
+    this.activeOscillators.add(harmonic2Osc);
+    this.activeOscillators.add(harmonic3Osc);
+    this.activeOscillators.add(subOsc);
+
+    // Piano-like ADSR envelope - quick attack, gradual decay, natural release
     const now = startTime || this.audioContext.currentTime;
-    const attackTime = 0.02; // Minimal attack for immediate onset
-    const decayTime = 0.03;
-    const sustainLevel = 0.75; // Rich sustain for viola's warmth
-    const releaseTime = Math.min(0.1, (duration / 1000) * 0.1); // Minimal release
+    const attackTime = 0.005; // Very fast piano attack
+    const decayTime = 0.3; // Longer decay for piano resonance
+    const sustainLevel = 0.4; // Lower sustain level like real piano
+    const releaseTime = Math.min(1.0, (duration / 1000) * 0.3); // Natural piano release
+
+    // Piano dynamics - louder for bass notes, softer for treble
+    const velocityGain = frequency < 300 ? 0.9 : frequency > 1000 ? 0.6 : 0.75;
 
     gainNode.gain.setValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(0.8, now + attackTime);
-    gainNode.gain.linearRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
-    gainNode.gain.setValueAtTime(sustainLevel, now + (duration / 1000) - releaseTime);
-    gainNode.gain.linearRampToValueAtTime(0, now + (duration / 1000));
+    gainNode.gain.exponentialRampToValueAtTime(velocityGain, now + attackTime);
+    gainNode.gain.exponentialRampToValueAtTime(sustainLevel * velocityGain, now + attackTime + decayTime);
+    gainNode.gain.setValueAtTime(sustainLevel * velocityGain, now + (duration / 1000) - releaseTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + (duration / 1000)); // Exponential release for piano
 
-    // Track active oscillators
-    this.activeOscillators.add(oscillator);
-    
-    // Remove from tracking when it ends and resolve promise
-    oscillator.addEventListener('ended', () => {
-      this.activeOscillators.delete(oscillator);
-    });
+    // Remove oscillators from tracking when they end
+    const removeOscillators = () => {
+      this.activeOscillators.delete(fundamentalOsc);
+      this.activeOscillators.delete(harmonic2Osc);
+      this.activeOscillators.delete(harmonic3Osc);
+      this.activeOscillators.delete(subOsc);
+    };
+
+    fundamentalOsc.addEventListener('ended', removeOscillators);
 
     return new Promise<void>((resolve) => {
       // Set a timeout to ensure promise resolves even if onended fails
@@ -96,19 +172,27 @@ export class AudioEngine {
         resolve();
       }, duration + 1000); // Resolve after duration + 1 second buffer
 
-      oscillator.onended = () => {
+      fundamentalOsc.onended = () => {
         clearTimeout(timeout);
         resolve();
       };
 
       try {
-        oscillator.start(now);
-        oscillator.stop(now + (duration / 1000));
+        // Start all piano oscillators simultaneously
+        fundamentalOsc.start(now);
+        harmonic2Osc.start(now);
+        harmonic3Osc.start(now);
+        subOsc.start(now);
+        
+        // Stop all oscillators at the same time
+        fundamentalOsc.stop(now + (duration / 1000));
+        harmonic2Osc.stop(now + (duration / 1000));
+        harmonic3Osc.stop(now + (duration / 1000));
+        subOsc.stop(now + (duration / 1000));
       } catch (error) {
-        console.error('Error starting/stopping oscillator:', error);
+        console.error('Error starting/stopping piano oscillators:', error);
         clearTimeout(timeout);
-        // Remove from tracking if it failed
-        this.activeOscillators.delete(oscillator);
+        removeOscillators();
         resolve(); // Resolve even on error to prevent hanging
       }
     });
@@ -267,71 +351,91 @@ export class AudioEngine {
   private scheduleMetronomeClick(time: number): void {
     if (!this.audioContext || !this.masterGainNode) return;
 
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(this.masterGainNode);
-
-    oscillator.frequency.setValueAtTime(800, time);
-    oscillator.type = 'square';
-
-    const clickDuration = 0.05;
-
-    gainNode.gain.setValueAtTime(0, time);
-    gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
-    gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
-
-    // Track metronome oscillators
-    this.activeOscillators.add(oscillator);
+    // Create piano-like metronome click using multiple components
+    const clickOsc1 = this.audioContext.createOscillator();
+    const clickOsc2 = this.audioContext.createOscillator(); 
+    const noiseOsc = this.audioContext.createOscillator();
     
+    const clickGain1 = this.audioContext.createGain();
+    const clickGain2 = this.audioContext.createGain();
+    const noiseGain = this.audioContext.createGain();
+    const masterClickGain = this.audioContext.createGain();
+
+    // Piano-like click frequencies (like striking a high piano key)
+    clickOsc1.frequency.setValueAtTime(2200, time); // Bright fundamental
+    clickOsc2.frequency.setValueAtTime(4400, time); // High harmonic
+    noiseOsc.frequency.setValueAtTime(8000, time); // Attack transient
+
+    clickOsc1.type = 'triangle'; // Soft piano-like tone
+    clickOsc2.type = 'sine'; // Clean harmonic
+    noiseOsc.type = 'square'; // Sharp attack
+
+    // Connect piano click chain
+    clickOsc1.connect(clickGain1);
+    clickOsc2.connect(clickGain2);
+    noiseOsc.connect(noiseGain);
+    
+    clickGain1.connect(masterClickGain);
+    clickGain2.connect(masterClickGain);
+    noiseGain.connect(masterClickGain);
+    
+    masterClickGain.connect(this.masterGainNode);
+
+    // Piano metronome envelope - sharp attack, quick decay like piano hammer
+    const attackTime = 0.002; // Very sharp attack
+    const decayTime = 0.08; // Quick decay like piano
+
+    // Balance the components
+    clickGain1.gain.setValueAtTime(0, time);
+    clickGain1.gain.exponentialRampToValueAtTime(0.15, time + attackTime);
+    clickGain1.gain.exponentialRampToValueAtTime(0.001, time + decayTime);
+
+    clickGain2.gain.setValueAtTime(0, time);
+    clickGain2.gain.exponentialRampToValueAtTime(0.08, time + attackTime);
+    clickGain2.gain.exponentialRampToValueAtTime(0.001, time + decayTime);
+
+    noiseGain.gain.setValueAtTime(0, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.12, time + attackTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + attackTime * 3);
+
+    masterClickGain.gain.setValueAtTime(0.4, time); // Piano click volume
+
+    // Track all oscillators
+    this.activeOscillators.add(clickOsc1);
+    this.activeOscillators.add(clickOsc2);
+    this.activeOscillators.add(noiseOsc);
+
     try {
-      oscillator.start(time);
-      oscillator.stop(time + clickDuration);
+      // Start and stop all components
+      clickOsc1.start(time);
+      clickOsc2.start(time);
+      noiseOsc.start(time);
+      
+      clickOsc1.stop(time + decayTime);
+      clickOsc2.stop(time + decayTime);
+      noiseOsc.stop(time + attackTime * 3);
     } catch (error) {
-      console.error('Error with metronome click:', error);
-      this.activeOscillators.delete(oscillator);
+      console.error('Error with piano metronome click:', error);
+      this.activeOscillators.delete(clickOsc1);
+      this.activeOscillators.delete(clickOsc2);
+      this.activeOscillators.delete(noiseOsc);
     }
-    
-    oscillator.addEventListener('ended', () => {
-      this.activeOscillators.delete(oscillator);
-    });
+
+    // Clean up tracking
+    const cleanup = () => {
+      this.activeOscillators.delete(clickOsc1);
+      this.activeOscillators.delete(clickOsc2);
+      this.activeOscillators.delete(noiseOsc);
+    };
+
+    clickOsc1.addEventListener('ended', cleanup);
   }
 
   playMetronomeClick(): void {
     if (!this.audioContext || !this.masterGainNode) return;
 
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(this.masterGainNode);
-
-    // Simple click sound - higher frequency, short duration
-    oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
-    oscillator.type = 'square';
-
-    const now = this.audioContext.currentTime;
-    const clickDuration = 0.05; // 50ms click
-
-    gainNode.gain.setValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
-    gainNode.gain.linearRampToValueAtTime(0, now + clickDuration);
-
-    // Track immediate metronome clicks too
-    this.activeOscillators.add(oscillator);
-    
-    try {
-      oscillator.start(now);
-      oscillator.stop(now + clickDuration);
-    } catch (error) {
-      console.error('Error with immediate metronome click:', error);
-      this.activeOscillators.delete(oscillator);
-    }
-    
-    oscillator.addEventListener('ended', () => {
-      this.activeOscillators.delete(oscillator);
-    });
+    // Use the same piano-like metronome sound as scheduled clicks
+    this.scheduleMetronomeClick(this.audioContext.currentTime);
   }
 
   stopAll(): void {
@@ -354,7 +458,7 @@ export class AudioEngine {
         this.masterGainNode.gain.setValueAtTime(0, this.audioContext?.currentTime || 0);
         setTimeout(() => {
           if (this.masterGainNode) {
-            this.masterGainNode.gain.setValueAtTime(0.3, this.audioContext?.currentTime || 0);
+            this.masterGainNode.gain.setValueAtTime(0.4, this.audioContext?.currentTime || 0); // Piano volume
           }
         }, 100);
       } catch (error) {
