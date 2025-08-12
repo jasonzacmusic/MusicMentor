@@ -235,44 +235,44 @@ export function getChordsForNoteBySkill(rootNote: string, skillLevel: SkillLevel
     });
     
   } else if (skillLevel === 'intermediate') {
-    // Intermediate: 6 chords including basics plus sus2, sus4, and 7th variations
+    // Intermediate: 6 chords using same structure as beginner but with sus2, sus4, 7th variations
     
-    // 1. Root Major (include basics for intermediate)
+    // 1. Root Major (Root position)
     const rootMajor = getChordFromNote(rootNote, 'major', 0);
     chords.push({
       ...rootMajor,
       name: rootNote
     });
     
-    // 2. Root Minor (include basics for intermediate)
+    // 2. Root Minor (Root position) 
     const rootMinor = getChordFromNote(rootNote, 'minor', 0);
     chords.push({
       ...rootMinor,
       name: `${rootNote}m`
     });
     
-    // 3. Root sus2
+    // 3. Root sus2 (instead of related major chord)
     const rootSus2 = getChordFromNote(rootNote, 'sus2', 0);
     chords.push({
       ...rootSus2,
       name: `${rootNote}sus2`
     });
     
-    // 4. Root sus4
+    // 4. Root sus4 (instead of related minor chord)
     const rootSus4 = getChordFromNote(rootNote, 'sus4', 0);
     chords.push({
       ...rootSus4,
       name: `${rootNote}sus4`
     });
     
-    // 5. Root dominant 7th
+    // 5. Root dominant 7th (instead of M3 major)
     const root7 = getChordFromNote(rootNote, 'dominant7', 0);
     chords.push({
       ...root7,
       name: `${rootNote}7`
     });
     
-    // 6. Perfect 5th dominant 7th with voice leading
+    // 6. Perfect 5th dominant 7th with voice leading (instead of m3 minor)
     const p5Index = (rootIndex + 7) % CHROMATIC_NOTES.length;
     const p5Note = CHROMATIC_NOTES[p5Index];
     const p57 = getChordFromNote(p5Note, 'dominant7', 1);
@@ -282,37 +282,37 @@ export function getChordsForNoteBySkill(rootNote: string, skillLevel: SkillLevel
     });
     
   } else { // advanced
-    // Advanced: 6 chords with extended and complex harmonies using valid chord types
+    // Advanced: 6 chords using same structure as beginner but with complex harmonies
     
-    // 1. Root major7
+    // 1. Root major7 (instead of major)
     const rootMaj7 = getChordFromNote(rootNote, 'major7', 0);
     chords.push({
       ...rootMaj7,
       name: `${rootNote}maj7`
     });
     
-    // 2. Root minor7
+    // 2. Root minor7 (instead of minor)
     const rootMin7 = getChordFromNote(rootNote, 'minor7', 0);
     chords.push({
       ...rootMin7,
       name: `${rootNote}m7`
     });
     
-    // 3. Root diminished
+    // 3. Root diminished (instead of related major)
     const rootDim = getChordFromNote(rootNote, 'diminished', 0);
     chords.push({
       ...rootDim,
       name: `${rootNote}°`
     });
     
-    // 4. Root augmented
+    // 4. Root augmented (instead of related minor)
     const rootAug = getChordFromNote(rootNote, 'augmented', 0);
     chords.push({
       ...rootAug,
       name: `${rootNote}+`
     });
     
-    // 5. Perfect 4th minor7 with voice leading
+    // 5. Perfect 4th minor7 with voice leading (instead of M3 major)
     const p4Index = (rootIndex + 5) % CHROMATIC_NOTES.length;
     const p4Note = CHROMATIC_NOTES[p4Index];
     const p4Min7 = getChordFromNote(p4Note, 'minor7', 1);
@@ -321,7 +321,7 @@ export function getChordsForNoteBySkill(rootNote: string, skillLevel: SkillLevel
       name: `${p4Note}m7 (IV)`
     });
     
-    // 6. Perfect 5th major7 with voice leading
+    // 6. Perfect 5th major7 with voice leading (instead of m3 minor)
     const p5Index = (rootIndex + 7) % CHROMATIC_NOTES.length;
     const p5Note = CHROMATIC_NOTES[p5Index];
     const p5Maj7 = getChordFromNote(p5Note, 'major7', 1);

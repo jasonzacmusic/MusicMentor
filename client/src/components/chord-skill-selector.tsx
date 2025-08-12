@@ -48,34 +48,12 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
           </div>
         </div>
 
-        {/* Chord branches arranged with Major on right, Minor on left */}
+        {/* Chord branches arranged in hexagonal pattern */}
         {availableChords.map((chord, index) => {
-          // Separate Major and Minor chords by position
-          const isMajor = !chord.name.includes('m') || chord.name.includes('Major');
-          
-          // Right side angles for Major chords: 30°, 90°, 150°
-          // Left side angles for Minor chords: -30°, -90°, -150°
-          const rightAngles = [30, 90, 150];
-          const leftAngles = [-30, -90, -150];
-          
-          let angle;
-          let positionIndex;
-          
-          if (isMajor) {
-            // Count how many major chords we've seen so far
-            const majorCount = availableChords.slice(0, index).filter(c => 
-              !c.name.includes('m') || c.name.includes('Major')
-            ).length;
-            angle = rightAngles[majorCount % 3];
-            positionIndex = majorCount;
-          } else {
-            // Count how many minor chords we've seen so far
-            const minorCount = availableChords.slice(0, index).filter(c => 
-              c.name.includes('m') && !c.name.includes('Major')
-            ).length;
-            angle = leftAngles[minorCount % 3];
-            positionIndex = minorCount + 3; // Offset for color scheme
-          }
+          // Fixed hexagonal arrangement: 6 positions at 60° intervals starting from top-right
+          const angles = [30, 90, 150, 210, 270, 330]; // 6 positions around the circle
+          const angle = angles[index] || 0; // Use index directly for consistent positioning
+          const positionIndex = index;
           
           const radius = 130;
           const x = Math.cos(angle * Math.PI / 180) * radius;
