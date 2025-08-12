@@ -803,134 +803,129 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const beatTimings = [2, 2, 4];
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        {/* Top section with tempo and metronome controls */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-4">
-              <label className="text-sm font-medium text-gray-700 min-w-[80px]">
-                Tempo: {tempo} BPM
-              </label>
-              <Slider
-                value={[tempo]}
-                onValueChange={(value) => setTempo(value[0])}
-                min={60}
-                max={200}
-                step={10}
-                className="w-32"
-              />
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="metronome"
-                  checked={withMetronome}
-                  onCheckedChange={(checked) => setWithMetronome(checked === true)}
-                />
-                <label htmlFor="metronome" className="text-sm font-medium text-gray-700">
-                  Metronome <span className="text-xs opacity-75">(M)</span>
-                </label>
-              </div>
-              {withMetronome && (
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Speed:</span>
-                  <div className="flex space-x-1">
-                    {[
-                      { value: 1, label: 'x1' },
-                      { value: 2, label: 'x2' },
-                      { value: 3, label: 'x3' }
-                    ].map(({ value, label }) => (
-                      <Button
-                        key={value}
-                        size="sm"
-                        variant={metronomeMultiplier === value ? "default" : "outline"}
-                        onClick={() => setMetronomeMultiplier(value)}
-                        className="px-2 py-1 text-xs"
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <h2 className="text-lg font-medium text-gray-900">Random Note Practice</h2>
+    <div className="space-y-4">
+      {/* Title aligned to the left */}
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 text-left">Random Note Practice</h3>
+      </div>
+
+      {/* Three buttons: Generate, Pause/Play, Auto Loop */}
+      <div className="flex space-x-2">
+        <Button
+          onClick={handleGenerate}
+          variant="outline"
+          className="hover:bg-orange-50 border-orange-200 text-orange-600 flex-1"
+        >
+          <Shuffle className="w-4 h-4 mr-2" />
+          Generate
+        </Button>
+        
+        <Button
+          onClick={handlePlay}
+          variant={isPlaying ? "default" : "outline"}
+          className={`${isPlaying ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white flex-1`}
+        >
+          {isPlaying ? (
+            <>
+              <Square className="w-4 h-4 mr-2" />
+              Pause
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 mr-2" />
+              Play
+            </>
+          )}
+        </Button>
+
+        {/* Auto Loop Button - only show if feature enabled */}
+        {isFeatureEnabled('AUTO_LOOP') && (
+          <Button
+            onClick={toggleLoop}
+            variant={isLooping ? "default" : "outline"}
+            className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'} flex-1 ${isLooping ? 'text-white' : 'text-blue-600'}`}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Auto Loop
+          </Button>
+        )}
+      </div>
+
+      {/* Random Chords button directly below Pause/Play */}
+      <div className="flex justify-center">
+        <Button
+          onClick={handleRandomHarmonize}
+          variant="outline"
+          className="hover:bg-purple-50 border-purple-200 text-purple-600 w-full max-w-[200px]"
+        >
+          <Shuffle className="w-4 h-4 mr-2" />
+          Random Chords
+        </Button>
+      </div>
+
+      {/* Tempo slider and metronome */}
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="metronome"
+            checked={withMetronome}
+            onCheckedChange={(checked) => setWithMetronome(checked === true)}
+          />
+          <label htmlFor="metronome" className="text-xs font-medium text-gray-700">
+            Metronome
+          </label>
         </div>
+        
+        <div className="flex-1 flex items-center space-x-2">
+          <label className="text-xs font-medium text-gray-700 min-w-[60px]">
+            {tempo} BPM
+          </label>
+          <Slider
+            value={[tempo]}
+            onValueChange={(value) => setTempo(value[0])}
+            min={60}
+            max={200}
+            step={10}
+            className="flex-1"
+          />
+        </div>
+      </div>
 
-        {/* Central controls section */}
-        <div className="space-y-4 mb-6">
-          <div className="flex justify-center space-x-3">
-            <Button
-              onClick={handlePlay}
-              variant={isPlaying ? "default" : "outline"}
-              className={`${isPlaying ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white min-w-[120px]`}
-            >
-              {isPlaying ? (
-                <>
-                  <Square className="w-4 h-4 mr-2" />
-                  Stop (Space)
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Play (Space)
-                </>
-              )}
-            </Button>
-
-            <Button
-              onClick={handleRandomHarmonize}
-              variant="outline"
-              className="hover:bg-purple-50 border-purple-200 text-purple-600 min-w-[140px]"
-            >
-              <Shuffle className="w-4 h-4 mr-2" />
-              Random Chords
-            </Button>
-
-            {/* Auto Loop Button - only show if feature enabled */}
-            {isFeatureEnabled('AUTO_LOOP') && (
+      {/* Metronome speed controls */}
+      {withMetronome && (
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-gray-600">Speed:</span>
+          <div className="flex space-x-1">
+            {[
+              { value: 1, label: 'x1' },
+              { value: 2, label: 'x2' },
+              { value: 3, label: 'x3' }
+            ].map(({ value, label }) => (
               <Button
-                onClick={toggleLoop}
-                variant={isLooping ? "default" : "outline"}
-                className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'} min-w-[120px] ${isLooping ? 'text-white' : 'text-blue-600'}`}
+                key={value}
+                size="sm"
+                variant={metronomeMultiplier === value ? "default" : "outline"}
+                onClick={() => setMetronomeMultiplier(value)}
+                className="px-2 py-1 text-xs"
               >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Auto Loop (L)
+                {label}
               </Button>
-            )}
-            
-            <Button
-              onClick={handleGenerate}
-              variant="outline"
-              className="hover:bg-orange-50 border-orange-200 text-orange-600 min-w-[140px]"
-            >
-              <Shuffle className="w-4 h-4 mr-2" />
-              Generate New (R)
-            </Button>
-          </div>
-
-
-        </div>
-
-
-
-        {/* Keyboard shortcuts help */}
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <div className="text-xs text-gray-600 flex flex-wrap gap-4 justify-center">
-            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Space</kbd> Play/Stop</span>
-            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">M</kbd> Metronome</span>
-            {/* Only show L shortcut if Auto Loop feature is enabled */}
-            {isFeatureEnabled('AUTO_LOOP') && (
-              <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">L</kbd> Loop</span>
-            )}
-            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">R</kbd> Generate New</span>
+            ))}
           </div>
         </div>
+      )}
 
-
-      </CardContent>
-    </Card>
+      {/* Keyboard shortcuts help */}
+      <div className="p-2 bg-gray-50 rounded-lg">
+        <div className="text-xs text-gray-600 flex flex-wrap gap-2 justify-center">
+          <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Space</kbd> Play/Pause</span>
+          <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">M</kbd> Metronome</span>
+          {isFeatureEnabled('AUTO_LOOP') && (
+            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">L</kbd> Loop</span>
+          )}
+          <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">R</kbd> Generate</span>
+        </div>
+      </div>
+    </div>
   );
 }
