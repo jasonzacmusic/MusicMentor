@@ -169,6 +169,91 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
   return chords;
 }
 
+// Define skill levels and their available chord types
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
+
+const SKILL_CHORD_TYPES = {
+  beginner: ['major', 'minor'],
+  intermediate: ['major', 'minor', 'sus2', 'sus4', 'dominant7'],
+  advanced: ['major', 'minor', 'sus2', 'sus4', 'dominant7', 'major7', 'minor7', 'add9', 'diminished', 'augmented']
+};
+
+// Main function to get chords by skill level
+export function getChordsForNoteBySkill(rootNote: string, skillLevel: SkillLevel = 'beginner'): Chord[] {
+  const rootIndex = CHROMATIC_NOTES.indexOf(rootNote);
+  if (rootIndex === -1) {
+    throw new Error(`Invalid root note: ${rootNote}`);
+  }
+  
+  const allowedChordTypes = SKILL_CHORD_TYPES[skillLevel];
+  const chords: Chord[] = [];
+  
+  // Generate chords based on skill level
+  for (const chordType of allowedChordTypes) {
+    try {
+      const chord = getChordFromNote(rootNote, chordType, 0);
+      chords.push({
+        ...chord,
+        name: getDisplayChordName(rootNote, chordType)
+      });
+    } catch (error) {
+      console.warn(`Could not create ${chordType} chord for ${rootNote}:`, error);
+    }
+  }
+  
+  // For intermediate and advanced, add some related chords with voice leading
+  if (skillLevel !== 'beginner') {
+    addRelatedChords(chords, rootNote, rootIndex, skillLevel);
+  }
+  
+  return chords;
+}
+
+// Helper function to get display names for chords
+function getDisplayChordName(rootNote: string, chordType: string): string {
+  switch (chordType) {
+    case 'major': return rootNote;
+    case 'minor': return `${rootNote}m`;
+    case 'sus2': return `${rootNote}sus2`;
+    case 'sus4': return `${rootNote}sus4`;
+    case 'dominant7': return `${rootNote}7`;
+    case 'major7': return `${rootNote}maj7`;
+    case 'minor7': return `${rootNote}m7`;
+    case 'add9': return `${rootNote}add9`;
+    case 'diminished': return `${rootNote}°`;
+    case 'augmented': return `${rootNote}+`;
+    default: return `${rootNote} ${chordType}`;
+  }
+}
+
+// Add related chords for intermediate/advanced levels
+function addRelatedChords(chords: Chord[], rootNote: string, rootIndex: number, skillLevel: SkillLevel): void {
+  const allowedChordTypes = SKILL_CHORD_TYPES[skillLevel];
+  
+  // Add perfect 4th chords (common progression)
+  const p4Index = (rootIndex + 5) % CHROMATIC_NOTES.length;
+  const p4Note = CHROMATIC_NOTES[p4Index];
+  
+  // Add perfect 5th chords (common progression)
+  const p5Index = (rootIndex + 7) % CHROMATIC_NOTES.length;
+  const p5Note = CHROMATIC_NOTES[p5Index];
+  
+  for (const relatedNote of [p4Note, p5Note]) {
+    // Add basic chords for related notes
+    for (const chordType of allowedChordTypes.slice(0, 2)) { // Just major/minor for related
+      try {
+        const chord = getChordFromNote(relatedNote, chordType, 1); // Use first inversion for voice leading
+        chords.push({
+          ...chord,
+          name: `${getDisplayChordName(relatedNote, chordType)} (${relatedNote === p4Note ? 'IV' : 'V'})`
+        });
+      } catch (error) {
+        console.warn(`Could not create related ${chordType} chord for ${relatedNote}:`, error);
+      }
+    }
+  }
+}
+
 export function getChordsForNote(rootNote: string): Chord[] {
   return Object.keys(CHORD_INTERVALS).map(chordType => 
     getChordFromNote(rootNote, chordType)

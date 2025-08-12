@@ -95,6 +95,7 @@ export default function Home() {
               onChordsChange={setSelectedChords}
               selectedChords={selectedChords}
               inversionModes={inversionModes}
+              skillLevel={skillLevel}
             />
           </div>
 
@@ -118,6 +119,7 @@ export default function Home() {
                         onChordSelect={handleChordSelect}
                         inversionMode={inversionModes[index]}
                         onInversionChange={(mode) => handleInversionChange(mode, index)}
+                        skillLevel={skillLevel}
                         treeLayout={true}
                       />
                     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getBeginnerChordsForNote, formatChordNotes, type Chord } from '@/lib/chord-theory';
+import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
 
@@ -12,10 +12,11 @@ interface ChordSkillSelectorProps {
   onChordSelect: (chord: Chord | null, noteIndex: number) => void;
   inversionMode?: 'auto' | 'root' | 'first' | 'second';
   onInversionChange?: (mode: 'auto' | 'root' | 'first' | 'second') => void;
+  skillLevel?: SkillLevel;
   treeLayout?: boolean;
 }
 
-export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord: parentSelectedChord, onChordSelect, inversionMode = 'auto', onInversionChange, treeLayout = false }: ChordSkillSelectorProps) {
+export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord: parentSelectedChord, onChordSelect, inversionMode = 'auto', onInversionChange, skillLevel = 'beginner', treeLayout = false }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord, isPlaying } = useAudio();
 
@@ -23,10 +24,10 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
   const selectedChord = parentSelectedChord;
 
   useEffect(() => {
-    // Always use beginner chords
-    const chords = getBeginnerChordsForNote(baseNote);
+    // Use chords based on skill level
+    const chords = getChordsForNoteBySkill(baseNote, skillLevel);
     setAvailableChords(chords);
-  }, [baseNote]);
+  }, [baseNote, skillLevel]);
 
   const handleSelectChord = (chord: Chord) => {
     onChordSelect(chord, noteIndex);

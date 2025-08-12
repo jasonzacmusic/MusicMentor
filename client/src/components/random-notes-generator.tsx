@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
-import { generateRandomNotes, getChordFromNote, getBeginnerChordsForNote, type Chord, applyVoiceLeading } from '@/lib/chord-theory';
+import { generateRandomNotes, getChordFromNote, getChordsForNoteBySkill, type Chord, type SkillLevel, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
 import { isFeatureEnabled } from '@/lib/feature-flags';
@@ -14,9 +14,10 @@ interface RandomNotesGeneratorProps {
   onChordsChange?: (chords: (Chord | null)[]) => void;
   selectedChords?: (Chord | null)[];
   inversionModes?: ('auto' | 'root' | 'first' | 'second')[];
+  skillLevel?: SkillLevel;
 }
 
-export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'] }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'], skillLevel = 'beginner' }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -636,7 +637,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // For each note position, get its available chords and pick one randomly
     for (let i = 0; i < 3; i++) {
       const noteForPosition = notes[i];
-      const availableChords = getBeginnerChordsForNote(noteForPosition);
+      const availableChords = getChordsForNoteBySkill(noteForPosition, skillLevel);
       
       if (availableChords.length > 0) {
         // Pick a random chord from the 6 available options
