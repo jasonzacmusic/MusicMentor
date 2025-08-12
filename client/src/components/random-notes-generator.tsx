@@ -669,9 +669,26 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     }, 50);
   }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset]);
 
+  // Use refs to track previous values for tempo restart detection
+  const prevTempoRef = useRef(tempo);
+  const prevMetronomeRef = useRef(withMetronome);
+
   // Monitor tempo/metronome changes and restart if playing
   useEffect(() => {
-    if (isPlaying) {
+    const tempoChanged = prevTempoRef.current !== tempo;
+    const metronomeChanged = prevMetronomeRef.current !== withMetronome;
+    
+    console.log('🔄 Tempo/Metronome effect triggered:', {
+      isPlaying,
+      tempoChanged,
+      metronomeChanged,
+      prevTempo: prevTempoRef.current,
+      newTempo: tempo,
+      prevMetronome: prevMetronomeRef.current,
+      newMetronome: withMetronome
+    });
+
+    if (isPlaying && (tempoChanged || metronomeChanged)) {
       console.log('🔄 Settings changed - restarting playback');
       // Reset and restart manually to avoid handlePlay dependency
       emergencyReset();
@@ -719,7 +736,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         }
       }, 100);
     }
-  }, [tempo, withMetronome]); // Only tempo and metronome, no other deps to avoid loops
+    
+    // Update refs for next comparison
+    prevTempoRef.current = tempo;
+    prevMetronomeRef.current = withMetronome;
+  }, [tempo, withMetronome, isPlaying, playSequenceOnce, emergencyReset, isLooping]); // Include dependencies needed for the effect
 
   // Clean up on unmount
   useEffect(() => {
