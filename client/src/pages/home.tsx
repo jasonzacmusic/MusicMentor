@@ -34,13 +34,6 @@ export default function Home() {
     setSelectedChords(newSelectedChords);
   };
 
-  const handleSkillLevelChange = (newSkillLevel: SkillLevel) => {
-    setSkillLevel(newSkillLevel);
-    // Clear all chord selections when skill level changes
-    setSelectedChords([null, null, null]);
-    console.log(`🎯 Skill level changed to ${newSkillLevel}, cleared chord selections`);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
@@ -126,8 +119,6 @@ export default function Home() {
                         inversionMode={inversionModes[index]}
                         onInversionChange={(mode) => handleInversionChange(mode, index)}
                         treeLayout={true}
-                        skillLevel={skillLevel}
-                        onSkillLevelChange={handleSkillLevelChange}
                       />
                     </div>
                   </div>
