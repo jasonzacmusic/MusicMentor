@@ -148,12 +148,6 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       return 8000; // Return 8 second duration
     }
 
-    //SRI: Reset the notes and selected chords before starting a new sequence
-    //const defaultNotes = ["Bb", "D", "G"]; // Default to Bb, D, G
-    //const defaultChords: (Chord | null)[] = [null, null, null]; // Default to no chords
-    //setNotes(defaultNotes);
-   // setSelectedChords(defaultChords);
-    //onChordsChange?.(defaultChords); // Ensure parent is updated
 
     isSequenceActiveRef.current = true;
     console.log("🎵 Starting new sequence");
@@ -201,7 +195,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         
         // Calculate exact number of clicks to avoid floating point precision issues
         const totalClicks = Math.floor((totalDuration / metronomeInterval) + 0.0001); // Small epsilon for precision
-        console.log(`🥁 Metronome: interval=${metronomeInterval.toFixed(3)}s, clicks=${totalClicks}`);
+        console.log(`🥁 Metronome: multiplier=${metronomeMultiplier}, interval=${metronomeInterval.toFixed(3)}s, clicks=${totalClicks}`);
         
         for (let clickCount = 0; clickCount < totalClicks; clickCount++) {
           const clickTime = startTime + (clickCount * metronomeInterval);
@@ -303,7 +297,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       isSequenceActiveRef.current = false;
       return 8000;
     }
-  }, [selectedChords, notes, tempo, withMetronome, inversionModes]);
+  }, [selectedChords, notes, tempo, withMetronome, metronomeMultiplier, inversionModes]);
 
   // DEDICATED FUNCTION FOR RANDOM CHORD PLAYBACK - Uses chord array directly
   const playSequenceWithChords = useCallback(async (chordsToPlay: (Chord | null)[]) => {
@@ -357,7 +351,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         }
         
         const totalClicks = Math.floor((totalDuration / metronomeInterval) + 0.0001);
-        console.log(`🥁 Metronome: interval=${metronomeInterval.toFixed(3)}s, clicks=${totalClicks}`);
+        console.log(`🥁 Metronome: multiplier=${metronomeMultiplier}, interval=${metronomeInterval.toFixed(3)}s, clicks=${totalClicks}`);
         
         for (let clickCount = 0; clickCount < totalClicks; clickCount++) {
           const clickTime = startTime + (clickCount * metronomeInterval);
@@ -938,7 +932,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 key={value}
                 size="sm"
                 variant={metronomeMultiplier === value ? "default" : "outline"}
-                onClick={() => setMetronomeMultiplier(value)}
+                onClick={() => {
+                  console.log(`🔄 Setting metronome multiplier from ${metronomeMultiplier} to ${value}`);
+                  setMetronomeMultiplier(value);
+                }}
                 className="px-2 py-1 text-xs"
               >
                 {label}
