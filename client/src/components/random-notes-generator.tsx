@@ -178,13 +178,30 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       // Schedule metronome clicks if enabled
       if (withMetronome) {
-        console.log(`🥁 Metronome enabled - scheduling clicks at ${metronomeMultiplier}x speed`);
-        // Apply multiplier: 1x = quarter notes, 2x = eighth notes, 3x = eighth note triplets
-        let metronomeInterval = beatDuration / metronomeMultiplier;
+        const metronomeLabel = metronomeMultiplier === 1 ? 'Quarter notes' : metronomeMultiplier === 2 ? 'Eighth notes' : 'Sixteenth notes';
+        console.log(`🥁 Metronome enabled - ${metronomeLabel}`);
         const totalDuration = 8 * beatDuration; // 8 beats total
+        
+        // Calculate metronome interval based on subdivision:
+        // 1x = quarter notes (beatDuration), 2x = eighth notes (beatDuration/2), 3x = sixteenth notes (beatDuration/4)
+        let metronomeInterval;
+        switch (metronomeMultiplier) {
+          case 1: // Quarter notes
+            metronomeInterval = beatDuration;
+            break;
+          case 2: // Eighth notes  
+            metronomeInterval = beatDuration / 2;
+            break;
+          case 3: // Sixteenth notes
+            metronomeInterval = beatDuration / 4;
+            break;
+          default:
+            metronomeInterval = beatDuration;
+        }
         
         // Calculate exact number of clicks to avoid floating point precision issues
         const totalClicks = Math.floor((totalDuration / metronomeInterval) + 0.0001); // Small epsilon for precision
+        console.log(`🥁 Metronome: interval=${metronomeInterval.toFixed(3)}s, clicks=${totalClicks}`);
         
         for (let clickCount = 0; clickCount < totalClicks; clickCount++) {
           const clickTime = startTime + (clickCount * metronomeInterval);
@@ -196,9 +213,6 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           }
           
           scheduleMetronomeClick(clickTime);
-          console.log(
-            `⏰ Scheduling metronome click ${clickCount + 1}/${totalClicks} at time ${clickTime.toFixed(3)} (${metronomeMultiplier}x speed)`,
-          );
         }
       } else {
         console.log("🔇 Metronome disabled");
@@ -321,10 +335,29 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       // Schedule metronome clicks if enabled
       if (withMetronome) {
-        console.log(`🥁 Metronome enabled for chord sequence`);
-        let metronomeInterval = beatDuration / metronomeMultiplier;
+        const metronomeLabel = metronomeMultiplier === 1 ? 'Quarter notes' : metronomeMultiplier === 2 ? 'Eighth notes' : 'Sixteenth notes';
+        console.log(`🥁 Metronome enabled for chord sequence (${metronomeLabel})`);
         const totalDuration = 8 * beatDuration;
+        
+        // Calculate metronome interval based on subdivision:
+        // 1x = quarter notes (beatDuration), 2x = eighth notes (beatDuration/2), 3x = sixteenth notes (beatDuration/4)
+        let metronomeInterval;
+        switch (metronomeMultiplier) {
+          case 1: // Quarter notes
+            metronomeInterval = beatDuration;
+            break;
+          case 2: // Eighth notes  
+            metronomeInterval = beatDuration / 2;
+            break;
+          case 3: // Sixteenth notes
+            metronomeInterval = beatDuration / 4;
+            break;
+          default:
+            metronomeInterval = beatDuration;
+        }
+        
         const totalClicks = Math.floor((totalDuration / metronomeInterval) + 0.0001);
+        console.log(`🥁 Metronome: interval=${metronomeInterval.toFixed(3)}s, clicks=${totalClicks}`);
         
         for (let clickCount = 0; clickCount < totalClicks; clickCount++) {
           const clickTime = startTime + (clickCount * metronomeInterval);
@@ -897,9 +930,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <span className="text-xs text-gray-600">Speed:</span>
           <div className="flex space-x-1">
             {[
-              { value: 1, label: 'x1' },
-              { value: 2, label: 'x2' },
-              { value: 3, label: 'x3' }
+              { value: 1, label: '♩' }, // Quarter notes
+              { value: 2, label: '♫' }, // Eighth notes
+              { value: 3, label: '♬' }  // Sixteenth notes
             ].map(({ value, label }) => (
               <Button
                 key={value}
