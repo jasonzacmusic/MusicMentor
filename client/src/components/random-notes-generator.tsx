@@ -74,6 +74,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   useEffect(() => {
     currentChordsRef.current = selectedChords;
     console.log('🔄 Updated currentChordsRef:', selectedChords.map(c => c?.name || 'Note'));
+    console.log('🔄 Full chord objects:', selectedChords);
   }, [selectedChords]);
 
   // Function to apply chord inversions with proper pitch ordering
@@ -463,9 +464,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         const scheduleNextLoop = () => {
           const loopTimeout = setTimeout(async () => {
             if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
-              // Use current chords from ref to get real-time updates
-              const currentChords = currentChordsRef.current;
-              console.log('🔄 Loop iteration with current chords from ref:', currentChords.map(c => c?.name || 'Note'));
+              // Use current selectedChords state instead of captured chordsToUse
+              const currentChords = selectedChords;
+              console.log('🔄 Loop iteration with current chords:', currentChords.map(c => c?.name || 'Note'));
               try {
                 const nextDuration = await playSequenceWithChords(currentChords);
                 console.log('⏱️ Loop duration:', nextDuration, 'ms');
