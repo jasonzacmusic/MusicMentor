@@ -455,9 +455,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         const scheduleNextLoop = () => {
           const loopTimeout = setTimeout(async () => {
             if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
-              console.log('🔄 Loop iteration with specific chords');
+              // Use current selectedChords state instead of captured chordsToUse
+              const currentChords = selectedChords;
+              console.log('🔄 Loop iteration with current chords:', currentChords.map(c => c?.name || 'Note'));
               try {
-                const nextDuration = await playSequenceWithChords(chordsToUse);
+                const nextDuration = await playSequenceWithChords(currentChords);
                 console.log('⏱️ Loop duration:', nextDuration, 'ms');
                 scheduleNextLoop();
               } catch (error) {
@@ -480,7 +482,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.error('❌ Play with chords error:', error);
       setIsPlaying(false);
     }
-  }, [isPlaying, isLooping, emergencyReset, playSequenceWithChords]);
+  }, [isPlaying, isLooping, emergencyReset, playSequenceWithChords, selectedChords]);
 
   // SIMPLIFIED PLAY FUNCTION  
   const handlePlay = useCallback(async () => {
@@ -549,7 +551,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       console.error('❌ Play error:', error);
       setIsPlaying(false);
     }
-  }, [isPlaying, playSequenceOnce, emergencyReset]);
+  }, [isPlaying, playSequenceOnce, emergencyReset, isLooping]);
 
   // REMOVED OLD CONFLICTING AUDIO FUNCTIONS
 
