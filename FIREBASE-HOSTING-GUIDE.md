@@ -87,3 +87,29 @@ Set up GitHub Actions for automatic deployment:
 3. Commits to main branch will auto-deploy
 
 Your music learning app will be live and accessible worldwide at your Firebase Hosting URL!
+
+## Firebase Analytics Integration
+Your app now includes Firebase Analytics to track user engagement:
+
+### Tracked Events:
+- **play_sequence**: When users play musical sequences
+- **generate_chords**: When users generate new chord progressions
+- **Music interactions**: Various chord and note selections
+
+### Analytics Dashboard:
+1. Go to Firebase Console → Analytics
+2. View real-time user activity and engagement metrics
+3. Track popular features and usage patterns
+
+### Privacy Note:
+Analytics only activates in production builds, not during development.
+
+## Rebuilding for Updates:
+When you make changes to your app:
+```bash
+cd client
+npm run build
+firebase deploy
+```
+
+This ensures your live app includes the latest features and analytics tracking.

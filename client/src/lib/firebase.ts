@@ -19,10 +19,15 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Analytics only in browser environment
+// Initialize Analytics only in production and browser environment
 let analytics: any = null;
-if (typeof window !== 'undefined') {
-  analytics = getAnalytics(app);
+if (typeof window !== 'undefined' && import.meta.env.PROD) {
+  try {
+    analytics = getAnalytics(app);
+    console.log('Firebase Analytics initialized');
+  } catch (error) {
+    console.warn('Firebase Analytics failed to initialize:', error);
+  }
 }
 
 export { app, analytics };

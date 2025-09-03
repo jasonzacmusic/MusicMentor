@@ -497,6 +497,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const handlePlay = useCallback(async () => {
     console.log('▶️ PLAY PRESSED - Starting sequence');
     
+    // Track play sequence event
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'play_sequence', {
+        event_category: 'music_interaction'
+      });
+    }
+    
     if (isPlaying) {      
       emergencyReset();
       return;
@@ -621,6 +628,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Add generate function
   const handleGenerate = useCallback(() => {
     console.log('🎲 GENERATE PRESSED');
+    
+    // Track generate chords event
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'generate_chords', {
+        event_category: 'music_interaction'
+      });
+    }
     
     // Always reset before generating
     emergencyReset();
