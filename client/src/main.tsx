@@ -1,6 +1,11 @@
+import React from 'react';
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/components/auth-provider';
+
+const queryClient = new QueryClient();
 
 // Global unhandled promise rejection handler
 window.addEventListener('unhandledrejection', (event) => {
@@ -8,4 +13,10 @@ window.addEventListener('unhandledrejection', (event) => {
   event.preventDefault(); // Prevent the default browser behavior
 });
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </QueryClientProvider>
+);
