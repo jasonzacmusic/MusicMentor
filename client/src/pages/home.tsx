@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector from '@/components/chord-skill-selector';
-import { AuthButton } from '@/components/auth-button';
 import { Music, HelpCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -59,7 +58,6 @@ export default function Home() {
               <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
                 <Settings className="w-4 h-4" />
               </Button>
-              <AuthButton />
             </div>
           </div>
         </div>
