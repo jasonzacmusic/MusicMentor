@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector from '@/components/chord-skill-selector';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Music, HelpCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,9 +36,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-lg border-b border-blue-200/50">
+      <header className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-lg border-b border-blue-200/50 dark:border-gray-700/50">
         <div className="max-w-full mx-auto px-4 lg:px-6">
           <div className="flex justify-between items-center h-14">
             <div className="flex items-center space-x-3">
@@ -48,14 +49,15 @@ export default function Home() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Music Mentor
                 </h1>
-                <p className="text-xs text-blue-600 -mt-1">Interactive Music Learning</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 -mt-1">Interactive Music Learning</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
+              <ThemeToggle />
+              <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800" data-testid="button-help">
                 <HelpCircle className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
+              <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800" data-testid="button-settings">
                 <Settings className="w-4 h-4" />
               </Button>
             </div>
@@ -68,16 +70,16 @@ export default function Home() {
           {/* Left Panel - Controls */}
           <div className="lg:col-span-4 space-y-4 overflow-y-auto">
             {/* Practice Session Info & Skill Level */}
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50">
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 dark:border-gray-700/50">
               <div className="mb-4">
-                <h2 className="text-lg font-bold text-gray-800 mb-1">Practice Session</h2>
-                <p className="text-sm text-gray-600">Master chord relationships</p>
+                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">Practice Session</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Master chord relationships</p>
               </div>
               
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">Skill Level</label>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Skill Level</label>
                 <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-full bg-blue-50/80 border-blue-200 hover:bg-blue-50 transition-all text-blue-800 h-9">
+                  <SelectTrigger className="w-full bg-blue-50/80 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/60 transition-all text-blue-800 dark:text-blue-200 h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -90,8 +92,8 @@ export default function Home() {
             </div>
 
             {/* Controls Panel */}
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 flex-1">
-              <h3 className="text-md font-bold text-gray-800 mb-3">Controls</h3>
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 dark:border-gray-700/50 flex-1">
+              <h3 className="text-md font-bold text-gray-800 dark:text-gray-200 mb-3">Controls</h3>
               <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
                 <RandomNotesGenerator 
                   onNotesChange={handleNotesChange}
@@ -104,9 +106,9 @@ export default function Home() {
             </div>
 
             {/* Instructions */}
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-blue-200/50">
-              <h3 className="text-sm font-bold text-gray-800 mb-2">How to Practice</h3>
-              <ul className="space-y-1 text-xs text-gray-700">
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-blue-200/50 dark:border-gray-600/50">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2">How to Practice</h3>
+              <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
                 <li className="flex items-start space-x-2">
                   <span className="text-blue-500 font-bold">1.</span>
                   <span>Generate new note sequences</span>

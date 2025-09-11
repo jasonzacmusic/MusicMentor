@@ -67,29 +67,29 @@
 
 /* Custom styles for music app */
 .piano-key-white {
-  @apply relative bg-white border border-gray-300 hover:bg-gray-50 transition-colors h-32 w-10 rounded-b-lg shadow-sm flex items-end justify-center pb-2 text-xs text-gray-600;
+  @apply relative bg-white dark:bg-gray-100 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-200 transition-colors h-32 w-10 rounded-b-lg shadow-sm flex items-end justify-center pb-2 text-xs text-gray-600 dark:text-gray-800;
 }
 
 .piano-key-black {
-  @apply absolute bg-gray-800 hover:bg-gray-700 transition-colors h-20 w-6 rounded-b-lg shadow-md text-white text-xs flex items-end justify-center pb-1;
+  @apply absolute bg-gray-800 dark:bg-gray-900 hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors h-20 w-6 rounded-b-lg shadow-md text-white text-xs flex items-end justify-center pb-1;
 }
 
 .piano-key-active {
-  @apply bg-blue-100 border-blue-300;
+  @apply bg-blue-100 dark:bg-blue-800 border-blue-300 dark:border-blue-600;
 }
 
 .piano-key-chord {
-  @apply bg-green-100 border-green-300;
+  @apply bg-green-100 dark:bg-green-800 border-green-300 dark:border-green-600;
 }
 
 .note-display {
-  @apply text-3xl font-mono font-medium text-gray-900 mb-2;
+  @apply text-3xl font-mono font-medium text-gray-900 dark:text-gray-100 mb-2;
 }
 
 .chord-option {
-  @apply border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors;
+  @apply border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors;
 }
 
 .chord-option-selected {
-  @apply border-blue-500 bg-blue-50;
+  @apply border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/50;
 }
