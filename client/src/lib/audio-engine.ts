@@ -198,14 +198,12 @@ export class AudioEngine {
     });
   }
 
-  async playChord(notes: string[], duration: number = 2000, startTime?: number, tempo: number = 120): Promise<void> {
+  async playChord(notes: string[], duration: number = 2000, startTime?: number, tempo: number = 120, rootNote?: string): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
     try {
-      // Play arpeggio pattern: 5-1-3-1 (fifth, root, third, root)
-      // For a chord [root, third, fifth], play: notes[2], notes[0], notes[1], notes[0]
       if (notes.length !== 3) {
         // Fallback to simultaneous playback if not a triad
         const promises = notes.map(note => 
@@ -218,16 +216,63 @@ export class AudioEngine {
         return;
       }
 
+      // DETERMINE ROOT POSITION NOTES
+      // If rootNote is provided, use it to identify the true root, third, and fifth
+      // regardless of what inversion the notes are in
+      let root: string, third: string, fifth: string;
+      
+      if (rootNote) {
+        // Find the root in the notes array
+        const rootIndex = notes.findIndex(n => n === rootNote);
+        
+        if (rootIndex !== -1) {
+          // We have the root, now identify third and fifth
+          // The notes array contains the three notes of the triad, but possibly inverted
+          root = rootNote;
+          
+          // The other two notes are the third and fifth
+          const otherNotes = notes.filter(n => n !== rootNote);
+          
+          // For a triad, we need to determine which is third and which is fifth
+          // Import the note comparison logic if available, or use the order
+          // For now, assume the notes array when containing root gives us the pattern
+          if (rootIndex === 0) {
+            // Root position: [root, third, fifth]
+            third = notes[1];
+            fifth = notes[2];
+          } else if (rootIndex === 1) {
+            // The root is in the middle (e.g., second inversion: [fifth, root, third])
+            fifth = notes[0];
+            third = notes[2];
+          } else {
+            // The root is last (e.g., first inversion: [third, fifth, root])
+            third = notes[0];
+            fifth = notes[1];
+          }
+        } else {
+          // Root note provided but not found in notes - fall back to assuming root position
+          root = notes[0];
+          third = notes[1];
+          fifth = notes[2];
+        }
+      } else {
+        // No rootNote provided - assume notes are in root position order
+        root = notes[0];
+        third = notes[1];
+        fifth = notes[2];
+      }
+
       // Arpeggio pattern: 5-1-3-1 played TWICE = 8 notes total
+      // Using TRUE root position notes regardless of inversion
       const arpeggioPattern = [
-        notes[2], // 5th (fifth)
-        notes[0], // 1st (root)
-        notes[1], // 3rd (third)
-        notes[0], // 1st (root) again
-        notes[2], // 5th (fifth) - second iteration
-        notes[0], // 1st (root)
-        notes[1], // 3rd (third)
-        notes[0]  // 1st (root) again
+        fifth, // 5th (fifth)
+        root,  // 1st (root)
+        third, // 3rd (third)
+        root,  // 1st (root) again
+        fifth, // 5th (fifth) - second iteration
+        root,  // 1st (root)
+        third, // 3rd (third)
+        root   // 1st (root) again
       ];
 
       // FIXED TEMPO-BASED NOTE DURATION: Each note is 1/4 beat (sixteenth note)
@@ -236,7 +281,7 @@ export class AudioEngine {
       const noteDuration = (beatDuration / 4) * 1000; // 1/4 beat in milliseconds (sixteenth note)
       const baseStartTime = startTime || this.audioContext!.currentTime;
 
-      console.log(`🎸 Playing arpeggio x2: ${notes.join('-')} as 5-1-3-1-5-1-3-1 pattern at fixed tempo (${tempo} BPM)`);
+      console.log(`🎸 Playing arpeggio x2: ${root}-${third}-${fifth} as 5-1-3-1-5-1-3-1 pattern at fixed tempo (${tempo} BPM)`);
 
       // Schedule all notes in the arpeggio with precise timing
       const promises = arpeggioPattern.map((note, index) => {
