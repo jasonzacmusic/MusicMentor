@@ -218,19 +218,23 @@ export class AudioEngine {
         return;
       }
 
-      // Arpeggio pattern: 5-1-3-1
+      // Arpeggio pattern: 5-1-3-1 played TWICE = 8 notes total
       const arpeggioPattern = [
         notes[2], // 5th (fifth)
+        notes[0], // 1st (root)
+        notes[1], // 3rd (third)
+        notes[0], // 1st (root) again
+        notes[2], // 5th (fifth) - second iteration
         notes[0], // 1st (root)
         notes[1], // 3rd (third)
         notes[0]  // 1st (root) again
       ];
 
-      // Calculate timing - each note gets 1/4 of the total duration
-      const noteDuration = duration / 4;
+      // Calculate timing - each note gets 1/8 of the total duration (8 notes total)
+      const noteDuration = duration / 8;
       const baseStartTime = startTime || this.audioContext!.currentTime;
 
-      console.log(`🎸 Playing arpeggio: ${notes.join('-')} as 5-1-3-1 pattern`);
+      console.log(`🎸 Playing arpeggio x2: ${notes.join('-')} as 5-1-3-1-5-1-3-1 pattern`);
 
       // Schedule all notes in the arpeggio with precise timing
       const promises = arpeggioPattern.map((note, index) => {
