@@ -256,8 +256,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             `✅ Validated: Playing exactly ${baseNotes.length} notes as arpeggio`,
           );
 
-          // Play chord as arpeggio using playChord
-          audioEngine.playChord(baseNotes, duration * 1000, currentTime).catch(err => {
+          // Play chord as arpeggio using playChord with fixed tempo
+          audioEngine.playChord(baseNotes, duration * 1000, currentTime, tempo).catch(err => {
             console.error('Error playing chord arpeggio:', err);
           });
         } else {
@@ -382,8 +382,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
           console.log(`🎹 Position ${i + 1} - Chord:`, chordToPlay.name, baseNotes, 'as arpeggio');
 
-          // Play chord as arpeggio using playChord
-          audioEngine.playChord(baseNotes, duration * 1000, currentTime).catch(err => {
+          // Play chord as arpeggio using playChord with fixed tempo
+          audioEngine.playChord(baseNotes, duration * 1000, currentTime, tempo).catch(err => {
             console.error('Error playing chord arpeggio:', err);
           });
         } else {

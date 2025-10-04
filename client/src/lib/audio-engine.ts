@@ -198,7 +198,7 @@ export class AudioEngine {
     });
   }
 
-  async playChord(notes: string[], duration: number = 2000, startTime?: number): Promise<void> {
+  async playChord(notes: string[], duration: number = 2000, startTime?: number, tempo: number = 120): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -230,11 +230,13 @@ export class AudioEngine {
         notes[0]  // 1st (root) again
       ];
 
-      // Calculate timing - each note gets 1/8 of the total duration (8 notes total)
-      const noteDuration = duration / 8;
+      // FIXED TEMPO-BASED NOTE DURATION: Each note is 1/4 beat (sixteenth note)
+      // This ensures consistent tempo across all positions regardless of slot duration
+      const beatDuration = 60 / tempo; // seconds per beat
+      const noteDuration = (beatDuration / 4) * 1000; // 1/4 beat in milliseconds (sixteenth note)
       const baseStartTime = startTime || this.audioContext!.currentTime;
 
-      console.log(`🎸 Playing arpeggio x2: ${notes.join('-')} as 5-1-3-1-5-1-3-1 pattern`);
+      console.log(`🎸 Playing arpeggio x2: ${notes.join('-')} as 5-1-3-1-5-1-3-1 pattern at fixed tempo (${tempo} BPM)`);
 
       // Schedule all notes in the arpeggio with precise timing
       const promises = arpeggioPattern.map((note, index) => {
