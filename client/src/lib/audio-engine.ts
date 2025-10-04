@@ -216,42 +216,53 @@ export class AudioEngine {
         return;
       }
 
-      // DETERMINE ROOT POSITION NOTES
-      // If rootNote is provided, use it to identify the true root, third, and fifth
+      // DETERMINE ROOT POSITION NOTES USING INTERVAL CALCULATION
+      // If rootNote is provided, use chromatic intervals to identify the true root, third, and fifth
       // regardless of what inversion the notes are in
       let root: string, third: string, fifth: string;
       
       if (rootNote) {
-        // Find the root in the notes array
-        const rootIndex = notes.findIndex(n => n === rootNote);
+        root = rootNote;
         
-        if (rootIndex !== -1) {
-          // We have the root, now identify third and fifth
-          // The notes array contains the three notes of the triad, but possibly inverted
-          root = rootNote;
+        // Import CHROMATIC_NOTES for interval calculation
+        const CHROMATIC_NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        
+        // Normalize note names to handle enharmonic equivalents
+        const normalizeNote = (note: string): number => {
+          const noteMap: Record<string, number> = {
+            'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4,
+            'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+          };
+          return noteMap[note] ?? -1;
+        };
+        
+        const rootChromaticIndex = normalizeNote(rootNote);
+        
+        // Calculate semitone intervals from root for each note in the chord
+        const noteIntervals = notes.map(note => {
+          const noteIndex = normalizeNote(note);
+          if (noteIndex === -1 || rootChromaticIndex === -1) return { note, interval: -1 };
           
-          // The other two notes are the third and fifth
-          const otherNotes = notes.filter(n => n !== rootNote);
-          
-          // For a triad, we need to determine which is third and which is fifth
-          // Import the note comparison logic if available, or use the order
-          // For now, assume the notes array when containing root gives us the pattern
-          if (rootIndex === 0) {
-            // Root position: [root, third, fifth]
-            third = notes[1];
-            fifth = notes[2];
-          } else if (rootIndex === 1) {
-            // The root is in the middle (e.g., second inversion: [fifth, root, third])
-            fifth = notes[0];
-            third = notes[2];
-          } else {
-            // The root is last (e.g., first inversion: [third, fifth, root])
-            third = notes[0];
-            fifth = notes[1];
-          }
+          // Calculate interval, handling wrap-around
+          let interval = (noteIndex - rootChromaticIndex + 12) % 12;
+          return { note, interval };
+        });
+        
+        console.log(`🔍 Analyzing chord intervals from root ${rootNote}:`, noteIntervals);
+        
+        // Identify third and fifth by their intervals from the root
+        // Third: 3 semitones (minor 3rd) or 4 semitones (major 3rd)
+        // Fifth: 7 semitones (perfect 5th), 6 semitones (diminished 5th), or 8 semitones (augmented 5th)
+        const thirdCandidate = noteIntervals.find(n => n.interval === 3 || n.interval === 4);
+        const fifthCandidate = noteIntervals.find(n => n.interval === 6 || n.interval === 7 || n.interval === 8);
+        
+        if (thirdCandidate && fifthCandidate) {
+          third = thirdCandidate.note;
+          fifth = fifthCandidate.note;
+          console.log(`✅ Identified by intervals: Root=${root}, Third=${third} (${thirdCandidate.interval}st), Fifth=${fifth} (${fifthCandidate.interval}st)`);
         } else {
-          // Root note provided but not found in notes - fall back to assuming root position
-          root = notes[0];
+          // Fallback: use positional order
+          console.warn(`⚠️ Could not identify intervals, falling back to positional order`);
           third = notes[1];
           fifth = notes[2];
         }
