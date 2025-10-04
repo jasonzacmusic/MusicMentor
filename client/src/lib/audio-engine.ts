@@ -198,7 +198,7 @@ export class AudioEngine {
     });
   }
 
-  async playChord(notes: string[], duration: number = 2000, startTime?: number, tempo: number = 120, rootNote?: string): Promise<void> {
+  async playChord(notes: string[], duration: number = 2000, startTime?: number, tempo: number = 120, rootNote?: string, octaves?: number[]): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -273,17 +273,33 @@ export class AudioEngine {
         fifth = notes[2];
       }
 
+      // Map notes to their octave offsets if provided
+      let rootOctave = 0, thirdOctave = 0, fifthOctave = 0;
+      
+      if (octaves && octaves.length === 3) {
+        // Find which position each note (root, third, fifth) is at in the notes array
+        const rootIdx = notes.findIndex(n => n === root);
+        const thirdIdx = notes.findIndex(n => n === third);
+        const fifthIdx = notes.findIndex(n => n === fifth);
+        
+        if (rootIdx !== -1) rootOctave = octaves[rootIdx];
+        if (thirdIdx !== -1) thirdOctave = octaves[thirdIdx];
+        if (fifthIdx !== -1) fifthOctave = octaves[fifthIdx];
+        
+        console.log(`🎼 Octave mapping: Root(${root})=${rootOctave}, Third(${third})=${thirdOctave}, Fifth(${fifth})=${fifthOctave}`);
+      }
+
       // Arpeggio pattern: 5-1-3-1 played TWICE = 8 notes total
-      // Using TRUE root position notes regardless of inversion
+      // Using TRUE root position notes with their correct octaves regardless of inversion
       const arpeggioPattern = [
-        fifth, // 5th (fifth)
-        root,  // 1st (root)
-        third, // 3rd (third)
-        root,  // 1st (root) again
-        fifth, // 5th (fifth) - second iteration
-        root,  // 1st (root)
-        third, // 3rd (third)
-        root   // 1st (root) again
+        { note: fifth, octave: fifthOctave }, // 5th (fifth)
+        { note: root, octave: rootOctave },   // 1st (root)
+        { note: third, octave: thirdOctave }, // 3rd (third)
+        { note: root, octave: rootOctave },   // 1st (root) again
+        { note: fifth, octave: fifthOctave }, // 5th (fifth) - second iteration
+        { note: root, octave: rootOctave },   // 1st (root)
+        { note: third, octave: thirdOctave }, // 3rd (third)
+        { note: root, octave: rootOctave }    // 1st (root) again
       ];
 
       // FIXED TEMPO-BASED NOTE DURATION: Each note is 1/4 beat (sixteenth note)
@@ -294,11 +310,11 @@ export class AudioEngine {
 
       console.log(`🎸 Playing arpeggio x2: ${root}-${third}-${fifth} as 5-1-3-1-5-1-3-1 pattern at fixed tempo (${tempo} BPM)`);
 
-      // Schedule all notes in the arpeggio with precise timing
-      const promises = arpeggioPattern.map((note, index) => {
+      // Schedule all notes in the arpeggio with precise timing and correct octaves
+      const promises = arpeggioPattern.map((item, index) => {
         const noteStartTime = baseStartTime + (index * noteDuration / 1000);
-        return this.playNote(note, noteDuration, 0, noteStartTime).catch(error => {
-          console.error('Error playing arpeggio note:', note, error);
+        return this.playNote(item.note, noteDuration, item.octave, noteStartTime).catch(error => {
+          console.error('Error playing arpeggio note:', item.note, error);
           return Promise.resolve();
         });
       });
