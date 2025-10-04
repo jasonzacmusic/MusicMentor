@@ -976,12 +976,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       {/* Keyboard shortcuts help */}
       <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
         <div className="text-xs text-gray-600 dark:text-white flex flex-wrap gap-2 justify-center">
-          <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Space</kbd> Play/Pause</span>
-          <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">M</kbd> Metronome</span>
+          <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">Space</kbd> Play/Pause</span>
+          <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">M</kbd> Metronome</span>
           {isFeatureEnabled('AUTO_LOOP') && (
-            <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">L</kbd> Loop</span>
+            <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">L</kbd> Loop</span>
           )}
-          <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">R</kbd> Generate</span>
+          <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">R</kbd> Generate</span>
         </div>
       </div>
     </div>
