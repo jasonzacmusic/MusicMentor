@@ -19,7 +19,7 @@ interface RandomNotesGeneratorProps {
 
 export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'], skillLevel = 'beginner' }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
-  const [tempo, setTempo] = useState(120);
+  const [tempo, setTempo] = useState(60);
   const [isPlaying, setIsPlaying] = useState(false);
   
   // Auto Loop state - only active when feature flag is enabled
@@ -719,7 +719,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const prevTempoRef = useRef(tempo);
   const prevMetronomeRef = useRef(withMetronome);
 
-  // Monitor tempo/metronome changes and restart if playing
+  // Monitor metronome changes and restart if playing
+  // Note: Tempo changes do NOT restart - they take effect on next play/loop
   useEffect(() => {
     const tempoChanged = prevTempoRef.current !== tempo;
     const metronomeChanged = prevMetronomeRef.current !== withMetronome;
@@ -734,8 +735,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       newMetronome: withMetronome
     });
 
-    if (isPlaying && (tempoChanged || metronomeChanged)) {
-      console.log('🔄 Settings changed - restarting playback');
+    // Only restart if metronome on/off changed (not tempo)
+    if (isPlaying && metronomeChanged) {
+      console.log('🔄 Metronome changed - restarting playback');
       // FORCE reset sequence flag to allow restart during playback
       isSequenceActiveRef.current = false;
       // Reset and restart manually to avoid handlePlay dependency
