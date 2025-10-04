@@ -273,33 +273,21 @@ export class AudioEngine {
         fifth = notes[2];
       }
 
-      // Map notes to their octave offsets if provided
-      let rootOctave = 0, thirdOctave = 0, fifthOctave = 0;
-      
-      if (octaves && octaves.length === 3) {
-        // Find which position each note (root, third, fifth) is at in the notes array
-        const rootIdx = notes.findIndex(n => n === root);
-        const thirdIdx = notes.findIndex(n => n === third);
-        const fifthIdx = notes.findIndex(n => n === fifth);
-        
-        if (rootIdx !== -1) rootOctave = octaves[rootIdx];
-        if (thirdIdx !== -1) thirdOctave = octaves[thirdIdx];
-        if (fifthIdx !== -1) fifthOctave = octaves[fifthIdx];
-        
-        console.log(`🎼 Octave mapping: Root(${root})=${rootOctave}, Third(${third})=${thirdOctave}, Fifth(${fifth})=${fifthOctave}`);
-      }
+      // ARPEGGIO ALWAYS USES ROOT POSITION (all notes at octave 0)
+      // This ensures the arpeggio sounds IDENTICAL regardless of chord inversion
+      // The octaves array is only for simultaneous chord voicing, NOT for arpeggios
 
       // Arpeggio pattern: 5-1-3-1 played TWICE = 8 notes total
-      // Using TRUE root position notes with their correct octaves regardless of inversion
+      // ALL notes played at octave 0 for consistent sound across all inversions
       const arpeggioPattern = [
-        { note: fifth, octave: fifthOctave }, // 5th (fifth)
-        { note: root, octave: rootOctave },   // 1st (root)
-        { note: third, octave: thirdOctave }, // 3rd (third)
-        { note: root, octave: rootOctave },   // 1st (root) again
-        { note: fifth, octave: fifthOctave }, // 5th (fifth) - second iteration
-        { note: root, octave: rootOctave },   // 1st (root)
-        { note: third, octave: thirdOctave }, // 3rd (third)
-        { note: root, octave: rootOctave }    // 1st (root) again
+        { note: fifth, octave: 0 }, // 5th (fifth)
+        { note: root, octave: 0 },   // 1st (root)
+        { note: third, octave: 0 }, // 3rd (third)
+        { note: root, octave: 0 },   // 1st (root) again
+        { note: fifth, octave: 0 }, // 5th (fifth) - second iteration
+        { note: root, octave: 0 },   // 1st (root)
+        { note: third, octave: 0 }, // 3rd (third)
+        { note: root, octave: 0 }    // 1st (root) again
       ];
 
       // FIXED TEMPO-BASED NOTE DURATION: Each note is 1/4 beat (sixteenth note)
