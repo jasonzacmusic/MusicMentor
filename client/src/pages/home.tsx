@@ -136,8 +136,26 @@ export default function Home() {
                 <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">Chord Trees</h3>
                 <p className="text-sm text-gray-600 dark:text-white">Click chord branches to hear harmonies</p>
               </div>
+
+              {/* Selected Chords Display */}
+              <div className="mb-4 flex justify-center items-center gap-3">
+                {selectedChords.map((chord, index) => (
+                  <div
+                    key={index}
+                    className="flex-1 max-w-[200px] bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 rounded-lg p-3 text-center border-2 border-blue-200 dark:border-gray-500"
+                    data-testid={`text-selected-chord-${index}`}
+                  >
+                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                      Position {index + 1}
+                    </div>
+                    <div className="text-lg font-bold text-gray-800 dark:text-white">
+                      {chord ? chord.name : '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
               
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 h-[calc(100%-80px)] overflow-y-auto">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 h-[calc(100%-160px)] overflow-y-auto">
                 {activeNotes.map((note, index) => {
                   return (
                     <div key={`${note}-${index}`} className="relative flex justify-center items-center">
