@@ -198,19 +198,49 @@ export class AudioEngine {
     });
   }
 
-  async playChord(notes: string[], duration: number = 2000): Promise<void> {
+  async playChord(notes: string[], duration: number = 2000, startTime?: number): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
     try {
-      // Play all chord notes at their correct pitch with error handling
-      const promises = notes.map(note => 
-        this.playNote(note, duration).catch(error => {
-          console.error('Error playing chord note:', note, error);
-          return Promise.resolve(); // Return resolved promise to continue with other notes
-        })
-      );
+      // Play arpeggio pattern: 5-1-3-1 (fifth, root, third, root)
+      // For a chord [root, third, fifth], play: notes[2], notes[0], notes[1], notes[0]
+      if (notes.length !== 3) {
+        // Fallback to simultaneous playback if not a triad
+        const promises = notes.map(note => 
+          this.playNote(note, duration, 0, startTime).catch(error => {
+            console.error('Error playing chord note:', note, error);
+            return Promise.resolve();
+          })
+        );
+        await Promise.all(promises);
+        return;
+      }
+
+      // Arpeggio pattern: 5-1-3-1
+      const arpeggioPattern = [
+        notes[2], // 5th (fifth)
+        notes[0], // 1st (root)
+        notes[1], // 3rd (third)
+        notes[0]  // 1st (root) again
+      ];
+
+      // Calculate timing - each note gets 1/4 of the total duration
+      const noteDuration = duration / 4;
+      const baseStartTime = startTime || this.audioContext!.currentTime;
+
+      console.log(`🎸 Playing arpeggio: ${notes.join('-')} as 5-1-3-1 pattern`);
+
+      // Schedule all notes in the arpeggio with precise timing
+      const promises = arpeggioPattern.map((note, index) => {
+        const noteStartTime = baseStartTime + (index * noteDuration / 1000);
+        return this.playNote(note, noteDuration, 0, noteStartTime).catch(error => {
+          console.error('Error playing arpeggio note:', note, error);
+          return Promise.resolve();
+        });
+      });
+
       await Promise.all(promises);
     } catch (error) {
       console.error('Error in playChord:', error);

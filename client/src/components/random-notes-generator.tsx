@@ -253,16 +253,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             baseNotes,
           );
           console.log(
-            `✅ Validated: Playing exactly ${baseNotes.length} notes`,
+            `✅ Validated: Playing exactly ${baseNotes.length} notes as arpeggio`,
           );
 
-          // Schedule ONLY these 3 notes with Web Audio timing - NO setTimeout
-          baseNotes.forEach((note, noteIndex) => {
-            const noteStartTime = currentTime + (noteIndex * 0.05); // 50ms stagger
-            console.log(`🔊 Scheduling chord note ${noteIndex + 1}/3: ${note} at time ${noteStartTime.toFixed(3)}`);
-            audioEngine.playNote(note, duration * 1000, 0, noteStartTime).catch(err => {
-              console.error('Error playing chord note:', err);
-            });
+          // Play chord as arpeggio using playChord
+          audioEngine.playChord(baseNotes, duration * 1000, currentTime).catch(err => {
+            console.error('Error playing chord arpeggio:', err);
           });
         } else {
           // NOTE: Play individual note for this position using Web Audio scheduling
@@ -384,14 +380,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             return 8000;
           }
 
-          console.log(`🎹 Position ${i + 1} - Chord:`, chordToPlay.name, baseNotes);
+          console.log(`🎹 Position ${i + 1} - Chord:`, chordToPlay.name, baseNotes, 'as arpeggio');
 
-          baseNotes.forEach((note, noteIndex) => {
-            const noteStartTime = currentTime + (noteIndex * 0.05);
-            console.log(`🔊 Scheduling chord note ${noteIndex + 1}/3: ${note} at time ${noteStartTime.toFixed(3)}`);
-            audioEngine.playNote(note, duration * 1000, 0, noteStartTime).catch(err => {
-              console.error('Error playing chord note:', err);
-            });
+          // Play chord as arpeggio using playChord
+          audioEngine.playChord(baseNotes, duration * 1000, currentTime).catch(err => {
+            console.error('Error playing chord arpeggio:', err);
           });
         } else {
           // NOTE: Play individual note fallback
