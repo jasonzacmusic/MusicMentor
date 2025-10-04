@@ -858,7 +858,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     <div className="space-y-4">
       {/* Title aligned to the left */}
       <div>
-        <h3 className="text-lg font-medium text-gray-900 text-left">Random Note Practice</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white text-left">Random Note Practice</h3>
       </div>
 
       {/* Three buttons: Generate, Pause/Play, Auto Loop */}
@@ -866,7 +866,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         <Button
           onClick={handleGenerate}
           variant="outline"
-          className="hover:bg-orange-50 border-orange-200 text-orange-600 flex-1"
+          className="hover:bg-orange-50 dark:hover:bg-orange-900/50 border-orange-200 dark:border-orange-700 text-orange-600 dark:text-orange-400 flex-1"
+          data-testid="button-generate"
         >
           <Shuffle className="w-4 h-4 mr-2" />
           Generate
@@ -895,7 +896,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <Button
             onClick={toggleLoop}
             variant={isLooping ? "default" : "outline"}
-            className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'} flex-1 ${isLooping ? 'text-white' : 'text-blue-600'}`}
+            className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 dark:hover:bg-blue-900/50 border-blue-200 dark:border-blue-700'} flex-1 ${isLooping ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}
+            data-testid="button-auto-loop"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Auto Loop
@@ -908,7 +910,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         <Button
           onClick={handleRandomHarmonize}
           variant="outline"
-          className="hover:bg-purple-50 border-purple-200 text-purple-600 w-full max-w-[200px]"
+          className="hover:bg-purple-50 dark:hover:bg-purple-900/50 border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 w-full max-w-[200px]"
+          data-testid="button-random-chords"
         >
           <Shuffle className="w-4 h-4 mr-2" />
           Random Chords
@@ -923,13 +926,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             checked={withMetronome}
             onCheckedChange={(checked) => setWithMetronome(checked === true)}
           />
-          <label htmlFor="metronome" className="text-xs font-medium text-gray-700">
+          <label htmlFor="metronome" className="text-xs font-medium text-gray-700 dark:text-white">
             Metronome
           </label>
         </div>
         
         <div className="flex-1 flex items-center space-x-2">
-          <label className="text-xs font-medium text-gray-700 min-w-[60px]">
+          <label className="text-xs font-medium text-gray-700 dark:text-white min-w-[60px]">
             {tempo} BPM
           </label>
           <Slider
@@ -946,7 +949,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       {/* Metronome speed controls */}
       {withMetronome && (
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-600">Speed:</span>
+          <span className="text-xs text-gray-600 dark:text-white">Speed:</span>
           <div className="flex space-x-1">
             {[
               { value: 1, label: '♩' }, // Quarter notes
@@ -971,8 +974,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       )}
 
       {/* Keyboard shortcuts help */}
-      <div className="p-2 bg-gray-50 rounded-lg">
-        <div className="text-xs text-gray-600 flex flex-wrap gap-2 justify-center">
+      <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <div className="text-xs text-gray-600 dark:text-white flex flex-wrap gap-2 justify-center">
           <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Space</kbd> Play/Pause</span>
           <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">M</kbd> Metronome</span>
           {isFeatureEnabled('AUTO_LOOP') && (
