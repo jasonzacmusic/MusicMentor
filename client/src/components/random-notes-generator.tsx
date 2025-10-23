@@ -25,6 +25,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   
   // Auto Loop state - only active when feature flag is enabled
   const [isLooping, setIsLooping] = useState(false);
+  const isLoopingRef = useRef(false); // Ref for real-time loop state access during playback
   
   const [withMetronome, setWithMetronome] = useState(false);
   const withMetronomeRef = useRef(false); // Ref for real-time metronome access
@@ -43,6 +44,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   useEffect(() => {
     metronomeMultiplierRef.current = metronomeMultiplier;
   }, [metronomeMultiplier]);
+  
+  useEffect(() => {
+    isLoopingRef.current = isLooping;
+  }, [isLooping]);
   // Removed old useAudio hook - using direct audioEngine now
 
   const generateNew = useCallback(() => {
@@ -245,6 +250,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           const checkAndPlayNext = () => {
             if (positionIndex >= 3 || !isSequenceActiveRef.current) {
               isSequenceActiveRef.current = false;
+              // Clear all pending timeouts before resolving
+              activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+              activeTimeoutsRef.current.clear();
               console.log("✅ Sequence complete");
               resolve(); // Resolve promise on actual completion
               return;
@@ -281,11 +289,26 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
               elapsedBeats += durationBeats;
               positionIndex++;
+              
+              // Check if we just completed the last position
+              if (positionIndex >= 3) {
+                isSequenceActiveRef.current = false;
+                // Clear all pending timeouts before resolving
+                activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+                activeTimeoutsRef.current.clear();
+                console.log("✅ Sequence complete");
+                resolve();
+                return;
+              }
             }
 
             // Continue polling every 10ms
             if (positionIndex < 3 && isSequenceActiveRef.current) {
-              const pollTimeout = setTimeout(checkAndPlayNext, 10);
+              const pollTimeout = setTimeout(() => {
+                // Remove this timeout from tracking when it fires
+                activeTimeoutsRef.current.delete(pollTimeout);
+                checkAndPlayNext();
+              }, 10);
               activeTimeoutsRef.current.add(pollTimeout);
             }
           };
@@ -339,6 +362,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           const checkAndPlayNext = () => {
             if (positionIndex >= 3 || !isSequenceActiveRef.current) {
               isSequenceActiveRef.current = false;
+              // Clear all pending timeouts before resolving
+              activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+              activeTimeoutsRef.current.clear();
               console.log("✅ Chord sequence complete");
               resolve(); // Resolve promise on actual completion
               return;
@@ -373,10 +399,25 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
               elapsedBeats += durationBeats;
               positionIndex++;
+              
+              // Check if we just completed the last position
+              if (positionIndex >= 3) {
+                isSequenceActiveRef.current = false;
+                // Clear all pending timeouts before resolving
+                activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+                activeTimeoutsRef.current.clear();
+                console.log("✅ Chord sequence complete");
+                resolve();
+                return;
+              }
             }
 
             if (positionIndex < 3 && isSequenceActiveRef.current) {
-              const pollTimeout = setTimeout(checkAndPlayNext, 10);
+              const pollTimeout = setTimeout(() => {
+                // Remove this timeout from tracking when it fires
+                activeTimeoutsRef.current.delete(pollTimeout);
+                checkAndPlayNext();
+              }, 10);
               activeTimeoutsRef.current.add(pollTimeout);
             }
           };
@@ -426,7 +467,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         console.log('🔄 Auto Loop enabled for specific chords');
         
         const runLoop = async () => {
-          while (isFeatureEnabled('AUTO_LOOP') && isLooping) {
+          while (isFeatureEnabled('AUTO_LOOP') && isLoopingRef.current) {
             // Use current chords from ref to get real-time updates
             const currentChords = currentChordsRef.current;
             console.log('🔄 Loop iteration - Reading from REF:', currentChords.map(c => c?.name || 'Note'));
@@ -496,7 +537,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         console.log('🔄 Auto Loop enabled - seamless continuous playback');
         
         const runLoop = async () => {
-          while (isFeatureEnabled('AUTO_LOOP') && isLooping) {
+          while (isFeatureEnabled('AUTO_LOOP') && isLoopingRef.current) {
             console.log('🔄 Loop iteration - starting next sequence');
             try {
               await playSequenceOnce();
