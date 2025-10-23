@@ -239,6 +239,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           }
 
           const chordDurations = [2, 2, 4]; // beats per position
+          const totalBeats = 8; // Total duration: 2+2+4 beats
           let positionIndex = 0;
           let elapsedBeats = 0;
           const startRealTime = Date.now();
@@ -248,7 +249,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           
           // Polling function that checks if it's time to play next position
           const checkAndPlayNext = () => {
-            if (positionIndex >= 3 || !isSequenceActiveRef.current) {
+            // Calculate how many beats have elapsed based on current tempo
+            const realElapsedMs = Date.now() - startRealTime;
+            const currentTempo = tempoRef.current;
+            const msPerBeat = (60 / currentTempo) * 1000;
+            const realElapsedBeats = realElapsedMs / msPerBeat;
+
+            // Check if sequence is complete (all positions played AND full duration elapsed)
+            if (!isSequenceActiveRef.current || (positionIndex >= 3 && realElapsedBeats >= totalBeats)) {
               isSequenceActiveRef.current = false;
               // Clear all pending timeouts before resolving
               activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
@@ -258,14 +266,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               return;
             }
 
-            // Calculate how many beats have elapsed based on current tempo
-            const realElapsedMs = Date.now() - startRealTime;
-            const currentTempo = tempoRef.current;
-            const msPerBeat = (60 / currentTempo) * 1000;
-            const realElapsedBeats = realElapsedMs / msPerBeat;
-
             // Check if it's time to play the next position
-            if (realElapsedBeats >= elapsedBeats) {
+            if (positionIndex < 3 && realElapsedBeats >= elapsedBeats) {
               const durationBeats = chordDurations[positionIndex];
               const durationMs = (60 / currentTempo) * durationBeats * 1000;
               const selectedChord = selectedChords[positionIndex];
@@ -289,21 +291,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
               elapsedBeats += durationBeats;
               positionIndex++;
-              
-              // Check if we just completed the last position
-              if (positionIndex >= 3) {
-                isSequenceActiveRef.current = false;
-                // Clear all pending timeouts before resolving
-                activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-                activeTimeoutsRef.current.clear();
-                console.log("✅ Sequence complete");
-                resolve();
-                return;
-              }
             }
 
             // Continue polling every 10ms
-            if (positionIndex < 3 && isSequenceActiveRef.current) {
+            if (isSequenceActiveRef.current) {
               const pollTimeout = setTimeout(() => {
                 // Remove this timeout from tracking when it fires
                 activeTimeoutsRef.current.delete(pollTimeout);
@@ -351,6 +342,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           }
 
           const chordDurations = [2, 2, 4]; // beats per position
+          const totalBeats = 8; // Total duration: 2+2+4 beats
           let positionIndex = 0;
           let elapsedBeats = 0;
           const startRealTime = Date.now();
@@ -360,7 +352,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           
           // Polling function for chord playback
           const checkAndPlayNext = () => {
-            if (positionIndex >= 3 || !isSequenceActiveRef.current) {
+            const realElapsedMs = Date.now() - startRealTime;
+            const currentTempo = tempoRef.current;
+            const msPerBeat = (60 / currentTempo) * 1000;
+            const realElapsedBeats = realElapsedMs / msPerBeat;
+
+            // Check if sequence is complete (all positions played AND full duration elapsed)
+            if (!isSequenceActiveRef.current || (positionIndex >= 3 && realElapsedBeats >= totalBeats)) {
               isSequenceActiveRef.current = false;
               // Clear all pending timeouts before resolving
               activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
@@ -370,12 +368,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               return;
             }
 
-            const realElapsedMs = Date.now() - startRealTime;
-            const currentTempo = tempoRef.current;
-            const msPerBeat = (60 / currentTempo) * 1000;
-            const realElapsedBeats = realElapsedMs / msPerBeat;
-
-            if (realElapsedBeats >= elapsedBeats) {
+            if (positionIndex < 3 && realElapsedBeats >= elapsedBeats) {
               const durationBeats = chordDurations[positionIndex];
               const durationMs = (60 / currentTempo) * durationBeats * 1000;
               const chordToPlay = chordsToPlay[positionIndex];
@@ -399,20 +392,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
               elapsedBeats += durationBeats;
               positionIndex++;
-              
-              // Check if we just completed the last position
-              if (positionIndex >= 3) {
-                isSequenceActiveRef.current = false;
-                // Clear all pending timeouts before resolving
-                activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-                activeTimeoutsRef.current.clear();
-                console.log("✅ Chord sequence complete");
-                resolve();
-                return;
-              }
             }
 
-            if (positionIndex < 3 && isSequenceActiveRef.current) {
+            if (isSequenceActiveRef.current) {
               const pollTimeout = setTimeout(() => {
                 // Remove this timeout from tracking when it fires
                 activeTimeoutsRef.current.delete(pollTimeout);
