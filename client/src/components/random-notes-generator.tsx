@@ -27,12 +27,22 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [isLooping, setIsLooping] = useState(false);
   
   const [withMetronome, setWithMetronome] = useState(false);
+  const withMetronomeRef = useRef(false); // Ref for real-time metronome access
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
+  const metronomeMultiplierRef = useRef(1); // Ref for real-time metronome speed access
 
-  // Update tempo ref when tempo changes
+  // Update refs when values change
   useEffect(() => {
     tempoRef.current = tempo;
   }, [tempo]);
+  
+  useEffect(() => {
+    withMetronomeRef.current = withMetronome;
+  }, [withMetronome]);
+  
+  useEffect(() => {
+    metronomeMultiplierRef.current = metronomeMultiplier;
+  }, [metronomeMultiplier]);
   // Removed old useAudio hook - using direct audioEngine now
 
   const generateNew = useCallback(() => {
@@ -152,211 +162,236 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     console.log('✅ Emergency reset complete');
   }, []);
 
-  // REAL-TIME TEMPO-ADAPTIVE SEQUENCE PLAYER
-  const playSequenceOnce = useCallback(async () => {
-    console.log("🎯 playSequenceOnce called!");
+  // DYNAMIC METRONOME with real-time tempo and speed adaptation
+  const startDynamicMetronome = useCallback((startRealTime: number) => {
+    if (!withMetronomeRef.current) return null;
     
-    if (isSequenceActiveRef.current) {
-      console.log("🚫 Sequence already active, skipping");
-      return 8000;
-    }
-
-    isSequenceActiveRef.current = true;
-    console.log("🎵 Starting real-time tempo-adaptive sequence");
-
-    try {
-      if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-        await audioEngine.initialize();
+    let lastClickBeat = -1;
+    const metronomeStartTime = audioEngine.audioContext!.currentTime + 0.1;
+    
+    const checkAndPlayMetronome = () => {
+      if (!isSequenceActiveRef.current || !withMetronomeRef.current) {
+        console.log("🥁 Metronome stopped");
+        return;
       }
       
-      if (audioEngine.audioContext?.state === 'suspended') {
-        await audioEngine.audioContext.resume();
+      const realElapsedMs = Date.now() - startRealTime;
+      const currentTempo = tempoRef.current;
+      const msPerBeat = (60 / currentTempo) * 1000;
+      const realElapsedBeats = realElapsedMs / msPerBeat;
+      
+      // Determine metronome subdivision based on current multiplier
+      const currentMultiplier = metronomeMultiplierRef.current;
+      let clicksPerBeat = 1;
+      switch (currentMultiplier) {
+        case 1: clicksPerBeat = 1; break; // Quarter notes
+        case 2: clicksPerBeat = 2; break; // Eighth notes
+        case 3: clicksPerBeat = 4; break; // Sixteenth notes
+      }
+      
+      const totalClicksElapsed = realElapsedBeats * clicksPerBeat;
+      const nextClickNumber = Math.floor(totalClicksElapsed);
+      
+      // Play click if we've crossed into a new subdivision
+      if (nextClickNumber > lastClickBeat && realElapsedBeats < 8) {
+        const audioClickTime = metronomeStartTime + (realElapsedMs / 1000);
+        scheduleMetronomeClick(audioClickTime);
+        lastClickBeat = nextClickNumber;
+      }
+      
+      // Continue polling
+      if (isSequenceActiveRef.current && realElapsedBeats < 8) {
+        const metronomeTimeout = setTimeout(checkAndPlayMetronome, 10);
+        activeTimeoutsRef.current.add(metronomeTimeout);
+      }
+    };
+    
+    checkAndPlayMetronome();
+  }, []);
+
+  // REAL-TIME TEMPO-ADAPTIVE SEQUENCE PLAYER with dynamic metronome (Promise-based)
+  const playSequenceOnce = useCallback((): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      console.log("🎯 playSequenceOnce called!");
+      
+      if (isSequenceActiveRef.current) {
+        console.log("🚫 Sequence already active, skipping");
+        resolve();
+        return;
       }
 
-      const chordDurations = [2, 2, 4]; // beats per position
-      let positionIndex = 0;
-      let elapsedBeats = 0;
-      const startRealTime = Date.now();
-      
-      // Polling function that checks if it's time to play next position
-      const checkAndPlayNext = () => {
-        if (positionIndex >= 3 || !isSequenceActiveRef.current) {
-          isSequenceActiveRef.current = false;
-          console.log("✅ Sequence complete");
-          return;
-        }
+      isSequenceActiveRef.current = true;
+      console.log("🎵 Starting real-time tempo-adaptive sequence");
 
-        // Calculate how many beats have elapsed based on current tempo
-        const realElapsedMs = Date.now() - startRealTime;
-        const currentTempo = tempoRef.current;
-        const msPerBeat = (60 / currentTempo) * 1000;
-        const realElapsedBeats = realElapsedMs / msPerBeat;
-
-        // Check if it's time to play the next position
-        if (realElapsedBeats >= elapsedBeats) {
-          const durationBeats = chordDurations[positionIndex];
-          const durationMs = (60 / currentTempo) * durationBeats * 1000;
-          const selectedChord = selectedChords[positionIndex];
-          const audioStartTime = audioEngine.audioContext!.currentTime + 0.05;
+      const initializeAndPlay = async () => {
+        try {
+          if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+            await audioEngine.initialize();
+          }
           
-          console.log(`🎯 Pos ${positionIndex + 1}: tempo=${currentTempo} BPM, ${durationBeats}beats = ${(durationMs/1000).toFixed(2)}s`);
-
-          if (selectedChord) {
-            const baseNotes = selectedChord.notes.slice(0, 3);
-            if (baseNotes.length === 3) {
-              audioEngine.playChord(baseNotes, durationMs, audioStartTime, currentTempo, selectedChord.rootNote, selectedChord.octaves).catch(err => {
-                console.error('Error playing chord:', err);
-              });
-            }
-          } else {
-            const octaveOffset = (positionIndex === 2) ? -1 : 0;
-            audioEngine.playNote(notes[positionIndex], durationMs, octaveOffset, audioStartTime).catch(err => {
-              console.error('Error playing note:', err);
-            });
+          if (audioEngine.audioContext?.state === 'suspended') {
+            await audioEngine.audioContext.resume();
           }
 
-          elapsedBeats += durationBeats;
-          positionIndex++;
-        }
+          const chordDurations = [2, 2, 4]; // beats per position
+          let positionIndex = 0;
+          let elapsedBeats = 0;
+          const startRealTime = Date.now();
+          
+          // Start dynamic metronome
+          startDynamicMetronome(startRealTime);
+          
+          // Polling function that checks if it's time to play next position
+          const checkAndPlayNext = () => {
+            if (positionIndex >= 3 || !isSequenceActiveRef.current) {
+              isSequenceActiveRef.current = false;
+              console.log("✅ Sequence complete");
+              resolve(); // Resolve promise on actual completion
+              return;
+            }
 
-        // Continue polling every 10ms
-        if (positionIndex < 3 && isSequenceActiveRef.current) {
-          const pollTimeout = setTimeout(checkAndPlayNext, 10);
-          activeTimeoutsRef.current.add(pollTimeout);
+            // Calculate how many beats have elapsed based on current tempo
+            const realElapsedMs = Date.now() - startRealTime;
+            const currentTempo = tempoRef.current;
+            const msPerBeat = (60 / currentTempo) * 1000;
+            const realElapsedBeats = realElapsedMs / msPerBeat;
+
+            // Check if it's time to play the next position
+            if (realElapsedBeats >= elapsedBeats) {
+              const durationBeats = chordDurations[positionIndex];
+              const durationMs = (60 / currentTempo) * durationBeats * 1000;
+              const selectedChord = selectedChords[positionIndex];
+              const audioStartTime = audioEngine.audioContext!.currentTime + 0.05;
+              
+              console.log(`🎯 Pos ${positionIndex + 1}: tempo=${currentTempo} BPM, ${durationBeats}beats = ${(durationMs/1000).toFixed(2)}s`);
+
+              if (selectedChord) {
+                const baseNotes = selectedChord.notes.slice(0, 3);
+                if (baseNotes.length === 3) {
+                  audioEngine.playChord(baseNotes, durationMs, audioStartTime, currentTempo, selectedChord.rootNote, selectedChord.octaves).catch(err => {
+                    console.error('Error playing chord:', err);
+                  });
+                }
+              } else {
+                const octaveOffset = (positionIndex === 2) ? -1 : 0;
+                audioEngine.playNote(notes[positionIndex], durationMs, octaveOffset, audioStartTime).catch(err => {
+                  console.error('Error playing note:', err);
+                });
+              }
+
+              elapsedBeats += durationBeats;
+              positionIndex++;
+            }
+
+            // Continue polling every 10ms
+            if (positionIndex < 3 && isSequenceActiveRef.current) {
+              const pollTimeout = setTimeout(checkAndPlayNext, 10);
+              activeTimeoutsRef.current.add(pollTimeout);
+            }
+          };
+
+          // Start polling
+          checkAndPlayNext();
+        } catch (error) {
+          console.error("❌ Sequence error:", error);
+          isSequenceActiveRef.current = false;
+          reject(error);
         }
       };
 
-      // Start polling
-      checkAndPlayNext();
+      initializeAndPlay();
+    });
+  }, [selectedChords, notes, startDynamicMetronome]);
+
+  // DEDICATED FUNCTION FOR RANDOM CHORD PLAYBACK with dynamic tempo/metronome (Promise-based)
+  const playSequenceWithChords = useCallback((chordsToPlay: (Chord | null)[]): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      console.log("🎯 playSequenceWithChords called with:", chordsToPlay.map(c => c?.name || 'Note'));
       
-      // Return estimated duration
-      const estimatedDuration = (chordDurations.reduce((a, b) => a + b, 0) * (60 / tempoRef.current) * 1000);
-      return estimatedDuration;
-    } catch (error) {
-      console.error("❌ Sequence error:", error);
-      isSequenceActiveRef.current = false;
-      return 8000;
-    }
-  }, [selectedChords, notes]);
-
-  // DEDICATED FUNCTION FOR RANDOM CHORD PLAYBACK - Uses chord array directly
-  const playSequenceWithChords = useCallback(async (chordsToPlay: (Chord | null)[]) => {
-    console.log("🎯 playSequenceWithChords called with:", chordsToPlay.map(c => c?.name || 'Note'));
-    
-    // Guard: Only allow one sequence at a time
-    if (isSequenceActiveRef.current) {
-      console.log("🚫 Sequence already active, skipping");
-      return 8000;
-    }
-
-    isSequenceActiveRef.current = true;
-    console.log("🎵 Starting chord sequence");
-
-    try {
-      if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-        await audioEngine.initialize();
-      }
-      
-      if (audioEngine.audioContext?.state === 'suspended') {
-        await audioEngine.audioContext.resume();
+      if (isSequenceActiveRef.current) {
+        console.log("🚫 Sequence already active, skipping");
+        resolve();
+        return;
       }
 
-      const beatDuration = 60 / tempo;
-      const chordDurations = [2, 2, 4]; // beats per position
-      
-      const startTime = audioEngine.audioContext!.currentTime + 0.1;
-      let currentTime = startTime;
+      isSequenceActiveRef.current = true;
+      console.log("🎵 Starting real-time chord sequence");
 
-      // Schedule metronome clicks if enabled
-      if (withMetronome) {
-        const metronomeLabel = metronomeMultiplier === 1 ? 'Quarter notes' : metronomeMultiplier === 2 ? 'Eighth notes' : 'Sixteenth notes';
-        console.log(`🥁 Metronome enabled for chord sequence (${metronomeLabel})`);
-        const totalDuration = 8 * beatDuration;
-        
-        // Calculate metronome interval based on subdivision:
-        // 1x = quarter notes (beatDuration), 2x = eighth notes (beatDuration/2), 3x = sixteenth notes (beatDuration/4)
-        let metronomeInterval;
-        switch (metronomeMultiplier) {
-          case 1: // Quarter notes
-            metronomeInterval = beatDuration;
-            break;
-          case 2: // Eighth notes  
-            metronomeInterval = beatDuration / 2;
-            break;
-          case 3: // Sixteenth notes
-            metronomeInterval = beatDuration / 4;
-            break;
-          default:
-            metronomeInterval = beatDuration;
-        }
-        
-        const totalClicks = Math.floor((totalDuration / metronomeInterval) + 0.0001);
-        console.log(`🥁 Metronome: multiplier=${metronomeMultiplier}, interval=${metronomeInterval.toFixed(3)}s, clicks=${totalClicks}`);
-        
-        for (let clickCount = 0; clickCount < totalClicks; clickCount++) {
-          const clickTime = startTime + (clickCount * metronomeInterval);
-          if (clickTime >= startTime + totalDuration) break;
-          scheduleMetronomeClick(clickTime);
-        }
-      }
-
-      // Play each position using the provided chords
-      for (let i = 0; i < 3; i++) {
-        const duration = beatDuration * chordDurations[i];
-        const chordToPlay = chordsToPlay[i];
-        
-        console.log(`🎯 Position ${i + 1}: duration=${duration.toFixed(3)}s, hasChord=${!!chordToPlay}`);
-
-        if (chordToPlay) {
-          // CHORD: Play the chord notes
-          const baseNotes = chordToPlay.notes.slice(0, 3);
-
-          if (baseNotes.length !== 3) {
-            console.error(`❌ ERROR: Chord has ${baseNotes.length} notes, expected exactly 3!`);
-            return 8000;
+      const initializeAndPlay = async () => {
+        try {
+          if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+            await audioEngine.initialize();
+          }
+          
+          if (audioEngine.audioContext?.state === 'suspended') {
+            await audioEngine.audioContext.resume();
           }
 
-          console.log(`🎹 Position ${i + 1} - Chord:`, chordToPlay.name, baseNotes, 'as arpeggio');
+          const chordDurations = [2, 2, 4]; // beats per position
+          let positionIndex = 0;
+          let elapsedBeats = 0;
+          const startRealTime = Date.now();
+          
+          // Start dynamic metronome
+          startDynamicMetronome(startRealTime);
+          
+          // Polling function for chord playback
+          const checkAndPlayNext = () => {
+            if (positionIndex >= 3 || !isSequenceActiveRef.current) {
+              isSequenceActiveRef.current = false;
+              console.log("✅ Chord sequence complete");
+              resolve(); // Resolve promise on actual completion
+              return;
+            }
 
-          // Play chord as arpeggio using playChord with fixed tempo, rootNote, and octaves
-          audioEngine.playChord(baseNotes, duration * 1000, currentTime, tempo, chordToPlay.rootNote, chordToPlay.octaves).catch(err => {
-            console.error('Error playing chord arpeggio:', err);
-          });
-        } else {
-          // NOTE: Play individual note fallback
-          let octaveOffset = 0;
-          if (i === 2) octaveOffset = -1;
+            const realElapsedMs = Date.now() - startRealTime;
+            const currentTempo = tempoRef.current;
+            const msPerBeat = (60 / currentTempo) * 1000;
+            const realElapsedBeats = realElapsedMs / msPerBeat;
 
-          console.log(`🎵 Position ${i + 1} - Note:`, notes[i], "octave:", octaveOffset);
-          console.log(`🔊 Scheduling note: ${notes[i]} at time ${currentTime.toFixed(3)}`);
-          audioEngine.playNote(notes[i], duration * 1000, octaveOffset, currentTime).catch(err => {
-            console.error('Error playing note:', err);
-          });
+            if (realElapsedBeats >= elapsedBeats) {
+              const durationBeats = chordDurations[positionIndex];
+              const durationMs = (60 / currentTempo) * durationBeats * 1000;
+              const chordToPlay = chordsToPlay[positionIndex];
+              const audioStartTime = audioEngine.audioContext!.currentTime + 0.05;
+              
+              console.log(`🎯 Pos ${positionIndex + 1}: tempo=${currentTempo} BPM, ${durationBeats}beats, hasChord=${!!chordToPlay}`);
+
+              if (chordToPlay) {
+                const baseNotes = chordToPlay.notes.slice(0, 3);
+                if (baseNotes.length === 3) {
+                  audioEngine.playChord(baseNotes, durationMs, audioStartTime, currentTempo, chordToPlay.rootNote, chordToPlay.octaves).catch(err => {
+                    console.error('Error playing chord:', err);
+                  });
+                }
+              } else {
+                const octaveOffset = (positionIndex === 2) ? -1 : 0;
+                audioEngine.playNote(notes[positionIndex], durationMs, octaveOffset, audioStartTime).catch(err => {
+                  console.error('Error playing note:', err);
+                });
+              }
+
+              elapsedBeats += durationBeats;
+              positionIndex++;
+            }
+
+            if (positionIndex < 3 && isSequenceActiveRef.current) {
+              const pollTimeout = setTimeout(checkAndPlayNext, 10);
+              activeTimeoutsRef.current.add(pollTimeout);
+            }
+          };
+
+          checkAndPlayNext();
+        } catch (error) {
+          console.error("❌ Chord sequence error:", error);
+          isSequenceActiveRef.current = false;
+          reject(error);
         }
+      };
 
-        currentTime += duration;
-      }
-
-      // Calculate exact duration from beats for precise timing
-      const exactDurationSeconds = (chordDurations[0] + chordDurations[1] + chordDurations[2]) * beatDuration;
-      const exactDurationMs = exactDurationSeconds * 1000;
-
-      console.log(`⏱️ Chord sequence duration: ${exactDurationMs}ms (${exactDurationSeconds.toFixed(3)}s)`);
-
-      // Mark sequence as complete after duration
-      const completionTimeout = setTimeout(() => {
-        isSequenceActiveRef.current = false;
-        console.log("✅ Chord sequence complete");
-      }, exactDurationMs);
-      activeTimeoutsRef.current.add(completionTimeout);
-
-      return exactDurationMs;
-    } catch (error) {
-      console.error("❌ Chord sequence error:", error);
-      isSequenceActiveRef.current = false;
-      return 8000;
-    }
-  }, [notes, tempo, withMetronome, metronomeMultiplier]);
+      initializeAndPlay();
+    });
+  }, [notes, startDynamicMetronome]);
 
   // PLAY FUNCTION WITH SPECIFIC CHORDS - bypasses prop timing issues
   const handlePlayWithChords = useCallback(async (chordsToUse: (Chord | null)[]) => {
@@ -380,8 +415,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     setIsPlaying(true);
 
     try {
-      const sequenceDuration = await playSequenceWithChords(chordsToUse);
-      console.log('⏱️ Duration with specific chords:', sequenceDuration, 'ms');
+      // Await actual sequence completion
+      await playSequenceWithChords(chordsToUse);
+      console.log('⏱️ Sequence with specific chords complete');
       
       // Check if we should loop or play once
       const currentShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
@@ -389,32 +425,28 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       if (currentShouldLoop) {
         console.log('🔄 Auto Loop enabled for specific chords');
         
-        const scheduleNextLoop = () => {
-          const loopTimeout = setTimeout(async () => {
-            if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
-              // Use current chords from ref to get real-time updates
-              const currentChords = currentChordsRef.current;
-              console.log('🔄 Loop iteration - Reading from REF:', currentChords.map(c => c?.name || 'Note'));
-              console.log('🔄 Loop iteration - Full ref objects:', currentChords);
-              try {
-                const nextDuration = await playSequenceWithChords(currentChords);
-                console.log('⏱️ Loop duration:', nextDuration, 'ms');
-                scheduleNextLoop();
-              } catch (error) {
-                console.error('Loop iteration error:', error);
-                setIsPlaying(false);
-              }
+        const runLoop = async () => {
+          while (isFeatureEnabled('AUTO_LOOP') && isLooping) {
+            // Use current chords from ref to get real-time updates
+            const currentChords = currentChordsRef.current;
+            console.log('🔄 Loop iteration - Reading from REF:', currentChords.map(c => c?.name || 'Note'));
+            try {
+              await playSequenceWithChords(currentChords);
+              console.log('⏱️ Loop iteration complete');
+            } catch (error) {
+              console.error('Loop iteration error:', error);
+              setIsPlaying(false);
+              break;
             }
-          }, sequenceDuration);
-          
-          activeTimeoutsRef.current.add(loopTimeout);
+          }
+          // Loop exited - stop playing
+          setIsPlaying(false);
         };
         
-        scheduleNextLoop();
+        runLoop();
       } else {
-        setTimeout(() => {
-          setIsPlaying(false);
-        }, sequenceDuration);
+        // Single play - stop after completion
+        setIsPlaying(false);
       }
     } catch (error) {
       console.error('❌ Play with chords error:', error);
@@ -453,8 +485,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     setIsPlaying(true);
 
     try {
-      const sequenceDuration = await playSequenceOnce();
-      console.log('⏱️ Duration:', sequenceDuration, 'ms');
+      // Await actual sequence completion
+      await playSequenceOnce();
+      console.log('⏱️ Sequence complete');
       
       // Check if we should loop or play once
       const currentShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
@@ -462,35 +495,27 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       if (currentShouldLoop) {
         console.log('🔄 Auto Loop enabled - seamless continuous playback');
         
-        // Create recursive loop function
-        const scheduleNextLoop = () => {
-          const loopTimeout = setTimeout(async () => {
-            // Only continue if still looping - don't check isPlaying here
-            if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
-              console.log('🔄 Loop iteration - starting next sequence');
-              try {
-                const nextDuration = await playSequenceOnce();
-                console.log('⏱️ Loop duration:', nextDuration, 'ms');
-                // Schedule the next loop iteration
-                scheduleNextLoop();
-              } catch (error) {
-                console.error('Loop iteration error:', error);
-                setIsPlaying(false);
-              }
+        const runLoop = async () => {
+          while (isFeatureEnabled('AUTO_LOOP') && isLooping) {
+            console.log('🔄 Loop iteration - starting next sequence');
+            try {
+              await playSequenceOnce();
+              console.log('⏱️ Loop iteration complete');
+            } catch (error) {
+              console.error('Loop iteration error:', error);
+              setIsPlaying(false);
+              break;
             }
-          }, sequenceDuration);
-          
-          activeTimeoutsRef.current.add(loopTimeout);
+          }
+          // Loop exited - stop playing
+          setIsPlaying(false);
         };
         
-        // Start the loop
-        scheduleNextLoop();
+        runLoop();
       } else {
         // Single play - stop after completion
         console.log('🔇 Single play - stopping after sequence');
-        setTimeout(() => {
-          setIsPlaying(false);
-        }, sequenceDuration);
+        setIsPlaying(false);
       }
     } catch (error) {
       console.error('❌ Play error:', error);
@@ -657,6 +682,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // Monitor metronome changes and restart if playing
   // Note: Tempo changes do NOT restart - they take effect on next play/loop
+  // Log tempo/metronome changes for debugging (no restart needed - dynamic polling handles it)
   useEffect(() => {
     const tempoChanged = prevTempoRef.current !== tempo;
     const metronomeChanged = prevMetronomeRef.current !== withMetronome;
@@ -670,63 +696,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       prevMetronome: prevMetronomeRef.current,
       newMetronome: withMetronome
     });
-
-    // Only restart if metronome on/off changed (not tempo)
-    if (isPlaying && metronomeChanged) {
-      console.log('🔄 Metronome changed - restarting playback');
-      // FORCE reset sequence flag to allow restart during playback
-      isSequenceActiveRef.current = false;
-      // Reset and restart manually to avoid handlePlay dependency
-      emergencyReset();
-      setTimeout(async () => {
-        setIsPlaying(true);
-        try {
-          const sequenceDuration = await playSequenceOnce();
-          console.log('⏱️ Restarted duration:', sequenceDuration, 'ms');
-          
-          // Handle restart with loop consideration
-          const restartShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
-          
-          if (restartShouldLoop) {
-            // Continue looping after restart
-            const scheduleRestartLoop = () => {
-              const loopTimeout = setTimeout(async () => {
-                if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
-                  console.log('🔄 Restart loop iteration');
-                  try {
-                    const nextDuration = await playSequenceOnce();
-                    console.log('⏱️ Restart loop duration:', nextDuration, 'ms');
-                    // Schedule the next loop iteration
-                    scheduleRestartLoop();
-                  } catch (error) {
-                    console.error('Restart loop error:', error);
-                    setIsPlaying(false);
-                  }
-                }
-              }, sequenceDuration);
-              
-              activeTimeoutsRef.current.add(loopTimeout);
-            };
-            
-            // Start the restart loop
-            scheduleRestartLoop();
-          } else {
-            // Single playback
-            setTimeout(() => {
-              setIsPlaying(false);
-            }, sequenceDuration);
-          }
-        } catch (error) {
-          console.error('❌ Restart error:', error);
-          setIsPlaying(false);
-        }
-      }, 100);
-    }
     
     // Update refs for next comparison
     prevTempoRef.current = tempo;
     prevMetronomeRef.current = withMetronome;
-  }, [tempo, withMetronome, isPlaying, playSequenceOnce, emergencyReset, isLooping]); // Include dependencies needed for the effect
+    
+    // Note: No restart needed! Dynamic polling system handles tempo/metronome changes seamlessly
+  }, [tempo, withMetronome, isPlaying]);
 
   // Clean up on unmount
   useEffect(() => {

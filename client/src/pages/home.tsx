@@ -79,13 +79,13 @@ export default function Home() {
               <div>
                 <label className="block text-xs font-semibold text-gray-700 dark:text-white mb-2">Skill Level</label>
                 <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-full bg-blue-50/80 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/60 transition-all text-blue-800 dark:text-white h-9">
+                  <SelectTrigger className="w-full bg-blue-50/80 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/60 transition-all text-blue-800 dark:text-white h-9" data-testid="select-skill-level">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner">🌱 Beginner - Major & Minor</SelectItem>
-                    <SelectItem value="intermediate">🌿 Intermediate - Sus & 7ths</SelectItem>
-                    <SelectItem value="advanced">🌳 Advanced - Extended Chords</SelectItem>
+                    <SelectItem value="beginner" data-testid="option-beginner">🌱 Beginner - Major & Minor</SelectItem>
+                    <SelectItem value="intermediate" disabled data-testid="option-intermediate">🌿 Intermediate - Coming soon</SelectItem>
+                    <SelectItem value="advanced" disabled data-testid="option-advanced">🌳 Advanced - Coming soon</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
