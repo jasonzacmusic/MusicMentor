@@ -398,7 +398,7 @@ export default function ChordSkillSelector({
                 compact={true}
                 onKeyPress={(note) => {}}
               />
-              <div className="mt-2">
+              <div className="mt-4">
                 <GuitarFretboard
                   root={selectedChord.rootNote}
                   quality={selectedChord.type}

@@ -1,58 +1,58 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type ColorMode = 'earth' | 'ocean' | 'cosmic' | 'dark' | 'light'
+type Theme = 'dark' | 'light' | 'system'
 
 type ThemeProviderProps = {
   children: React.ReactNode
-  defaultColorMode?: ColorMode
+  defaultTheme?: Theme
   storageKey?: string
 }
 
 type ThemeProviderState = {
-  colorMode: ColorMode
-  setColorMode: (colorMode: ColorMode) => void
+  theme: Theme
+  setTheme: (theme: Theme) => void
 }
 
 const initialState: ThemeProviderState = {
-  colorMode: 'earth',
-  setColorMode: () => null,
+  theme: 'system',
+  setTheme: () => null,
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
-export const COLOR_MODES: { id: ColorMode; name: string; icon: string }[] = [
-  { id: 'earth', name: 'Earth', icon: '🌍' },
-  { id: 'ocean', name: 'Ocean', icon: '🌊' },
-  { id: 'cosmic', name: 'Cosmic', icon: '🌌' },
-  { id: 'dark', name: 'Midnight', icon: '🌙' },
-  { id: 'light', name: 'Light', icon: '☀️' },
-]
-
 export function ThemeProvider({
   children,
-  defaultColorMode = 'earth',
-  storageKey = 'music-mentor-color-mode',
+  defaultTheme = 'dark',
+  storageKey = 'music-mentor-theme',
   ...props
 }: ThemeProviderProps) {
-  const [colorMode, setColorMode] = useState<ColorMode>(
-    () => (localStorage.getItem(storageKey) as ColorMode) || defaultColorMode
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
 
   useEffect(() => {
     const root = window.document.documentElement
 
-    // Remove all theme classes
-    root.classList.remove('light', 'dark', 'earth', 'ocean', 'cosmic')
+    root.classList.remove('light', 'dark')
 
-    // Add the current color mode class
-    root.classList.add(colorMode)
-  }, [colorMode])
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+        .matches
+        ? 'dark'
+        : 'light'
+
+      root.classList.add(systemTheme)
+      return
+    }
+
+    root.classList.add(theme)
+  }, [theme])
 
   const value = {
-    colorMode,
-    setColorMode: (newColorMode: ColorMode) => {
-      localStorage.setItem(storageKey, newColorMode)
-      setColorMode(newColorMode)
+    theme,
+    setTheme: (theme: Theme) => {
+      localStorage.setItem(storageKey, theme)
+      setTheme(theme)
     },
   }
 

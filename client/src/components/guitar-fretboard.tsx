@@ -56,15 +56,15 @@ export default function GuitarFretboard({
   const startFret = hasOpenStrings || minFret <= 2 ? 1 : minFret - 1;
   const numFrets = Math.max(4, maxFret - startFret + 2);
   
-  const stringSpacing = compact ? 10 : 14;
-  const fretSpacing = compact ? 18 : 24;
-  const nutWidth = compact ? 4 : 6;
-  const dotRadius = compact ? 6 : 8;
-  const leftPadding = compact ? 16 : 24;
-  const topPadding = compact ? 14 : 18;
+  const stringSpacing = compact ? 14 : 18;
+  const fretSpacing = compact ? 28 : 32;
+  const nutWidth = compact ? 5 : 7;
+  const dotRadius = compact ? 8 : 10;
+  const leftPadding = compact ? 20 : 28;
+  const topPadding = compact ? 16 : 20;
   
-  const width = leftPadding + nutWidth + (numFrets * fretSpacing) + 8;
-  const height = topPadding + (5 * stringSpacing) + (compact ? 14 : 18);
+  const width = leftPadding + nutWidth + (numFrets * fretSpacing) + 12;
+  const height = topPadding + (5 * stringSpacing) + (compact ? 20 : 24);
 
   const getFingerColor = (finger: number | null): string => {
     if (!finger) return 'fill-primary';
