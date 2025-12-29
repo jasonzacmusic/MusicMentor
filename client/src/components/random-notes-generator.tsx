@@ -845,13 +845,19 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         <Button
           onClick={handlePlay}
           size="sm"
+          disabled={isLoadingInstruments}
           className={`flex-1 h-8 text-xs font-semibold ${
             isPlaying
               ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
               : 'bg-primary hover:bg-primary/90 text-primary-foreground'
           }`}
         >
-          {isPlaying ? (
+          {isLoadingInstruments ? (
+            <>
+              <span className="w-3 h-3 mr-1 animate-spin">⏳</span>
+              Loading...
+            </>
+          ) : isPlaying ? (
             <>
               <Square className="w-3 h-3 mr-1" />
               Stop
