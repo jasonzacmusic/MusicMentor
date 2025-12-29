@@ -42,11 +42,11 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
   const getKeyPosition = (note: string) => {
     if (isBlackKey(note)) {
       const positions: Record<string, number> = {
-        'C#': 0.7,
-        'D#': 1.7,
-        'F#': 3.7,
-        'G#': 4.7,
-        'A#': 5.7
+        'C#': 1,
+        'D#': 2,
+        'F#': 4,
+        'G#': 5,
+        'A#': 6
       };
       return positions[note] * whiteKeyWidth - blackKeyWidth / 2;
     }
