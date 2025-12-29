@@ -929,12 +929,231 @@ export const GUITAR_CHORD_LIBRARY: Record<string, GuitarChordData> = {
     createShape('Am(add9)', 'open', [null, 0, 2, 2, 0, 0], [null, null, 2, 3, null, null]),
     createShape('Am(add9) Barre', 'barre', [5, 7, 5, 5, 5, 7], [1, 3, 1, 1, 1, 4]),
     createShape('Am(add9) Alt', 'alternative', [null, 0, 2, 0, 0, 0], [null, null, 2, null, null, null])
+  ]},
+  'F_diminished7': { root: 'F', quality: 'diminished7', shapes: [
+    createShape('Fdim7', 'open', [1, 2, 0, 1, 0, 1], [2, 4, null, 3, null, 1]),
+    createShape('Fdim7 Barre', 'barre', [null, null, 3, 4, 3, 4], [null, null, 1, 3, 2, 4]),
+    createShape('Fdim7 Alt', 'alternative', [1, 2, 3, 1, 3, 1], [1, 2, 3, 1, 4, 1])
+  ]},
+  'F_7sus4': { root: 'F', quality: '7sus4', shapes: [
+    createShape('F7sus4', 'open', [1, 1, 3, 1, 1, 1], [1, 1, 3, 1, 1, 1], 1, [{ fret: 1, fromString: 0, toString: 5 }]),
+    createShape('F7sus4 Barre', 'barre', [null, 8, 8, 8, 6, 6], [null, 2, 3, 4, 1, 1]),
+    createShape('F7sus4 Alt', 'alternative', [1, 3, 1, 3, 1, 1], [1, 3, 1, 4, 1, 1])
+  ]},
+  'F_minorMajor7': { root: 'F', quality: 'minorMajor7', shapes: [
+    createShape('Fm(maj7)', 'open', [1, 3, 2, 1, 1, 1], [1, 4, 2, 1, 1, 1], 1, [{ fret: 1, fromString: 0, toString: 5 }]),
+    createShape('Fm(maj7) Barre', 'barre', [null, 8, 9, 9, 9, 8], [null, 1, 2, 3, 4, 1]),
+    createShape('Fm(maj7) Alt', 'alternative', [null, null, 3, 2, 1, 4], [null, null, 2, 1, 1, 4])
+  ]},
+  'F_minor7b5': { root: 'F', quality: 'minor7b5', shapes: [
+    createShape('Fm7b5', 'open', [1, 2, 1, 1, null, null], [1, 3, 1, 2, null, null]),
+    createShape('Fm7b5 Barre', 'barre', [null, null, 3, 4, 3, 4], [null, null, 1, 3, 2, 4]),
+    createShape('Fm7b5 Alt', 'alternative', [null, 8, 9, 8, 9, null], [null, 1, 3, 2, 4, null])
+  ]},
+  'F_add9': { root: 'F', quality: 'add9', shapes: [
+    createShape('Fadd9', 'open', [1, 0, 3, 2, 1, 1], [1, null, 4, 2, 1, 1]),
+    createShape('Fadd9 Barre', 'barre', [null, 8, 7, 5, 8, 5], [null, 3, 2, 1, 4, 1]),
+    createShape('Fadd9 Alt', 'alternative', [1, 3, 3, 2, 3, 1], [1, 2, 3, 1, 4, 1])
+  ]},
+  'F_minorAdd9': { root: 'F', quality: 'minorAdd9', shapes: [
+    createShape('Fm(add9)', 'open', [1, 3, 1, 1, 1, 3], [1, 3, 1, 1, 1, 4]),
+    createShape('Fm(add9) Barre', 'barre', [null, 8, 6, 5, 8, 8], [null, 3, 2, 1, 4, 4]),
+    createShape('Fm(add9) Alt', 'alternative', [null, null, 3, 1, 1, 3], [null, null, 3, 1, 1, 4])
+  ]},
+  'B_diminished7': { root: 'B', quality: 'diminished7', shapes: [
+    createShape('Bdim7', 'open', [null, 2, 0, 1, 0, 1], [null, 2, null, 1, null, 1]),
+    createShape('Bdim7 Barre', 'barre', [7, 8, 6, 7, 6, null], [2, 4, 1, 3, 1, null]),
+    createShape('Bdim7 Alt', 'alternative', [null, null, 0, 1, 0, 1], [null, null, null, 2, null, 1])
+  ]},
+  'B_7sus4': { root: 'B', quality: '7sus4', shapes: [
+    createShape('B7sus4', 'open', [null, 2, 4, 2, 5, 2], [null, 1, 3, 1, 4, 1]),
+    createShape('B7sus4 Barre', 'barre', [7, 7, 9, 7, 7, 7], [1, 1, 3, 1, 1, 1], 1, [{ fret: 7, fromString: 0, toString: 5 }]),
+    createShape('B7sus4 Alt', 'alternative', [null, 2, 2, 2, 0, 0], [null, 2, 3, 4, null, null])
+  ]},
+  'B_minorMajor7': { root: 'B', quality: 'minorMajor7', shapes: [
+    createShape('Bm(maj7)', 'open', [null, 2, 4, 3, 3, 2], [null, 1, 4, 2, 3, 1]),
+    createShape('Bm(maj7) Barre', 'barre', [7, 9, 8, 7, 7, 7], [1, 4, 2, 1, 1, 1], 1, [{ fret: 7, fromString: 0, toString: 5 }]),
+    createShape('Bm(maj7) Alt', 'alternative', [null, null, 4, 3, 3, 6], [null, null, 2, 1, 1, 4])
+  ]},
+  'B_minor7b5': { root: 'B', quality: 'minor7b5', shapes: [
+    createShape('Bm7b5', 'open', [null, 2, 3, 2, 3, null], [null, 1, 3, 2, 4, null]),
+    createShape('Bm7b5 Barre', 'barre', [7, 8, 7, 7, null, null], [1, 3, 1, 2, null, null]),
+    createShape('Bm7b5 Alt', 'alternative', [null, null, 0, 2, 0, 1], [null, null, null, 2, null, 1])
+  ]},
+  'B_add9': { root: 'B', quality: 'add9', shapes: [
+    createShape('Badd9', 'open', [null, 2, 4, 4, 2, 4], [null, 1, 2, 3, 1, 4]),
+    createShape('Badd9 Barre', 'barre', [7, 9, 9, 8, 9, 7], [1, 2, 3, 1, 4, 1]),
+    createShape('Badd9 Alt', 'alternative', [null, 2, 1, 4, 2, 2], [null, 2, 1, 4, 3, 3])
+  ]},
+  'B_minorAdd9': { root: 'B', quality: 'minorAdd9', shapes: [
+    createShape('Bm(add9)', 'open', [null, 2, 4, 4, 2, 4], [null, 1, 2, 3, 1, 4]),
+    createShape('Bm(add9) Barre', 'barre', [7, 9, 7, 7, 7, 9], [1, 3, 1, 1, 1, 4]),
+    createShape('Bm(add9) Alt', 'alternative', [null, 2, 0, 2, 2, 2], [null, 1, null, 2, 3, 4])
+  ]},
+  'Bb_diminished7': { root: 'Bb', quality: 'diminished7', shapes: [
+    createShape('Bbdim7', 'open', [null, 1, 2, 0, 2, 0], [null, 1, 3, null, 4, null]),
+    createShape('Bbdim7 Barre', 'barre', [6, 7, 5, 6, 5, null], [2, 4, 1, 3, 1, null]),
+    createShape('Bbdim7 Alt', 'alternative', [null, null, 2, 3, 2, 3], [null, null, 1, 3, 2, 4])
+  ]},
+  'Bb_7sus4': { root: 'Bb', quality: '7sus4', shapes: [
+    createShape('Bb7sus4', 'open', [null, 1, 3, 1, 4, 1], [null, 1, 3, 1, 4, 1]),
+    createShape('Bb7sus4 Barre', 'barre', [6, 6, 8, 6, 6, 6], [1, 1, 3, 1, 1, 1], 1, [{ fret: 6, fromString: 0, toString: 5 }]),
+    createShape('Bb7sus4 Alt', 'alternative', [null, 1, 1, 1, 4, 4], [null, 1, 1, 1, 4, 4])
+  ]},
+  'Bb_minorMajor7': { root: 'Bb', quality: 'minorMajor7', shapes: [
+    createShape('Bbm(maj7)', 'open', [null, 1, 3, 2, 2, 1], [null, 1, 4, 2, 3, 1]),
+    createShape('Bbm(maj7) Barre', 'barre', [6, 8, 7, 6, 6, 6], [1, 4, 2, 1, 1, 1], 1, [{ fret: 6, fromString: 0, toString: 5 }]),
+    createShape('Bbm(maj7) Alt', 'alternative', [null, null, 3, 2, 2, 5], [null, null, 2, 1, 1, 4])
+  ]},
+  'Bb_minor7b5': { root: 'Bb', quality: 'minor7b5', shapes: [
+    createShape('Bbm7b5', 'open', [null, 1, 2, 1, 2, null], [null, 1, 3, 2, 4, null]),
+    createShape('Bbm7b5 Barre', 'barre', [6, 7, 6, 6, null, null], [1, 3, 1, 2, null, null]),
+    createShape('Bbm7b5 Alt', 'alternative', [null, null, 8, 9, 8, 9], [null, null, 1, 3, 2, 4])
+  ]},
+  'Bb_add9': { root: 'Bb', quality: 'add9', shapes: [
+    createShape('Bbadd9', 'open', [null, 1, 0, 3, 1, 1], [null, 1, null, 4, 2, 2]),
+    createShape('Bbadd9 Barre', 'barre', [6, 8, 8, 7, 8, 6], [1, 2, 3, 1, 4, 1]),
+    createShape('Bbadd9 Alt', 'alternative', [null, 1, 3, 3, 1, 3], [null, 1, 2, 3, 1, 4])
+  ]},
+  'Bb_minorAdd9': { root: 'Bb', quality: 'minorAdd9', shapes: [
+    createShape('Bbm(add9)', 'open', [null, 1, 3, 3, 1, 3], [null, 1, 2, 3, 1, 4]),
+    createShape('Bbm(add9) Barre', 'barre', [6, 8, 6, 6, 6, 8], [1, 3, 1, 1, 1, 4]),
+    createShape('Bbm(add9) Alt', 'alternative', [null, 1, 1, 3, 1, 1], [null, 1, 1, 4, 1, 1])
+  ]},
+
+  // F#/Gb new chord types
+  'F#_diminished7': { root: 'F#', quality: 'diminished7', shapes: [
+    createShape('F#dim7', 'open', [2, 3, 1, 2, 1, 2], [2, 4, 1, 3, 1, 2]),
+    createShape('F#dim7 Barre', 'barre', [null, null, 4, 5, 4, 5], [null, null, 1, 3, 2, 4]),
+    createShape('F#dim7 Alt', 'alternative', [2, 3, 4, 2, 4, 2], [1, 2, 3, 1, 4, 1])
+  ]},
+  'F#_7sus4': { root: 'F#', quality: '7sus4', shapes: [
+    createShape('F#7sus4', 'open', [2, 2, 4, 2, 2, 2], [1, 1, 3, 1, 1, 1], 1, [{ fret: 2, fromString: 0, toString: 5 }]),
+    createShape('F#7sus4 Barre', 'barre', [null, 9, 9, 9, 7, 7], [null, 2, 3, 4, 1, 1]),
+    createShape('F#7sus4 Alt', 'alternative', [2, 4, 2, 4, 2, 2], [1, 3, 1, 4, 1, 1])
+  ]},
+  'F#_minorMajor7': { root: 'F#', quality: 'minorMajor7', shapes: [
+    createShape('F#m(maj7)', 'open', [2, 4, 3, 2, 2, 2], [1, 4, 2, 1, 1, 1], 1, [{ fret: 2, fromString: 0, toString: 5 }]),
+    createShape('F#m(maj7) Barre', 'barre', [null, 9, 10, 10, 10, 9], [null, 1, 2, 3, 4, 1]),
+    createShape('F#m(maj7) Alt', 'alternative', [null, null, 4, 3, 2, 5], [null, null, 2, 1, 1, 4])
+  ]},
+  'F#_minor7b5': { root: 'F#', quality: 'minor7b5', shapes: [
+    createShape('F#m7b5', 'open', [2, 3, 2, 2, null, null], [1, 3, 1, 2, null, null]),
+    createShape('F#m7b5 Barre', 'barre', [null, null, 4, 5, 4, 5], [null, null, 1, 3, 2, 4]),
+    createShape('F#m7b5 Alt', 'alternative', [null, 9, 10, 9, 10, null], [null, 1, 3, 2, 4, null])
+  ]},
+  'F#_add9': { root: 'F#', quality: 'add9', shapes: [
+    createShape('F#add9', 'open', [2, 1, 4, 3, 2, 2], [2, 1, 4, 3, 2, 2]),
+    createShape('F#add9 Barre', 'barre', [null, 9, 8, 6, 9, 6], [null, 3, 2, 1, 4, 1]),
+    createShape('F#add9 Alt', 'alternative', [2, 4, 4, 3, 4, 2], [1, 2, 3, 1, 4, 1])
+  ]},
+  'F#_minorAdd9': { root: 'F#', quality: 'minorAdd9', shapes: [
+    createShape('F#m(add9)', 'open', [2, 4, 2, 2, 2, 4], [1, 3, 1, 1, 1, 4]),
+    createShape('F#m(add9) Barre', 'barre', [null, 9, 7, 6, 9, 9], [null, 3, 2, 1, 4, 4]),
+    createShape('F#m(add9) Alt', 'alternative', [null, null, 4, 2, 2, 4], [null, null, 3, 1, 1, 4])
+  ]},
+
+  // Ab/G# new chord types (using Ab naming but also accessible via G#)
+  'Ab_diminished7': { root: 'Ab', quality: 'diminished7', shapes: [
+    createShape('Abdim7', 'open', [4, 5, 3, 4, 3, null], [2, 4, 1, 3, 1, null]),
+    createShape('Abdim7 Barre', 'barre', [null, null, 6, 7, 6, 7], [null, null, 1, 3, 2, 4]),
+    createShape('Abdim7 Alt', 'alternative', [4, 5, 6, 4, 6, 4], [1, 2, 3, 1, 4, 1])
+  ]},
+  'Ab_7sus4': { root: 'Ab', quality: '7sus4', shapes: [
+    createShape('Ab7sus4', 'open', [4, 4, 6, 4, 4, 4], [1, 1, 3, 1, 1, 1], 1, [{ fret: 4, fromString: 0, toString: 5 }]),
+    createShape('Ab7sus4 Barre', 'barre', [null, 11, 11, 11, 9, 9], [null, 2, 3, 4, 1, 1]),
+    createShape('Ab7sus4 Alt', 'alternative', [4, 6, 4, 6, 4, 4], [1, 3, 1, 4, 1, 1])
+  ]},
+  'Ab_minorMajor7': { root: 'Ab', quality: 'minorMajor7', shapes: [
+    createShape('Abm(maj7)', 'open', [4, 6, 5, 4, 4, 4], [1, 4, 2, 1, 1, 1], 1, [{ fret: 4, fromString: 0, toString: 5 }]),
+    createShape('Abm(maj7) Barre', 'barre', [null, 11, 12, 12, 12, 11], [null, 1, 2, 3, 4, 1]),
+    createShape('Abm(maj7) Alt', 'alternative', [null, null, 6, 5, 4, 7], [null, null, 2, 1, 1, 4])
+  ]},
+  'Ab_minor7b5': { root: 'Ab', quality: 'minor7b5', shapes: [
+    createShape('Abm7b5', 'open', [4, 5, 4, 4, null, null], [1, 3, 1, 2, null, null]),
+    createShape('Abm7b5 Barre', 'barre', [null, null, 6, 7, 6, 7], [null, null, 1, 3, 2, 4]),
+    createShape('Abm7b5 Alt', 'alternative', [null, 11, 12, 11, 12, null], [null, 1, 3, 2, 4, null])
+  ]},
+  'Ab_add9': { root: 'Ab', quality: 'add9', shapes: [
+    createShape('Abadd9', 'open', [4, 3, 6, 5, 4, 4], [2, 1, 4, 3, 2, 2]),
+    createShape('Abadd9 Barre', 'barre', [4, 6, 6, 5, 6, 4], [1, 2, 3, 1, 4, 1]),
+    createShape('Abadd9 Alt', 'alternative', [null, 11, 10, 8, 11, 8], [null, 3, 2, 1, 4, 1])
+  ]},
+  'Ab_minorAdd9': { root: 'Ab', quality: 'minorAdd9', shapes: [
+    createShape('Abm(add9)', 'open', [4, 6, 4, 4, 4, 6], [1, 3, 1, 1, 1, 4]),
+    createShape('Abm(add9) Barre', 'barre', [null, 11, 9, 8, 11, 11], [null, 3, 2, 1, 4, 4]),
+    createShape('Abm(add9) Alt', 'alternative', [null, null, 6, 4, 4, 6], [null, null, 3, 1, 1, 4])
+  ]},
+
+  // C#/Db new chord types
+  'C#_diminished7': { root: 'C#', quality: 'diminished7', shapes: [
+    createShape('C#dim7', 'open', [null, 4, 5, 3, 5, 3], [null, 2, 3, 1, 4, 1]),
+    createShape('C#dim7 Barre', 'barre', [9, 10, 9, 10, 9, null], [1, 3, 1, 4, 2, null]),
+    createShape('C#dim7 Alt', 'alternative', [null, null, 2, 3, 2, 3], [null, null, 1, 3, 2, 4])
+  ]},
+  'C#_7sus4': { root: 'C#', quality: '7sus4', shapes: [
+    createShape('C#7sus4', 'open', [null, 4, 4, 4, 2, 2], [null, 2, 3, 4, 1, 1]),
+    createShape('C#7sus4 Barre', 'barre', [9, 9, 11, 9, 9, 9], [1, 1, 3, 1, 1, 1], 1, [{ fret: 9, fromString: 0, toString: 5 }]),
+    createShape('C#7sus4 Alt', 'alternative', [null, 4, 6, 4, 7, 4], [null, 1, 2, 1, 4, 1])
+  ]},
+  'C#_minorMajor7': { root: 'C#', quality: 'minorMajor7', shapes: [
+    createShape('C#m(maj7)', 'open', [null, 4, 5, 5, 5, 4], [null, 1, 2, 3, 4, 1]),
+    createShape('C#m(maj7) Barre', 'barre', [9, 11, 10, 9, 9, 9], [1, 4, 2, 1, 1, 1], 1, [{ fret: 9, fromString: 0, toString: 5 }]),
+    createShape('C#m(maj7) Alt', 'alternative', [null, null, 2, 1, 1, 4], [null, null, 2, 1, 1, 4])
+  ]},
+  'C#_minor7b5': { root: 'C#', quality: 'minor7b5', shapes: [
+    createShape('C#m7b5', 'open', [null, 4, 5, 4, 5, null], [null, 1, 3, 2, 4, null]),
+    createShape('C#m7b5 Barre', 'barre', [9, 10, 9, 9, null, null], [1, 3, 1, 2, null, null]),
+    createShape('C#m7b5 Alt', 'alternative', [null, null, 5, 5, 5, 5], [null, null, 1, 1, 1, 1])
+  ]},
+  'C#_add9': { root: 'C#', quality: 'add9', shapes: [
+    createShape('C#add9', 'open', [null, 4, 3, 1, 4, 1], [null, 3, 2, 1, 4, 1]),
+    createShape('C#add9 Barre', 'barre', [null, 4, 6, 6, 4, 6], [null, 1, 2, 3, 1, 4]),
+    createShape('C#add9 Alt', 'alternative', [9, 11, 11, 10, 11, 9], [1, 2, 3, 1, 4, 1])
+  ]},
+  'C#_minorAdd9': { root: 'C#', quality: 'minorAdd9', shapes: [
+    createShape('C#m(add9)', 'open', [null, 4, 2, 1, 4, 4], [null, 3, 2, 1, 4, 4]),
+    createShape('C#m(add9) Barre', 'barre', [9, 11, 9, 9, 9, 11], [1, 3, 1, 1, 1, 4]),
+    createShape('C#m(add9) Alt', 'alternative', [null, null, 5, 6, 5, 6], [null, null, 1, 3, 2, 4])
+  ]},
+
+  // Eb/D# new chord types
+  'Eb_diminished7': { root: 'Eb', quality: 'diminished7', shapes: [
+    createShape('Ebdim7', 'open', [null, null, 1, 2, 1, 2], [null, null, 1, 3, 2, 4]),
+    createShape('Ebdim7 Barre', 'barre', [null, 6, 7, 5, 7, 5], [null, 2, 3, 1, 4, 1]),
+    createShape('Ebdim7 Alt', 'alternative', [11, 12, 11, 12, 11, null], [1, 3, 1, 4, 2, null])
+  ]},
+  'Eb_7sus4': { root: 'Eb', quality: '7sus4', shapes: [
+    createShape('Eb7sus4', 'open', [null, 6, 6, 6, 4, 4], [null, 2, 3, 4, 1, 1]),
+    createShape('Eb7sus4 Barre', 'barre', [11, 11, 13, 11, 11, 11], [1, 1, 3, 1, 1, 1], 1, [{ fret: 11, fromString: 0, toString: 5 }]),
+    createShape('Eb7sus4 Alt', 'alternative', [null, null, 1, 1, 2, 2], [null, null, 1, 1, 2, 2])
+  ]},
+  'Eb_minorMajor7': { root: 'Eb', quality: 'minorMajor7', shapes: [
+    createShape('Ebm(maj7)', 'open', [null, 6, 7, 7, 7, 6], [null, 1, 2, 3, 4, 1]),
+    createShape('Ebm(maj7) Barre', 'barre', [11, 13, 12, 11, 11, 11], [1, 4, 2, 1, 1, 1], 1, [{ fret: 11, fromString: 0, toString: 5 }]),
+    createShape('Ebm(maj7) Alt', 'alternative', [null, null, 4, 3, 3, 6], [null, null, 2, 1, 1, 4])
+  ]},
+  'Eb_minor7b5': { root: 'Eb', quality: 'minor7b5', shapes: [
+    createShape('Ebm7b5', 'open', [null, null, 1, 2, 2, 2], [null, null, 1, 2, 3, 4]),
+    createShape('Ebm7b5 Barre', 'barre', [null, 6, 7, 6, 7, null], [null, 1, 3, 2, 4, null]),
+    createShape('Ebm7b5 Alt', 'alternative', [11, 12, 11, 11, null, null], [1, 3, 1, 2, null, null])
+  ]},
+  'Eb_add9': { root: 'Eb', quality: 'add9', shapes: [
+    createShape('Ebadd9', 'open', [null, null, 1, 3, 1, 1], [null, null, 1, 4, 1, 1]),
+    createShape('Ebadd9 Barre', 'barre', [null, 6, 8, 8, 6, 8], [null, 1, 2, 3, 1, 4]),
+    createShape('Ebadd9 Alt', 'alternative', [11, 13, 13, 12, 13, 11], [1, 2, 3, 1, 4, 1])
+  ]},
+  'Eb_minorAdd9': { root: 'Eb', quality: 'minorAdd9', shapes: [
+    createShape('Ebm(add9)', 'open', [null, null, 1, 3, 2, 1], [null, null, 1, 4, 2, 1]),
+    createShape('Ebm(add9) Barre', 'barre', [11, 13, 11, 11, 11, 13], [1, 3, 1, 1, 1, 4]),
+    createShape('Ebm(add9) Alt', 'alternative', [null, 6, 4, 3, 6, 6], [null, 3, 2, 1, 4, 4])
   ]}
 };
 
 const normalizeNote = (note: string): string => {
+  // Only normalize notes that don't have direct entries in the library
   const normalizations: Record<string, string> = {
-    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+    'Db': 'C#', 'Gb': 'F#', 'D#': 'Eb', 'G#': 'Ab', 'A#': 'Bb'
   };
   return normalizations[note] || note;
 };
