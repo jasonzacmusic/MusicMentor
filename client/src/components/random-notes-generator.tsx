@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shuffle, Play, Square, RotateCcw, Edit3, Dices } from 'lucide-react';
+import { Shuffle, Play, Square, RotateCcw, Edit3, Dices, Music, Volume2 } from 'lucide-react';
 import { generateRandomNotes, getChordFromNote, getChordsForNoteBySkill, type Chord, type SkillLevel, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
+import { sampleEngine, INSTRUMENT_COMBOS, type InstrumentCombo } from '@/lib/sample-engine';
 import { isFeatureEnabled } from '@/lib/feature-flags';
 import { VALID_NOTES_FOR_SELECTION } from '@/lib/music-constants';
 
@@ -51,6 +52,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [arpeggioSpeed, setArpeggioSpeed] = useState(1);
   const arpeggioSpeedRef = useRef(1);
 
+  // Instrument combo selection
+  const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
+  const [blockChordVolume, setBlockChordVolume] = useState(0.5);
+  const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
+  const [isLoadingInstruments, setIsLoadingInstruments] = useState(false);
+  const comboLoadedRef = useRef(false);
+
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
   const loopSchedulerRef = useRef<number | null>(null);
@@ -82,6 +90,35 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   useEffect(() => {
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
   }, [onPlayingIndexChange]);
+
+  // Load instrument combo when selection changes
+  useEffect(() => {
+    const loadCombo = async () => {
+      setIsLoadingInstruments(true);
+      try {
+        await sampleEngine.initialize();
+        await sampleEngine.loadCombo(selectedComboId);
+        sampleEngine.setBlockChordVolume(blockChordVolume);
+        sampleEngine.setArpeggioVolume(arpeggioVolume);
+        comboLoadedRef.current = true;
+        console.log(`✅ Loaded instrument combo: ${selectedComboId}`);
+      } catch (error) {
+        console.error('Failed to load instrument combo:', error);
+      } finally {
+        setIsLoadingInstruments(false);
+      }
+    };
+    loadCombo();
+  }, [selectedComboId]);
+
+  // Update volumes when sliders change
+  useEffect(() => {
+    sampleEngine.setBlockChordVolume(blockChordVolume);
+  }, [blockChordVolume]);
+
+  useEffect(() => {
+    sampleEngine.setArpeggioVolume(arpeggioVolume);
+  }, [arpeggioVolume]);
 
   // Helper function to generate unique notes
   const generateUniqueNotes = useCallback((count: number, baseNote?: string): string[] => {
@@ -246,8 +283,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     activeTimeoutsRef.current.clear();
     console.log('🔄 Cancelled all scheduled audio');
 
-    // Stop all oscillators immediately
+    // Stop all oscillators and samples immediately
     audioEngine.stopAll();
+    sampleEngine.stopAll();
 
     console.log('✅ Emergency reset complete');
   }, []);
@@ -283,7 +321,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     playingIndexTimeoutsRef.current.clear();
 
     let currentTime = startTime;
-    const audioContextStartTime = audioEngine.audioContext?.currentTime || 0;
+    const audioContextStartTime = sampleEngine.audioContext?.currentTime || audioEngine.audioContext?.currentTime || 0;
 
     for (let i = 0; i < currentNoteCount; i++) {
       const durationBeats = chordDurations[i];
@@ -303,13 +341,22 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       if (selectedChord) {
         const baseNotes = selectedChord.notes.slice(0, 3);
         if (baseNotes.length === 3) {
-          audioEngine.playChord(baseNotes, durationMs, currentTime, currentTempo, selectedChord.rootNote, selectedChord.octaves).catch(err => {
+          // Use sample engine for real instrument playback
+          sampleEngine.playChordWithArpeggio(
+            baseNotes,
+            durationMs,
+            currentTime,
+            currentTempo,
+            selectedChord.rootNote,
+            selectedChord.octaves
+          ).catch(err => {
             console.error('Error playing chord:', err);
           });
         }
       } else {
-        const octaveOffset = i === 2 ? -1 : 0;
-        audioEngine.playNote(notes[i], durationMs, octaveOffset, currentTime).catch(err => {
+        // For single notes (no chord selected), just play arpeggio note
+        const octave = i === 2 ? 3 : 4;
+        sampleEngine.playArpeggioNote(notes[i], durationMs, octave, currentTime).catch(err => {
           console.error('Error playing note:', err);
         });
       }
@@ -327,17 +374,25 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // SEAMLESS LOOP SCHEDULER - schedules next iteration before current ends
   const startSeamlessLoop = useCallback(async (chordsToUse: (Chord | null)[]) => {
+    // Initialize both engines
+    if (!sampleEngine.audioContext) {
+      await sampleEngine.initialize();
+    }
     if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
       await audioEngine.initialize();
     }
 
+    if (sampleEngine.audioContext?.state === 'suspended') {
+      await sampleEngine.audioContext.resume();
+    }
     if (audioEngine.audioContext?.state === 'suspended') {
       await audioEngine.audioContext.resume();
     }
 
     isSequenceActiveRef.current = true;
     const lookAheadTime = 0.1; // Schedule 100ms ahead
-    let nextStartTime = audioEngine.audioContext!.currentTime + 0.05;
+    const ctx = sampleEngine.audioContext || audioEngine.audioContext!;
+    let nextStartTime = ctx.currentTime + 0.05;
 
     // Schedule first iteration
     let endTime = scheduleSequence(nextStartTime, chordsToUse);
@@ -350,7 +405,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         return;
       }
 
-      const currentTime = audioEngine.audioContext!.currentTime;
+      const currentTime = (sampleEngine.audioContext || audioEngine.audioContext!).currentTime;
       const timeUntilEnd = scheduledEndTimeRef.current - currentTime;
 
       // If we're within lookAhead time of the end, schedule next iteration
@@ -835,6 +890,67 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         <Shuffle className="w-3 h-3 mr-1.5" />
         Random Chords
       </Button>
+
+      {/* Instrument Combo Selector */}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <div className="flex items-center space-x-2">
+          <Music className="w-3.5 h-3.5 text-muted-foreground" />
+          <Select value={selectedComboId} onValueChange={setSelectedComboId}>
+            <SelectTrigger className="flex-1 h-7 text-xs" data-testid="select-instrument-combo">
+              <SelectValue placeholder="Select instruments" />
+            </SelectTrigger>
+            <SelectContent>
+              {INSTRUMENT_COMBOS.map((combo) => (
+                <SelectItem key={combo.id} value={combo.id} className="text-xs">
+                  {combo.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {isLoadingInstruments && (
+          <div className="text-[10px] text-muted-foreground text-center animate-pulse">
+            Loading instruments...
+          </div>
+        )}
+        {!isLoadingInstruments && (
+          <div className="text-[10px] text-muted-foreground text-center">
+            {INSTRUMENT_COMBOS.find(c => c.id === selectedComboId)?.blockChordLabel} + {INSTRUMENT_COMBOS.find(c => c.id === selectedComboId)?.arpeggioLabel}
+          </div>
+        )}
+      </div>
+
+      {/* Volume Balance Controls */}
+      <div className="space-y-1.5">
+        <div className="flex items-center space-x-2">
+          <Volume2 className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground min-w-[45px]">Chords</span>
+          <Slider
+            value={[blockChordVolume * 100]}
+            onValueChange={(value) => setBlockChordVolume(value[0] / 100)}
+            min={0}
+            max={100}
+            step={5}
+            className="flex-1"
+            data-testid="slider-block-chord-volume"
+          />
+          <span className="text-[10px] text-muted-foreground min-w-[25px] text-right">{Math.round(blockChordVolume * 100)}%</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Volume2 className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground min-w-[45px]">Arpeggio</span>
+          <Slider
+            value={[arpeggioVolume * 100]}
+            onValueChange={(value) => setArpeggioVolume(value[0] / 100)}
+            min={0}
+            max={100}
+            step={5}
+            className="flex-1"
+            data-testid="slider-arpeggio-volume"
+          />
+          <span className="text-[10px] text-muted-foreground min-w-[25px] text-right">{Math.round(arpeggioVolume * 100)}%</span>
+        </div>
+      </div>
 
       {/* Tempo slider and metronome */}
       <div className="flex items-center space-x-2">
