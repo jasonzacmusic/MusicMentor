@@ -18,7 +18,7 @@ export default function Home() {
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
   const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto', 'auto']);
   const [currentPlayingIndex, setCurrentPlayingIndex] = useState<number | null>(null);
-  const [colorPreset, setColorPreset] = useState<ColorPreset>('neon');
+  const [colorPreset, setColorPreset] = useState<ColorPreset>('earth');
 
   const handleNoteCountChange = (count: number) => {
     setNoteCount(count);
@@ -60,7 +60,7 @@ export default function Home() {
       <header className="bg-card border-b border-border">
         <div className="max-w-full mx-auto px-4 lg:px-6">
           <div className="flex justify-between items-center h-14">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               <img
                 src={nsmLogo}
                 alt="Nathaniel School of Music"
@@ -68,10 +68,10 @@ export default function Home() {
               />
               <div>
                 <h1 className="text-xl font-bold text-foreground tracking-tight">
-                  Harmony <span className="text-primary font-normal text-sm">by NSM</span>
+                  Cadenza
                 </h1>
-                <p className="text-xs text-muted-foreground -mt-0.5">
-                  Train your ear. Master chord progressions.
+                <p className="text-[11px] text-muted-foreground -mt-0.5 hidden sm:block">
+                  See chords. Hear them. Master them.
                 </p>
               </div>
             </div>
@@ -82,9 +82,11 @@ export default function Home() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="earth" data-testid="option-earth">Earth</SelectItem>
+                  <SelectItem value="sunset" data-testid="option-sunset">Sunset</SelectItem>
+                  <SelectItem value="ocean" data-testid="option-ocean">Ocean</SelectItem>
                   <SelectItem value="neon" data-testid="option-neon">Neon</SelectItem>
                   <SelectItem value="pastel" data-testid="option-pastel">Pastel</SelectItem>
-                  <SelectItem value="earth" data-testid="option-earth">Earth</SelectItem>
                 </SelectContent>
               </Select>
               <ThemeToggle />
@@ -98,12 +100,12 @@ export default function Home() {
 
       <main className="max-w-full mx-auto px-3 lg:px-4 py-3">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-[calc(100vh-90px)]">
-          <div className="lg:col-span-2 xl:col-span-2 space-y-2 overflow-y-auto">
-            <div className="bg-card rounded-lg p-3 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Skill</label>
+          <div className="lg:col-span-2 xl:col-span-2 space-y-3">
+            <div className="bg-card rounded-lg p-4 border border-border">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+                <label className="text-xs font-semibold text-foreground uppercase tracking-wide">Skill Level</label>
                 <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="select-skill-level">
+                  <SelectTrigger className="w-[120px] h-9 text-sm" data-testid="select-skill-level">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -114,24 +116,22 @@ export default function Home() {
                 </Select>
               </div>
 
-              <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-                <RandomNotesGenerator
-                  onNotesChange={handleNotesChange}
-                  onChordsChange={setSelectedChords}
-                  selectedChords={selectedChords}
-                  inversionModes={inversionModes}
-                  skillLevel={skillLevel}
-                  noteCount={noteCount}
-                  onNoteCountChange={handleNoteCountChange}
-                  onPlayingIndexChange={handlePlayingIndexChange}
-                />
-              </div>
+              <RandomNotesGenerator
+                onNotesChange={handleNotesChange}
+                onChordsChange={setSelectedChords}
+                selectedChords={selectedChords}
+                inversionModes={inversionModes}
+                skillLevel={skillLevel}
+                noteCount={noteCount}
+                onNoteCountChange={handleNoteCountChange}
+                onPlayingIndexChange={handlePlayingIndexChange}
+              />
             </div>
 
-            <div className="bg-muted/30 rounded-lg p-2 border border-border">
-              <div className="text-xs text-muted-foreground space-y-0.5">
-                <p><span className="text-primary font-medium">Tip:</span> Click center note to clear chord</p>
-              </div>
+            <div className="bg-muted/30 rounded-lg p-3 border border-border">
+              <p className="text-xs text-muted-foreground">
+                <span className="text-primary font-medium">Tip:</span> Click center note to clear chord
+              </p>
             </div>
           </div>
 

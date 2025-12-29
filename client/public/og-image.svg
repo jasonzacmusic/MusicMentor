@@ -4,18 +4,24 @@
       <stop offset="0%" style="stop-color:#121212"/>
       <stop offset="100%" style="stop-color:#282828"/>
     </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#50dcb9"/>
+      <stop offset="100%" style="stop-color:#3db89a"/>
+    </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
-  <circle cx="200" cy="315" r="80" fill="none" stroke="#50dcb9" stroke-width="3"/>
-  <text x="200" y="335" text-anchor="middle" font-family="Georgia, serif" 
-        font-size="80" font-style="italic" fill="white">N</text>
-  <text x="350" y="290" font-family="system-ui, sans-serif" font-size="72" 
-        font-weight="700" fill="white">Harmony</text>
-  <text x="350" y="360" font-family="system-ui, sans-serif" font-size="32" 
-        fill="#50dcb9">by Nathaniel School of Music</text>
-  <text x="350" y="420" font-family="system-ui, sans-serif" font-size="24" 
-        fill="#888">Interactive Music Learning</text>
-  <rect x="350" y="480" width="200" height="50" rx="25" fill="#50dcb9"/>
-  <text x="450" y="513" text-anchor="middle" font-family="system-ui, sans-serif" 
+  <circle cx="180" cy="315" r="70" fill="none" stroke="url(#accent)" stroke-width="3"/>
+  <text x="180" y="335" text-anchor="middle" font-family="Georgia, serif" 
+        font-size="72" font-style="italic" font-weight="600" fill="white">C</text>
+  <text x="320" y="280" font-family="system-ui, sans-serif" font-size="80" 
+        font-weight="700" fill="white">Cadenza</text>
+  <text x="320" y="350" font-family="system-ui, sans-serif" font-size="32" 
+        fill="#50dcb9">See chords. Hear them. Master them.</text>
+  <text x="320" y="410" font-family="system-ui, sans-serif" font-size="22" 
+        fill="#888">Interactive music learning with visual chord trees</text>
+  <text x="320" y="445" font-family="system-ui, sans-serif" font-size="22" 
+        fill="#888">and real instrument sounds</text>
+  <rect x="320" y="490" width="180" height="46" rx="23" fill="url(#accent)"/>
+  <text x="410" y="520" text-anchor="middle" font-family="system-ui, sans-serif" 
         font-size="18" font-weight="600" fill="#121212">Start Learning</text>
 </svg>

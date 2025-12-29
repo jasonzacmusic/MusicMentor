@@ -6,8 +6,8 @@
     </linearGradient>
   </defs>
   <rect width="48" height="48" rx="10" fill="url(#bg)"/>
-  <text x="50%" y="56%" text-anchor="middle" dominant-baseline="middle" 
-        font-family="Georgia, serif" font-size="28" font-style="italic" 
-        fill="white" font-weight="400">N</text>
-  <circle cx="24" cy="24" r="14" fill="none" stroke="white" stroke-width="1.5" opacity="0.6"/>
+  <text x="50%" y="58%" text-anchor="middle" dominant-baseline="middle" 
+        font-family="Georgia, serif" font-size="26" font-style="italic" 
+        fill="white" font-weight="600">C</text>
+  <circle cx="24" cy="24" r="14" fill="none" stroke="white" stroke-width="1.5" opacity="0.5"/>
 </svg>
