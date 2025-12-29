@@ -288,19 +288,25 @@ export class AudioEngine {
         { note: root, octave: 0 }
       ];
 
-      // Get arpeggio speed from global setting (default: eighth notes = 1/2 beat)
-      // arpeggioSpeed: 1 = eighth notes (1/2 beat), 2 = sixteenth notes (1/4 beat)
+      // BEAT-ALIGNED ARPEGGIO TIMING - notes always land exactly on beat subdivisions
+      // arpeggioSpeed: 1 = eighth notes (2 per beat), 2 = sixteenth notes (4 per beat)
       const arpeggioSpeed = (window as any).__arpeggioSpeed || 1;
       const beatDuration = 60 / tempo; // seconds per beat
       const notesPerBeat = arpeggioSpeed === 2 ? 4 : 2; // 4 for sixteenth, 2 for eighth
-      const noteDurationSec = beatDuration / notesPerBeat;
+      const noteDurationSec = beatDuration / notesPerBeat; // Exact beat subdivision
       const noteDurationMs = noteDurationSec * 1000;
       const baseStartTime = startTime || this.audioContext!.currentTime;
+      
+      // Calculate how many notes fit in the allocated duration (truncate pattern if needed)
+      const chordDurationSec = duration / 1000;
+      const maxNotesForDuration = Math.floor(chordDurationSec / noteDurationSec);
+      const notesToPlay = Math.min(arpeggioPattern.length, maxNotesForDuration);
+      const truncatedPattern = arpeggioPattern.slice(0, notesToPlay);
 
-      console.log(`🎸 Arpeggio: ${root}-${third}-${fifth} at ${tempo} BPM, ${arpeggioSpeed === 2 ? '16th' : '8th'} notes`);
+      console.log(`🎸 Arpeggio: ${root}-${third}-${fifth} at ${tempo} BPM, ${arpeggioSpeed === 2 ? '16th' : '8th'} notes, ${notesToPlay}/${arpeggioPattern.length} notes`);
 
-      // Schedule all notes with precise Web Audio timing
-      const promises = arpeggioPattern.map((item, index) => {
+      // Schedule notes with EXACT beat-aligned timing - no drift possible
+      const promises = truncatedPattern.map((item, index) => {
         const noteStartTime = baseStartTime + (index * noteDurationSec);
         return this.playNote(item.note, noteDurationMs, item.octave, noteStartTime).catch(error => {
           console.error('Error playing arpeggio note:', item.note, error);
@@ -354,11 +360,7 @@ export class AudioEngine {
       this.scheduleNote(notes[i], currentTime, duration, octaveOffset);
       
       currentTime += duration;
-      
-      // Small gap between notes (except for the last one)
-      if (i < notes.length - 1) {
-        currentTime += 0.1; // 100ms gap
-      }
+      // NO gaps between notes - beat-aligned timing for DAW-accurate playback
     }
     
     // Wait for the entire sequence to complete with proper error handling
