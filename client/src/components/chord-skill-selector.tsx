@@ -600,6 +600,7 @@ export default function ChordSkillSelector({
   const { playChord } = useAudio();
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const centerButtonRef = useRef<HTMLButtonElement>(null);
+  const chordButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const selectedChord = parentSelectedChord;
 
@@ -608,33 +609,58 @@ export default function ChordSkillSelector({
     setAvailableChords(chords);
   }, [baseNote, skillLevel]);
 
-  const handleSelectChord = useCallback((chord: Chord) => {
+  const handleSelectChord = useCallback((chord: Chord, buttonElement?: HTMLButtonElement) => {
     onChordSelect(chord, noteIndex);
     
-    if (onAnchorUpdate && centerButtonRef.current) {
-      const rect = centerButtonRef.current.getBoundingClientRect();
+    const targetElement = buttonElement || chordButtonRefs.current.get(chord.name);
+    if (onAnchorUpdate && targetElement) {
+      const rect = targetElement.getBoundingClientRect();
       onAnchorUpdate({
         id: `tree-${noteIndex}`,
         noteIndex,
         chordId: chord.name,
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
-        element: centerButtonRef.current,
+        element: targetElement,
       });
     }
   }, [onChordSelect, noteIndex, onAnchorUpdate]);
 
   const handleDeselectChord = () => {
     onChordSelect(null, noteIndex);
-  };
-
-  useEffect(() => {
-    if (isPlaying && selectedChord && onAnchorUpdate && centerButtonRef.current) {
+    if (onAnchorUpdate && centerButtonRef.current) {
       const rect = centerButtonRef.current.getBoundingClientRect();
       onAnchorUpdate({
         id: `tree-${noteIndex}`,
         noteIndex,
-        chordId: selectedChord.name,
+        chordId: null,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+        element: centerButtonRef.current,
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isPlaying && selectedChord && onAnchorUpdate) {
+      const chordButton = chordButtonRefs.current.get(selectedChord.name);
+      if (chordButton) {
+        const rect = chordButton.getBoundingClientRect();
+        onAnchorUpdate({
+          id: `tree-${noteIndex}`,
+          noteIndex,
+          chordId: selectedChord.name,
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+          element: chordButton,
+        });
+      }
+    } else if (!selectedChord && onAnchorUpdate && centerButtonRef.current) {
+      const rect = centerButtonRef.current.getBoundingClientRect();
+      onAnchorUpdate({
+        id: `tree-${noteIndex}`,
+        noteIndex,
+        chordId: null,
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
         element: centerButtonRef.current,
@@ -921,6 +947,9 @@ export default function ChordSkillSelector({
                     </>
                   )}
                   <button
+                    ref={(el) => {
+                      if (el) chordButtonRefs.current.set(chord.name, el);
+                    }}
                     className={`relative ${chordButtonSize} rounded-full flex flex-col items-center justify-center cursor-pointer 
                       transition-all duration-200 border-2 font-semibold backdrop-blur-sm
                       ${isSelected 
@@ -928,7 +957,7 @@ export default function ChordSkillSelector({
                         : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md ${colorScheme.glow} opacity-50 hover:opacity-90 hover:scale-105 grayscale-[30%] hover:grayscale-0`
                       }
                       ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
-                    onClick={() => handleSelectChord(chord)}
+                    onClick={(e) => handleSelectChord(chord, e.currentTarget)}
                     title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type}`}
                     data-testid={`chord-button-${chord.type}-${index}`}
                   >
