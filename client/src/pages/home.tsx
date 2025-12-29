@@ -61,15 +61,18 @@ export default function Home() {
         <div className="max-w-full mx-auto px-4 lg:px-6">
           <div className="flex justify-between items-center h-14">
             <div className="flex items-center space-x-3">
-              <img 
-                src={nsmLogo} 
-                alt="Nathaniel School of Music" 
+              <img
+                src={nsmLogo}
+                alt="Nathaniel School of Music"
                 className="w-10 h-10 object-contain"
               />
               <div>
                 <h1 className="text-xl font-bold text-foreground tracking-tight">
                   Harmony <span className="text-primary font-normal text-sm">by NSM</span>
                 </h1>
+                <p className="text-xs text-muted-foreground -mt-0.5">
+                  Train your ear. Master chord progressions.
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
