@@ -64,21 +64,21 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-4 lg:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)]">
+      <main className="max-w-full mx-auto px-4 lg:px-6 py-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-100px)]">
           {/* Left Panel - Controls */}
-          <div className="lg:col-span-4 space-y-5 overflow-y-auto">
+          <div className="lg:col-span-4 space-y-4 overflow-y-auto">
             {/* Practice Session Info & Skill Level */}
-            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-amber-200/30 dark:border-amber-900/20">
-              <div className="mb-5">
-                <h2 className="text-xl font-display font-semibold text-foreground mb-1">Practice Session</h2>
+            <div className="bg-card rounded-lg p-4 border border-border">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-foreground">Practice Session</h2>
                 <p className="text-sm text-muted-foreground">Master chord relationships</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Skill Level</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Skill Level</label>
                 <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-full bg-amber-50/80 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-all text-foreground h-11 rounded-xl" data-testid="select-skill-level">
+                  <SelectTrigger className="w-full" data-testid="select-skill-level">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -91,9 +91,9 @@ export default function Home() {
             </div>
 
             {/* Controls Panel */}
-            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-amber-200/30 dark:border-amber-900/20 flex-1">
-              <h3 className="text-lg font-display font-semibold text-foreground mb-4">Controls</h3>
-              <div className="max-h-[calc(100vh-420px)] overflow-y-auto">
+            <div className="bg-card rounded-lg p-4 border border-border flex-1">
+              <h3 className="text-base font-semibold text-foreground mb-3">Controls</h3>
+              <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
                 <RandomNotesGenerator
                   onNotesChange={handleNotesChange}
                   onChordsChange={setSelectedChords}
@@ -105,23 +105,23 @@ export default function Home() {
             </div>
 
             {/* Instructions */}
-            <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-amber-200/30 dark:border-amber-800/30">
-              <h3 className="text-base font-display font-semibold text-foreground mb-3">How to Practice</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start space-x-3">
-                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">1.</span>
+            <div className="bg-muted/50 rounded-lg p-4 border border-border">
+              <h3 className="text-sm font-semibold text-foreground mb-2">How to Practice</h3>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-semibold font-mono">1.</span>
                   <span>Generate new note sequences</span>
                 </li>
-                <li className="flex items-start space-x-3">
-                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">2.</span>
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-semibold font-mono">2.</span>
                   <span>Explore 6 chord branches per note</span>
                 </li>
-                <li className="flex items-start space-x-3">
-                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">3.</span>
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-semibold font-mono">3.</span>
                   <span>Use Random for auto selection</span>
                 </li>
-                <li className="flex items-start space-x-3">
-                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">4.</span>
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-semibold font-mono">4.</span>
                   <span>Adjust tempo and skill levels</span>
                 </li>
               </ul>
@@ -130,29 +130,29 @@ export default function Home() {
 
           {/* Right Panel - Chord Trees */}
           <div className="lg:col-span-8">
-            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-amber-200/30 dark:border-amber-900/20 h-full">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-display font-semibold text-foreground mb-2">Chord Trees</h3>
+            <div className="bg-card rounded-lg p-4 border border-border h-full">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-semibold text-foreground">Chord Trees</h3>
                 <p className="text-sm text-muted-foreground">Click chord branches to hear harmonies</p>
               </div>
 
               {/* Selected Chords Display */}
-              <div className="mb-6 flex justify-center items-center gap-4">
+              <div className="mb-4 flex justify-center items-center gap-3">
                 {selectedChords.map((chord, index) => (
                   <div
                     key={index}
-                    className={`flex-1 max-w-[220px] rounded-xl p-4 text-center border-2 transition-all duration-300 ${
+                    className={`flex-1 max-w-[180px] rounded-lg p-3 text-center border transition-colors ${
                       chord
-                        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 border-amber-400 dark:border-amber-600 shadow-lg shadow-amber-200/30 dark:shadow-amber-900/20'
-                        : 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
+                        ? 'bg-primary/5 dark:bg-primary/10 border-primary'
+                        : 'bg-muted/30 border-border'
                     }`}
                     data-testid={`text-selected-chord-${index}`}
                   >
-                    <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                    <div className="text-xs font-medium text-muted-foreground mb-1">
                       Position {index + 1}
                     </div>
-                    <div className={`text-2xl font-display font-bold ${
-                      chord ? 'text-amber-700 dark:text-amber-300' : 'text-gray-300 dark:text-gray-600'
+                    <div className={`text-xl font-bold ${
+                      chord ? 'text-foreground' : 'text-muted-foreground/30'
                     }`}>
                       {chord ? chord.name : '—'}
                     </div>
@@ -160,31 +160,29 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100%-180px)] overflow-y-auto">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 h-[calc(100%-140px)] overflow-y-auto">
                 {activeNotes.map((note, index) => {
                   return (
                     <div key={`${note}-${index}`} className="relative flex justify-center items-center">
                       <div className="relative flex flex-col items-center justify-center">
                         {/* Note Label */}
-                        <div className="mb-3">
-                          <span className="text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-4 py-1.5 rounded-full shadow-sm">
+                        <div className="mb-2">
+                          <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
                             Note {index + 1}
                           </span>
                         </div>
 
-                        {/* Chord Selector with Tree Layout */}
-                        <div className="scale-80 origin-center">
-                          <ChordSkillSelector
-                            baseNote={note}
-                            noteIndex={index}
-                            selectedChord={selectedChords[index]}
-                            onChordSelect={handleChordSelect}
-                            inversionMode={inversionModes[index]}
-                            onInversionChange={(mode) => handleInversionChange(mode, index)}
-                            skillLevel={skillLevel}
-                            treeLayout={true}
-                          />
-                        </div>
+                        {/* Chord Selector with Tree Layout - NO SCALE TRANSFORM */}
+                        <ChordSkillSelector
+                          baseNote={note}
+                          noteIndex={index}
+                          selectedChord={selectedChords[index]}
+                          onChordSelect={handleChordSelect}
+                          inversionMode={inversionModes[index]}
+                          onInversionChange={(mode) => handleInversionChange(mode, index)}
+                          skillLevel={skillLevel}
+                          treeLayout={true}
+                        />
                       </div>
                     </div>
                   );

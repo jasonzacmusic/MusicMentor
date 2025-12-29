@@ -127,11 +127,19 @@
 
 /* Chord option cards */
 .chord-option {
-  @apply border border-border rounded-lg p-3
-         hover:bg-muted/50 hover:border-primary/30
-         cursor-pointer transition-colors duration-150;
+  @apply border border-border rounded-lg p-3 cursor-pointer transition-colors duration-150;
+}
+
+.chord-option:hover {
+  background-color: hsl(var(--muted) / 0.5);
+  border-color: hsl(var(--primary) / 0.3);
 }
 
 .chord-option-selected {
-  @apply border-primary bg-primary/5 dark:bg-primary/10;
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.dark .chord-option-selected {
+  background-color: hsl(var(--primary) / 0.1);
 }

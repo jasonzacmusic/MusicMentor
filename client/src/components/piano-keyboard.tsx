@@ -54,7 +54,7 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
 
   return (
     <div className={`relative inline-block ${className}`}>
-      <div className="relative h-44 bg-gradient-to-b from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black rounded-xl p-3 shadow-2xl border border-gray-700/50">
+      <div className="relative h-44 bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-3 shadow-2xl border border-slate-700/50">
         {/* White keys */}
         {PIANO_NOTES.filter(note => !isBlackKey(note)).map((note, whiteIndex) => (
           <button
@@ -62,8 +62,8 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
             onClick={() => onKeyPress?.(note)}
             className={`absolute rounded-b-lg transition-all duration-150 shadow-lg ${
               isHighlighted(note)
-                ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-amber-400 shadow-amber-400/50 shadow-xl'
-                : 'bg-gradient-to-b from-white via-gray-50 to-gray-100 border border-gray-300 hover:from-gray-50 hover:to-gray-200 hover:shadow-xl'
+                ? 'bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 border-2 border-blue-400 shadow-blue-400/50 shadow-xl'
+                : 'bg-gradient-to-b from-white via-slate-50 to-slate-100 border border-slate-300 hover:from-slate-50 hover:to-slate-200 hover:shadow-xl'
             }`}
             style={{
               left: `${whiteIndex * 44 + 12}px`,
@@ -73,7 +73,7 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
             }}
           >
             <span className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 text-sm font-mono font-semibold ${
-              isHighlighted(note) ? 'text-amber-900' : 'text-gray-600'
+              isHighlighted(note) ? 'text-white' : 'text-slate-600'
             }`}>
               {note}
             </span>
@@ -87,8 +87,8 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
             onClick={() => onKeyPress?.(note)}
             className={`absolute rounded-b-lg transition-all duration-150 z-10 ${
               isHighlighted(note)
-                ? 'bg-gradient-to-b from-amber-500 via-amber-600 to-amber-700 border-2 border-amber-400 shadow-xl shadow-amber-500/50'
-                : 'bg-gradient-to-b from-gray-700 via-gray-800 to-gray-900 border border-gray-600 hover:from-gray-600 hover:via-gray-700 hover:to-gray-800 shadow-lg hover:shadow-xl'
+                ? 'bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 border-2 border-blue-400 shadow-xl shadow-blue-500/50'
+                : 'bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900 border border-slate-600 hover:from-slate-600 hover:via-slate-700 hover:to-slate-800 shadow-lg hover:shadow-xl'
             }`}
             style={{
               left: `${getKeyPosition(note, PIANO_NOTES.indexOf(note)) + 12}px`,
@@ -98,7 +98,7 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
             }}
           >
             <span className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-mono font-semibold ${
-              isHighlighted(note) ? 'text-amber-100' : 'text-gray-400'
+              isHighlighted(note) ? 'text-blue-100' : 'text-slate-400'
             }`}>
               {note}
             </span>

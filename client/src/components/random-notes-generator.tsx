@@ -809,17 +809,17 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Mode Toggle */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-display font-semibold text-foreground">Note Practice</h3>
-        <div className="flex rounded-xl overflow-hidden border-2 border-amber-200 dark:border-amber-800">
+        <h3 className="text-base font-semibold text-foreground">Note Practice</h3>
+        <div className="flex rounded-md overflow-hidden border border-border">
           <button
             onClick={() => handleModeToggle('random')}
-            className={`px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
               inputMode === 'random'
-                ? 'bg-amber-500 dark:bg-amber-600 text-white'
-                : 'bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
             }`}
           >
             <Dices className="w-3.5 h-3.5" />
@@ -827,10 +827,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           </button>
           <button
             onClick={() => handleModeToggle('manual')}
-            className={`px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
               inputMode === 'manual'
-                ? 'bg-amber-500 dark:bg-amber-600 text-white'
-                : 'bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
             }`}
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -841,19 +841,19 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       {/* Manual Note Selection - shown when in manual mode */}
       {inputMode === 'manual' && (
-        <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10 rounded-xl p-4 border border-amber-200/50 dark:border-amber-800/30">
-          <div className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Select Notes</div>
-          <div className="grid grid-cols-3 gap-3">
+        <div className="bg-muted/50 rounded-lg p-3 border border-border">
+          <div className="text-xs font-medium text-muted-foreground mb-2">Select Notes</div>
+          <div className="grid grid-cols-3 gap-2">
             {[0, 1, 2].map((index) => (
-              <div key={index} className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
+              <div key={index} className="space-y-1">
+                <label className="text-xs text-muted-foreground">
                   Note {index + 1}
                 </label>
                 <Select
                   value={notes[index]}
                   onValueChange={(value) => handleManualNoteChange(index, value)}
                 >
-                  <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-amber-200 dark:border-amber-700 h-10 text-base font-display font-semibold">
+                  <SelectTrigger className="w-full h-9 text-sm font-semibold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -861,7 +861,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                       <SelectItem
                         key={note.value}
                         value={note.value}
-                        className={`font-mono ${note.isBlack ? 'text-gray-600 dark:text-gray-400' : 'font-semibold'}`}
+                        className={`font-mono ${note.isBlack ? 'text-muted-foreground' : ''}`}
                       >
                         {note.label}
                       </SelectItem>
@@ -876,25 +876,26 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       {/* Random mode controls */}
       {inputMode === 'random' && (
-        <div className="flex space-x-2">
-          <Button
-            onClick={handleGenerate}
-            variant="outline"
-            className="hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 flex-1"
-            data-testid="button-generate"
-          >
-            <Shuffle className="w-4 h-4 mr-2" />
-            Generate Notes
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerate}
+          variant="outline"
+          className="w-full"
+          data-testid="button-generate"
+        >
+          <Shuffle className="w-4 h-4 mr-2" />
+          Generate Notes
+        </Button>
       )}
 
       {/* Play/Pause and Auto Loop buttons */}
       <div className="flex space-x-2">
         <Button
           onClick={handlePlay}
-          variant={isPlaying ? "default" : "outline"}
-          className={`${isPlaying ? 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-600' : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600'} text-white flex-1 h-11 text-base font-semibold`}
+          className={`flex-1 h-10 font-semibold ${
+            isPlaying
+              ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+              : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+          }`}
         >
           {isPlaying ? (
             <>
@@ -914,27 +915,25 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <Button
             onClick={toggleLoop}
             variant={isLooping ? "default" : "outline"}
-            className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600' : 'hover:bg-blue-50 dark:hover:bg-blue-900/30 border-blue-300 dark:border-blue-700'} flex-1 h-11 ${isLooping ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}
+            className="flex-1 h-10"
             data-testid="button-auto-loop"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
-            Auto Loop
+            Loop
           </Button>
         )}
       </div>
 
       {/* Random Chords button */}
-      <div className="flex justify-center">
-        <Button
-          onClick={handleRandomHarmonize}
-          variant="outline"
-          className="hover:bg-purple-50 dark:hover:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 w-full"
-          data-testid="button-random-chords"
-        >
-          <Shuffle className="w-4 h-4 mr-2" />
-          Random Chords
-        </Button>
-      </div>
+      <Button
+        onClick={handleRandomHarmonize}
+        variant="outline"
+        className="w-full"
+        data-testid="button-random-chords"
+      >
+        <Shuffle className="w-4 h-4 mr-2" />
+        Random Chords
+      </Button>
 
       {/* Tempo slider and metronome */}
       <div className="flex items-center space-x-4">
@@ -944,13 +943,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             checked={withMetronome}
             onCheckedChange={(checked) => setWithMetronome(checked === true)}
           />
-          <label htmlFor="metronome" className="text-xs font-medium text-gray-700 dark:text-white">
+          <label htmlFor="metronome" className="text-xs font-medium text-foreground">
             Metronome
           </label>
         </div>
-        
+
         <div className="flex-1 flex items-center space-x-2">
-          <label className="text-xs font-medium text-gray-700 dark:text-white min-w-[60px]">
+          <label className="text-xs font-medium text-foreground min-w-[60px]">
             {tempo} BPM
           </label>
           <Slider
@@ -967,7 +966,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       {/* Metronome speed controls */}
       {withMetronome && (
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-600 dark:text-white">Speed:</span>
+          <span className="text-xs text-muted-foreground">Speed:</span>
           <div className="flex space-x-1">
             {[
               { value: 1, label: '♩' }, // Quarter notes
@@ -992,14 +991,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       )}
 
       {/* Keyboard shortcuts help */}
-      <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <div className="text-xs text-gray-600 dark:text-white flex flex-wrap gap-2 justify-center">
-          <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">Space</kbd> Play/Pause</span>
-          <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">M</kbd> Metronome</span>
+      <div className="p-2 bg-muted/50 rounded-lg border border-border">
+        <div className="text-xs text-muted-foreground flex flex-wrap gap-2 justify-center">
+          <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">Space</kbd> Play/Pause</span>
+          <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">M</kbd> Metronome</span>
           {isFeatureEnabled('AUTO_LOOP') && (
-            <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">L</kbd> Loop</span>
+            <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">L</kbd> Loop</span>
           )}
-          <span><kbd className="px-1 py-0.5 bg-white dark:bg-gray-800 rounded text-xs text-gray-900 dark:text-white">R</kbd> Generate</span>
+          <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">R</kbd> Generate</span>
         </div>
       </div>
     </div>
