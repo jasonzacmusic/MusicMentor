@@ -574,6 +574,7 @@ interface ChordSkillSelectorProps {
   treeLayout?: boolean;
   isPlaying?: boolean;
   colorPreset?: ColorPreset;
+  expandedView?: boolean;
 }
 
 export default function ChordSkillSelector({ 
@@ -586,7 +587,8 @@ export default function ChordSkillSelector({
   skillLevel = 'beginner', 
   treeLayout = false,
   isPlaying = false,
-  colorPreset = 'earth'
+  colorPreset = 'earth',
+  expandedView = false
 }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord } = useAudio();
@@ -690,7 +692,9 @@ export default function ChordSkillSelector({
   if (treeLayout) {
     if (isIntermediateMode && availableChords.length > 6) {
       return (
-        <div className="flex flex-col h-full w-full max-w-xs overflow-hidden">
+        <div className={`flex flex-col h-full w-full overflow-hidden transition-all duration-300 ${
+          expandedView ? 'max-w-sm' : 'max-w-xs'
+        }`}>
           {/* Header with base note and instrument toggles */}
           <div className="flex items-center justify-between mb-1 px-1">
             <button
@@ -840,8 +844,13 @@ export default function ChordSkillSelector({
       );
     }
 
+    const treeSize = expandedView ? 'w-72 h-72' : 'w-64 h-64';
+    const treeRadius = expandedView ? 100 : 90;
+    const centerSize = expandedView ? 'w-24 h-24' : 'w-20 h-20';
+    const chordButtonSize = expandedView ? 'w-16 h-16' : 'w-14 h-14';
+
     return (
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center w-full">
         {/* Animal Selector Toggle */}
         <div className="mb-2">
           <AnimalSelector
@@ -854,7 +863,7 @@ export default function ChordSkillSelector({
 
         <div 
           ref={treeContainerRef}
-          className={`relative w-64 h-64 mx-auto flex items-center justify-center transition-all duration-300 ${
+          className={`relative ${treeSize} mx-auto flex items-center justify-center transition-all duration-300 ${
             isPlaying ? 'scale-105' : ''
           }`}
         >
@@ -909,7 +918,7 @@ export default function ChordSkillSelector({
           <div className="absolute z-20 flex items-center justify-center">
             <button
               onClick={handleDeselectChord}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 
+              className={`${centerSize} rounded-full flex items-center justify-center transition-all duration-300 
                 ${isPlaying 
                   ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-300 shadow-xl shadow-emerald-500/50 scale-110 animate-pulse'
                   : selectedChord
@@ -918,7 +927,7 @@ export default function ChordSkillSelector({
                 }`}
               title={selectedChord ? 'Click to clear selection' : baseNote}
             >
-              <span className={`text-2xl font-bold tracking-tight drop-shadow-md ${
+              <span className={`${expandedView ? 'text-3xl' : 'text-2xl'} font-bold tracking-tight drop-shadow-md ${
                 isPlaying ? 'text-white' : 'text-white'
               }`}>{baseNote}</span>
             </button>
@@ -938,9 +947,8 @@ export default function ChordSkillSelector({
           {availableChords.map((chord, index) => {
             const angles = [270, 330, 30, 90, 150, 210];
             const angle = angles[index] || 0;
-            const radius = 90;
-            const x = Math.cos(angle * Math.PI / 180) * radius;
-            const y = Math.sin(angle * Math.PI / 180) * radius;
+            const x = Math.cos(angle * Math.PI / 180) * treeRadius;
+            const y = Math.sin(angle * Math.PI / 180) * treeRadius;
 
             const isSelected = selectedChord?.name === chord.name;
             const colorScheme = getChordColorScheme(chord.type, colorPreset);
@@ -981,7 +989,7 @@ export default function ChordSkillSelector({
                     style={{
                       left: '50%',
                       top: '50%',
-                      width: `${radius - 40}px`,
+                      width: `${treeRadius - 40}px`,
                       height: isSelected ? '3px' : '2px',
                       background: getBranchGradient(chord.type, isSelected),
                       transform: `translate(0, -50%) rotate(${angle}deg)`,
@@ -993,7 +1001,7 @@ export default function ChordSkillSelector({
                 )}
 
                 <button
-                  className={`absolute w-14 h-14 rounded-full flex flex-col items-center justify-center cursor-pointer 
+                  className={`absolute ${chordButtonSize} rounded-full flex flex-col items-center justify-center cursor-pointer 
                     transition-all duration-200 border-2 z-30 font-semibold backdrop-blur-sm
                     ${isSelected 
                       ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/40` 
@@ -1009,7 +1017,7 @@ export default function ChordSkillSelector({
                   title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type}`}
                   data-testid={`chord-button-${chord.type}-${index}`}
                 >
-                  <span className="text-[13px] font-bold text-center leading-tight drop-shadow-md">
+                  <span className={`${expandedView ? 'text-[14px]' : 'text-[13px]'} font-bold text-center leading-tight drop-shadow-md`}>
                     {formatJazzChord(chord.rootNote, chord.type)}
                   </span>
                 </button>

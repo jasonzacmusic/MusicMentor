@@ -2,7 +2,7 @@ import { useState } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector, { type ColorPreset } from '@/components/chord-skill-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { HelpCircle, Palette } from 'lucide-react';
+import { HelpCircle, Palette, PanelLeftClose, PanelLeft, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Chord } from '@/lib/chord-theory';
@@ -19,6 +19,7 @@ export default function Home() {
   const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto', 'auto']);
   const [currentPlayingIndex, setCurrentPlayingIndex] = useState<number | null>(null);
   const [colorPreset, setColorPreset] = useState<ColorPreset>('earth');
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   const handleNoteCountChange = (count: number) => {
     setNoteCount(count);
@@ -77,6 +78,17 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-1.5">
+              {/* Panel toggle for desktop */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden lg:flex text-muted-foreground hover:text-foreground h-7 w-7 p-0"
+                onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+                data-testid="button-toggle-panel"
+                title={isPanelCollapsed ? "Expand settings" : "Collapse settings"}
+              >
+                {isPanelCollapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              </Button>
               <Select value={colorPreset} onValueChange={(value: ColorPreset) => setColorPreset(value)}>
                 <SelectTrigger className="w-[90px] h-7 text-xs" data-testid="select-color-preset">
                   <Palette className="w-3 h-3 mr-1" />
@@ -101,54 +113,91 @@ export default function Home() {
 
       {/* Main Content - Flex layout for no scrolling on desktop */}
       <main className="flex-1 flex flex-col lg:flex-row gap-2 p-2 lg:p-3 min-h-0 overflow-hidden">
-        {/* Control Panel - Sidebar on desktop, top section on mobile */}
-        <div className="lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 lg:h-full lg:overflow-y-auto">
-          <div className="bg-card rounded-lg p-3 border border-border h-full">
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
-              <label className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Level</label>
-              <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                <SelectTrigger className="w-[100px] h-7 text-xs" data-testid="select-skill-level">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="beginner" data-testid="option-beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate" data-testid="option-intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced" disabled data-testid="option-advanced">Advanced</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Control Panel - Collapsible sidebar on desktop, top section on mobile */}
+        <div 
+          className={`flex-shrink-0 lg:h-full transition-all duration-300 ease-in-out ${
+            isPanelCollapsed 
+              ? 'lg:w-12' 
+              : 'lg:w-56 xl:w-64 2xl:w-72'
+          }`}
+        >
+          <div className={`bg-card rounded-lg border border-border h-full transition-all duration-300 ${
+            isPanelCollapsed ? 'p-1.5' : 'p-2.5'
+          }`}>
+            {isPanelCollapsed ? (
+              /* Collapsed state - icons only */
+              <div className="flex flex-col items-center gap-2 h-full">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  onClick={() => setIsPanelCollapsed(false)}
+                  title="Expand settings"
+                  data-testid="button-expand-panel"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </Button>
+                
+                {/* Quick level indicator */}
+                <div className="text-[9px] font-bold text-center uppercase tracking-wide text-muted-foreground px-1">
+                  {skillLevel.charAt(0).toUpperCase()}
+                </div>
+                
+                {/* Note count indicator */}
+                <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                  {noteCount}
+                </div>
+              </div>
+            ) : (
+              /* Expanded state - full controls */
+              <div className="h-full lg:overflow-y-auto">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-border">
+                  <label className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Level</label>
+                  <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
+                    <SelectTrigger className="w-[90px] h-6 text-xs" data-testid="select-skill-level">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner" data-testid="option-beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate" data-testid="option-intermediate">Intermediate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <RandomNotesGenerator
-              onNotesChange={handleNotesChange}
-              onChordsChange={setSelectedChords}
-              selectedChords={selectedChords}
-              inversionModes={inversionModes}
-              skillLevel={skillLevel}
-              noteCount={noteCount}
-              onNoteCountChange={handleNoteCountChange}
-              onPlayingIndexChange={handlePlayingIndexChange}
-            />
+                <RandomNotesGenerator
+                  onNotesChange={handleNotesChange}
+                  onChordsChange={setSelectedChords}
+                  selectedChords={selectedChords}
+                  inversionModes={inversionModes}
+                  skillLevel={skillLevel}
+                  noteCount={noteCount}
+                  onNoteCountChange={handleNoteCountChange}
+                  onPlayingIndexChange={handlePlayingIndexChange}
+                  compact={isPanelCollapsed}
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Chord Visualization Area - No scrolling on desktop */}
+        {/* Chord Visualization Area - Expands when sidebar collapses */}
         <div className="flex-1 min-h-0 min-w-0">
           <div className="bg-card rounded-lg border border-border h-full flex flex-col p-2 lg:p-3">
             {/* Minimal instruction - hidden on smaller screens */}
-            <div className="text-center mb-2 hidden xl:block">
-              <p className="text-xs text-muted-foreground">
+            <div className="text-center mb-1.5 hidden xl:block">
+              <p className="text-[11px] text-muted-foreground">
                 Select a chord to add it to your progression • Click the root note again to deselect
               </p>
             </div>
 
-            {/* Chord Grid - Responsive, no scroll on desktop */}
-            <div className={`flex-1 grid gap-1 lg:gap-2 min-h-0 auto-rows-fr ${
+            {/* Chord Grid - Responsive, no scroll on desktop, dynamic sizing based on panel state */}
+            <div className={`flex-1 grid gap-1 min-h-0 auto-rows-fr ${
               noteCount === 1 ? 'grid-cols-1' :
               noteCount === 2 ? 'grid-cols-2' :
               noteCount === 3 ? 'grid-cols-3' :
               noteCount === 4 ? 'grid-cols-2 lg:grid-cols-4' :
               'grid-cols-3 lg:grid-cols-5'
-            }`}>
+            } ${isPanelCollapsed ? 'lg:gap-3' : 'lg:gap-2'}`}>
               {activeNotes.map((note, index) => {
                 const isPlaying = currentPlayingIndex === index;
                 return (
@@ -156,7 +205,7 @@ export default function Home() {
                     key={`${note}-${index}`} 
                     className="flex justify-center items-start min-h-0 overflow-hidden"
                   >
-                    <div className={`flex flex-col items-center justify-start transition-all duration-300 h-full ${
+                    <div className={`flex flex-col items-center justify-start transition-all duration-300 h-full w-full ${
                       isPlaying ? 'scale-[1.02]' : ''
                     }`}>
                       <ChordSkillSelector
@@ -170,6 +219,7 @@ export default function Home() {
                         treeLayout={true}
                         isPlaying={isPlaying}
                         colorPreset={colorPreset}
+                        expandedView={isPanelCollapsed}
                       />
                     </div>
                   </div>

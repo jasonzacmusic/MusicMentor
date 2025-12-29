@@ -22,6 +22,7 @@ interface RandomNotesGeneratorProps {
   noteCount?: number;
   onNoteCountChange?: (count: number) => void;
   onPlayingIndexChange?: (index: number | null) => void;
+  compact?: boolean;
 }
 
 // Beat duration patterns for different note counts (total: 8 beats)
@@ -33,7 +34,7 @@ const BEAT_PATTERNS: Record<number, number[]> = {
   5: [1.5, 1.5, 1.5, 1.5, 2]
 };
 
-export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange, onPlayingIndexChange }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange, onPlayingIndexChange, compact = false }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G', 'F']); // Default to 4 notes
   const [inputMode, setInputMode] = useState<'random' | 'manual'>('random');
   const [tempo, setTempo] = useState(120);
