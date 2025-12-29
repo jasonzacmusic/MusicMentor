@@ -56,28 +56,29 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border">
-        <div className="max-w-full mx-auto px-4 lg:px-6">
-          <div className="flex justify-between items-center h-14">
-            <div className="flex items-center space-x-4">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Compact Header */}
+      <header className="bg-card border-b border-border flex-shrink-0">
+        <div className="max-w-full mx-auto px-3 lg:px-4">
+          <div className="flex justify-between items-center h-12 lg:h-11">
+            <div className="flex items-center space-x-3">
               <img
                 src={nsmLogo}
                 alt="Nathaniel School of Music"
-                className="w-10 h-10 object-contain"
+                className="w-8 h-8 lg:w-7 lg:h-7 object-contain"
               />
               <div>
-                <h1 className="text-xl font-bold text-foreground tracking-tight">
-                  Chord Trees
+                <h1 className="text-lg lg:text-base font-bold text-foreground tracking-tight leading-tight">
+                  Cadenza
                 </h1>
-                <p className="text-[11px] text-muted-foreground -mt-0.5 hidden sm:block">
+                <p className="text-[10px] text-muted-foreground -mt-0.5 hidden sm:block leading-tight">
                   See chords. Hear them. Master them.
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5">
               <Select value={colorPreset} onValueChange={(value: ColorPreset) => setColorPreset(value)}>
-                <SelectTrigger className="w-[100px] h-8 text-xs" data-testid="select-color-preset">
+                <SelectTrigger className="w-[90px] h-7 text-xs" data-testid="select-color-preset">
                   <Palette className="w-3 h-3 mr-1" />
                   <SelectValue />
                 </SelectTrigger>
@@ -90,90 +91,90 @@ export default function Home() {
                 </SelectContent>
               </Select>
               <ThemeToggle />
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="button-help">
-                <HelpCircle className="w-5 h-5" />
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-7 w-7 p-0" data-testid="button-help">
+                <HelpCircle className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-3 lg:px-4 py-3">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-[calc(100vh-90px)]">
-          <div className="lg:col-span-3 xl:col-span-3 space-y-3">
-            <div className="bg-card rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
-                <label className="text-xs font-semibold text-foreground uppercase tracking-wide">Skill Level</label>
-                <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-[120px] h-9 text-sm" data-testid="select-skill-level">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner" data-testid="option-beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate" disabled data-testid="option-intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced" disabled data-testid="option-advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <RandomNotesGenerator
-                onNotesChange={handleNotesChange}
-                onChordsChange={setSelectedChords}
-                selectedChords={selectedChords}
-                inversionModes={inversionModes}
-                skillLevel={skillLevel}
-                noteCount={noteCount}
-                onNoteCountChange={handleNoteCountChange}
-                onPlayingIndexChange={handlePlayingIndexChange}
-              />
+      {/* Main Content - Flex layout for no scrolling on desktop */}
+      <main className="flex-1 flex flex-col lg:flex-row gap-2 p-2 lg:p-3 min-h-0 overflow-hidden">
+        {/* Control Panel - Sidebar on desktop, top section on mobile */}
+        <div className="lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 lg:h-full lg:overflow-y-auto">
+          <div className="bg-card rounded-lg p-3 border border-border h-full">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
+              <label className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Level</label>
+              <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
+                <SelectTrigger className="w-[100px] h-7 text-xs" data-testid="select-skill-level">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner" data-testid="option-beginner">Beginner</SelectItem>
+                  <SelectItem value="intermediate" disabled data-testid="option-intermediate">Intermediate</SelectItem>
+                  <SelectItem value="advanced" disabled data-testid="option-advanced">Advanced</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="bg-muted/30 rounded-lg p-3 border border-border">
+            <RandomNotesGenerator
+              onNotesChange={handleNotesChange}
+              onChordsChange={setSelectedChords}
+              selectedChords={selectedChords}
+              inversionModes={inversionModes}
+              skillLevel={skillLevel}
+              noteCount={noteCount}
+              onNoteCountChange={handleNoteCountChange}
+              onPlayingIndexChange={handlePlayingIndexChange}
+            />
+          </div>
+        </div>
+
+        {/* Chord Visualization Area - No scrolling on desktop */}
+        <div className="flex-1 min-h-0 min-w-0">
+          <div className="bg-card rounded-lg border border-border h-full flex flex-col p-2 lg:p-3">
+            {/* Minimal instruction - hidden on smaller screens */}
+            <div className="text-center mb-2 hidden xl:block">
               <p className="text-xs text-muted-foreground">
-                <span className="text-primary font-medium">Tip:</span> Click center note to clear chord
+                Click chords to select • Tap center note to clear
               </p>
             </div>
-          </div>
 
-          <div className="lg:col-span-9 xl:col-span-9">
-            <div className="bg-card rounded-lg p-4 border border-border h-full">
-              <div className="text-center mb-4">
-                <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-                  Select notes, explore chord options, and hear how they sound together. Click any chord to play it.
-                </p>
-              </div>
-
-              <div className={`grid grid-cols-1 gap-2 h-[calc(100%-60px)] overflow-y-auto ${
-                noteCount === 1 ? 'xl:grid-cols-1' :
-                noteCount === 2 ? 'xl:grid-cols-2' :
-                noteCount === 3 ? 'xl:grid-cols-3' :
-                noteCount === 4 ? 'xl:grid-cols-4' :
-                'xl:grid-cols-5'
-              }`}>
-                {activeNotes.map((note, index) => {
-                  const isPlaying = currentPlayingIndex === index;
-                  return (
-                    <div key={`${note}-${index}`} className="relative flex justify-center items-start pt-2">
-                      <div className={`relative flex flex-col items-center justify-center transition-all duration-300 ${
-                        isPlaying ? 'scale-102' : ''
-                      }`}>
-                        <ChordSkillSelector
-                          baseNote={note}
-                          noteIndex={index}
-                          selectedChord={selectedChords[index]}
-                          onChordSelect={handleChordSelect}
-                          inversionMode={inversionModes[index]}
-                          onInversionChange={(mode) => handleInversionChange(mode, index)}
-                          skillLevel={skillLevel}
-                          treeLayout={true}
-                          isPlaying={isPlaying}
-                          colorPreset={colorPreset}
-                        />
-                      </div>
+            {/* Chord Grid - Responsive, no scroll on desktop */}
+            <div className={`flex-1 grid gap-1 lg:gap-2 min-h-0 auto-rows-fr ${
+              noteCount === 1 ? 'grid-cols-1' :
+              noteCount === 2 ? 'grid-cols-2' :
+              noteCount === 3 ? 'grid-cols-3' :
+              noteCount === 4 ? 'grid-cols-2 lg:grid-cols-4' :
+              'grid-cols-3 lg:grid-cols-5'
+            }`}>
+              {activeNotes.map((note, index) => {
+                const isPlaying = currentPlayingIndex === index;
+                return (
+                  <div 
+                    key={`${note}-${index}`} 
+                    className="flex justify-center items-start min-h-0 overflow-hidden"
+                  >
+                    <div className={`flex flex-col items-center justify-start transition-all duration-300 h-full ${
+                      isPlaying ? 'scale-[1.02]' : ''
+                    }`}>
+                      <ChordSkillSelector
+                        baseNote={note}
+                        noteIndex={index}
+                        selectedChord={selectedChords[index]}
+                        onChordSelect={handleChordSelect}
+                        inversionMode={inversionModes[index]}
+                        onInversionChange={(mode) => handleInversionChange(mode, index)}
+                        skillLevel={skillLevel}
+                        treeLayout={true}
+                        isPlaying={isPlaying}
+                        colorPreset={colorPreset}
+                      />
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

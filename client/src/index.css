@@ -143,3 +143,85 @@
 .dark .chord-option-selected {
   background-color: hsl(var(--primary) / 0.1);
 }
+
+/* ===== RESPONSIVE ENHANCEMENTS ===== */
+
+/* Mobile-first touch targets - minimum 44px for accessibility */
+@media (max-width: 640px) {
+  button, 
+  [role="button"],
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Compact control buttons can be smaller */
+  .compact-control {
+    min-height: 32px;
+    min-width: 32px;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .chord-tree-container {
+    max-height: calc(100vh - 140px);
+  }
+}
+
+/* Desktop/TV - No scroll for chord visualization */
+@media (min-width: 1024px) {
+  .chord-visualization {
+    max-height: calc(100vh - 100px);
+    overflow: hidden;
+  }
+  
+  /* Ultra-wide/TV centering */
+  @media (min-width: 1920px) {
+    .main-content {
+      max-width: 1680px;
+      margin: 0 auto;
+    }
+  }
+}
+
+/* Smooth animations for all devices */
+@layer utilities {
+  .transition-smooth {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  /* Status indicator pulse */
+  .status-pulse {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+    50% { opacity: 0.8; box-shadow: 0 0 8px 2px currentColor; }
+  }
+  
+  /* LED-style tempo display */
+  .led-display {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* Glassmorphism card effect for modern UI */
+.glass-card {
+  background: hsl(var(--card) / 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .glass-card {
+  background: hsl(var(--card) / 0.6);
+}
+
+/* Improved slider styling for touch */
+@media (pointer: coarse) {
+  [role="slider"] {
+    --slider-thumb-size: 20px;
+  }
+}

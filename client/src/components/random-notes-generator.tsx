@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shuffle, Play, Square, RotateCcw, Edit3, Dices, Music, Volume2 } from 'lucide-react';
+import { Shuffle, Play, Square, RotateCcw, Edit3, Dices, Music, Volume2, Timer, Repeat, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateRandomNotes, getChordFromNote, getChordsForNoteBySkill, type Chord, type SkillLevel, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
@@ -769,187 +770,197 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Compact mode state
   const [isCompact, setIsCompact] = useState(false);
 
-  return (
-    <div className={isCompact ? "space-y-2" : "space-y-3"}>
-      {/* View Mode Toggle */}
-      <div className="flex items-center justify-between pb-2 border-b border-border">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Settings</span>
-        <button
-          onClick={() => setIsCompact(!isCompact)}
-          className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {isCompact ? 'Expand' : 'Compact'}
-        </button>
-      </div>
-
-      {/* === NOTES SECTION === */}
-      <div className={isCompact ? "space-y-1.5" : "space-y-2"}>
-        <div className="flex items-center justify-between">
-          <label className={`font-medium text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Notes</label>
-          <div className="flex rounded-md overflow-hidden border border-border">
-            {[1, 2, 3, 4, 5].map((count) => (
+  // Normal (expanded) view
+  if (!isCompact) {
+    return (
+      <TooltipProvider delayDuration={300}>
+      <div className="space-y-3">
+        {/* View Mode Toggle */}
+        <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="flex items-center gap-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Settings</span>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <button
-                key={count}
-                onClick={() => onNoteCountChange?.(count)}
-                className={`${isCompact ? 'px-1.5 py-0.5 text-[10px] min-w-[22px]' : 'px-2 py-1 text-xs min-w-[28px]'} font-semibold transition-colors ${
-                  noteCount === count
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted'
-                }`}
-                data-testid={`button-note-count-${count}`}
+                onClick={() => setIsCompact(true)}
+                className="p-1 rounded hover:bg-muted transition-colors"
               >
-                {count}
+                <ChevronUp className="w-3 h-3 text-muted-foreground" />
               </button>
-            ))}
-          </div>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs">Compact view</TooltipContent>
+          </Tooltip>
         </div>
 
-        <div className="flex items-center justify-between">
-          <label className={`font-medium text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Mode</label>
-          <div className="flex rounded-md overflow-hidden border border-border">
-            <button
-              onClick={() => handleModeToggle('random')}
-              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors flex items-center gap-1 ${
-                inputMode === 'random'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              <Dices className={isCompact ? "w-2.5 h-2.5" : "w-3 h-3"} />
-              Random
-            </button>
-            <button
-              onClick={() => handleModeToggle('manual')}
-              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors flex items-center gap-1 ${
-                inputMode === 'manual'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              <Edit3 className={isCompact ? "w-2.5 h-2.5" : "w-3 h-3"} />
-              Manual
-            </button>
-          </div>
-        </div>
-
-        {/* Manual Note Selection */}
-        {inputMode === 'manual' && (
-          <div className={`bg-muted/30 rounded-md ${isCompact ? 'p-1.5' : 'p-2'} border border-border`}>
-            <div className={`grid gap-1 ${
-              noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'
-            }`}>
-              {Array.from({ length: noteCount }, (_, index) => (
-                <Select
-                  key={index}
-                  value={notes[index] || 'C'}
-                  onValueChange={(value) => handleManualNoteChange(index, value)}
+        {/* === NOTES SECTION === */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-foreground">Notes</label>
+            <div className="flex rounded-md overflow-hidden border border-border">
+              {[1, 2, 3, 4, 5].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => onNoteCountChange?.(count)}
+                  className={`px-2 py-1 text-xs min-w-[28px] font-semibold transition-colors ${
+                    noteCount === count
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                  data-testid={`button-note-count-${count}`}
                 >
-                  <SelectTrigger className={`w-full ${isCompact ? 'h-6 text-[10px]' : 'h-7 text-xs'} font-semibold`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VALID_NOTES_FOR_SELECTION.map((note) => (
-                      <SelectItem key={note.value} value={note.value} className="font-mono text-xs">
-                        {note.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {count}
+                </button>
               ))}
             </div>
           </div>
-        )}
 
-        {/* Generate Button */}
-        {inputMode === 'random' && (
-          <Button
-            onClick={handleGenerate}
-            variant="outline"
-            size="sm"
-            className={`w-full ${isCompact ? 'h-7 text-[10px]' : 'h-8 text-xs'}`}
-            data-testid="button-generate"
-          >
-            <Shuffle className={isCompact ? "w-3 h-3 mr-1.5" : "w-3.5 h-3.5 mr-2"} />
-            Generate
-          </Button>
-        )}
-      </div>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-foreground">Mode</label>
+            <div className="flex rounded-md overflow-hidden border border-border">
+              <button
+                onClick={() => handleModeToggle('random')}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
+                  inputMode === 'random'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <Dices className="w-3 h-3" />
+                Random
+              </button>
+              <button
+                onClick={() => handleModeToggle('manual')}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
+                  inputMode === 'manual'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <Edit3 className="w-3 h-3" />
+                Manual
+              </button>
+            </div>
+          </div>
 
-      {/* === PLAYBACK SECTION === */}
-      <div className={`${isCompact ? 'pt-2 space-y-1.5' : 'pt-3 space-y-2'} border-t border-border`}>
-        <div className="flex gap-1.5">
-          <Button
-            onClick={handlePlay}
-            size="sm"
-            disabled={isLoadingInstruments}
-            className={`flex-1 ${isCompact ? 'h-8 text-xs' : 'h-9 text-sm'} font-semibold ${
-              isPlaying
-                ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
-                : 'bg-primary hover:bg-primary/90 text-primary-foreground'
-            }`}
-          >
-            {isLoadingInstruments ? (
-              <span className="animate-pulse">Loading...</span>
-            ) : isPlaying ? (
-              <>
-                <Square className={isCompact ? "w-3 h-3 mr-1" : "w-3.5 h-3.5 mr-1.5"} />
-                Stop
-              </>
-            ) : (
-              <>
-                <Play className={isCompact ? "w-3 h-3 mr-1" : "w-3.5 h-3.5 mr-1.5"} />
-                Play
-              </>
-            )}
-          </Button>
+          {/* Manual Note Selection */}
+          {inputMode === 'manual' && (
+            <div className="bg-muted/30 rounded-md p-2 border border-border">
+              <div className={`grid gap-1 ${
+                noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'
+              }`}>
+                {Array.from({ length: noteCount }, (_, index) => (
+                  <Select
+                    key={index}
+                    value={notes[index] || 'C'}
+                    onValueChange={(value) => handleManualNoteChange(index, value)}
+                  >
+                    <SelectTrigger className="w-full h-7 text-xs font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VALID_NOTES_FOR_SELECTION.map((note) => (
+                        <SelectItem key={note.value} value={note.value} className="font-mono text-xs">
+                          {note.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {isFeatureEnabled('AUTO_LOOP') && (
+          {/* Generate Button */}
+          {inputMode === 'random' && (
             <Button
-              onClick={toggleLoop}
-              variant={isLooping ? "default" : "outline"}
+              onClick={handleGenerate}
+              variant="outline"
               size="sm"
-              className={`${isCompact ? 'h-8 px-3 text-xs' : 'h-9 px-4 text-sm'}`}
-              data-testid="button-auto-loop"
+              className="w-full h-8 text-xs"
+              data-testid="button-generate"
             >
-              <RotateCcw className={isCompact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+              <Shuffle className="w-3.5 h-3.5 mr-2" />
+              Generate
             </Button>
           )}
         </div>
 
-        <Button
-          onClick={handleRandomHarmonize}
-          variant="outline"
-          size="sm"
-          className={`w-full ${isCompact ? 'h-7 text-[10px]' : 'h-8 text-xs'}`}
-          data-testid="button-random-chords"
-        >
-          <Shuffle className={isCompact ? "w-3 h-3 mr-1.5" : "w-3.5 h-3.5 mr-2"} />
-          Random Chords
-        </Button>
-      </div>
+        {/* === PLAYBACK SECTION === */}
+        <div className="pt-3 space-y-2 border-t border-border">
+          <div className="flex gap-1.5">
+            <Button
+              onClick={handlePlay}
+              size="sm"
+              disabled={isLoadingInstruments}
+              className={`flex-1 h-9 text-sm font-semibold ${
+                isPlaying
+                  ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+                  : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+              }`}
+            >
+              {isLoadingInstruments ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : isPlaying ? (
+                <>
+                  <Square className="w-3.5 h-3.5 mr-1.5" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 mr-1.5" />
+                  Play
+                </>
+              )}
+            </Button>
 
-      {/* === SOUND SECTION === */}
-      <div className={`${isCompact ? 'pt-2 space-y-1.5' : 'pt-3 space-y-2'} border-t border-border`}>
-        <div className="flex items-center justify-between">
-          <label className={`font-medium text-foreground flex items-center gap-1.5 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
-            <Music className={isCompact ? "w-3 h-3" : "w-3.5 h-3.5"} />
-            Sound
-          </label>
-          <Select value={selectedComboId} onValueChange={setSelectedComboId}>
-            <SelectTrigger className={`${isCompact ? 'w-[100px] h-6 text-[10px]' : 'w-[120px] h-7 text-xs'}`} data-testid="select-instrument-combo">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {INSTRUMENT_COMBOS.map((combo) => (
-                <SelectItem key={combo.id} value={combo.id} className="text-xs">
-                  {combo.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {isFeatureEnabled('AUTO_LOOP') && (
+              <Button
+                onClick={toggleLoop}
+                variant={isLooping ? "default" : "outline"}
+                size="sm"
+                className="h-9 px-4 text-sm"
+                data-testid="button-auto-loop"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+
+          <Button
+            onClick={handleRandomHarmonize}
+            variant="outline"
+            size="sm"
+            className="w-full h-8 text-xs"
+            data-testid="button-random-chords"
+          >
+            <Shuffle className="w-3.5 h-3.5 mr-2" />
+            Random Chords
+          </Button>
         </div>
 
-        {!isCompact && (
+        {/* === SOUND SECTION === */}
+        <div className="pt-3 space-y-2 border-t border-border">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              <Music className="w-3.5 h-3.5" />
+              Sound
+            </label>
+            <Select value={selectedComboId} onValueChange={setSelectedComboId}>
+              <SelectTrigger className="w-[120px] h-7 text-xs" data-testid="select-instrument-combo">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INSTRUMENT_COMBOS.map((combo) => (
+                  <SelectItem key={combo.id} value={combo.id} className="text-xs">
+                    {combo.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <Volume2 className="w-3 h-3 text-muted-foreground" />
@@ -976,105 +987,103 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               <span className="text-[10px] text-muted-foreground w-7 text-right">{Math.round(arpeggioVolume * 100)}%</span>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* === TEMPO SECTION === */}
-      <div className={`${isCompact ? 'pt-2 space-y-1.5' : 'pt-3 space-y-2'} border-t border-border`}>
-        <div className="flex items-center justify-between">
-          <label className={`font-medium text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Tempo</label>
-          <span className={`font-bold text-primary ${isCompact ? 'text-xs' : 'text-sm'}`}>{tempo}</span>
         </div>
-        <Slider
-          value={[tempo]}
-          onValueChange={(value) => setTempo(value[0])}
-          min={60} max={200} step={10}
-          className="w-full"
-        />
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Checkbox
-              id="metronome"
-              checked={withMetronome}
-              onCheckedChange={(checked) => setWithMetronome(checked === true)}
-              className={isCompact ? "h-3 w-3" : "h-3.5 w-3.5"}
-            />
-            <label htmlFor="metronome" className={`text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
-              Metronome
-            </label>
+        {/* === TEMPO SECTION === */}
+        <div className="pt-3 space-y-2 border-t border-border">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-foreground">Tempo</label>
+            <span className="text-sm font-bold text-primary">{tempo}</span>
           </div>
+          <Slider
+            value={[tempo]}
+            onValueChange={(value) => setTempo(value[0])}
+            min={60} max={200} step={10}
+            className="w-full"
+          />
 
-          {withMetronome && (
-            <div className="flex gap-0.5">
-              {[{ value: 1, label: '♩' }, { value: 2, label: '♫' }, { value: 3, label: '♬' }].map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setMetronomeMultiplier(value)}
-                  className={`${isCompact ? 'w-6 h-5 text-[10px]' : 'w-7 h-6 text-xs'} rounded transition-colors ${
-                    metronomeMultiplier === value
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Checkbox
+                id="metronome"
+                checked={withMetronome}
+                onCheckedChange={(checked) => setWithMetronome(checked === true)}
+                className="h-3.5 w-3.5"
+              />
+              <label htmlFor="metronome" className="text-xs text-foreground">
+                Metronome
+              </label>
             </div>
-          )}
-        </div>
 
-        <div className="flex items-center justify-between">
-          <label className={`text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Arpeggio</label>
-          <div className="flex rounded-md overflow-hidden border border-border">
-            <button
-              onClick={() => setArpeggioSpeed(1)}
-              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors ${
-                arpeggioSpeed === 1
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted'
-              }`}
-              data-testid="button-arpeggio-eighth"
-            >
-              8th
-            </button>
-            <button
-              onClick={() => setArpeggioSpeed(2)}
-              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors ${
-                arpeggioSpeed === 2
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted'
-              }`}
-              data-testid="button-arpeggio-sixteenth"
-            >
-              16th
-            </button>
+            {withMetronome && (
+              <div className="flex gap-0.5">
+                {[{ value: 1, label: '♩' }, { value: 2, label: '♫' }, { value: 3, label: '♬' }].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setMetronomeMultiplier(value)}
+                    className={`w-7 h-6 text-xs rounded transition-colors ${
+                      metronomeMultiplier === value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="flex items-center justify-between">
-          <label className={`text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Cycles</label>
-          <div className="flex rounded-md overflow-hidden border border-border">
-            {[1, 2, 4].map((cycles) => (
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-foreground">Arpeggio</label>
+            <div className="flex rounded-md overflow-hidden border border-border">
               <button
-                key={cycles}
-                onClick={() => setChordCycles(cycles)}
-                className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors ${
-                  chordCycles === cycles
+                onClick={() => setArpeggioSpeed(1)}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                  arpeggioSpeed === 1
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-background text-muted-foreground hover:bg-muted'
                 }`}
-                data-testid={`button-cycles-${cycles}`}
+                data-testid="button-arpeggio-eighth"
               >
-                {cycles}x
+                8th
               </button>
-            ))}
+              <button
+                onClick={() => setArpeggioSpeed(2)}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                  arpeggioSpeed === 2
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+                data-testid="button-arpeggio-sixteenth"
+              >
+                16th
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-foreground">Cycles</label>
+            <div className="flex rounded-md overflow-hidden border border-border">
+              {[1, 2, 4].map((cycles) => (
+                <button
+                  key={cycles}
+                  onClick={() => setChordCycles(cycles)}
+                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                    chordCycles === cycles
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                  data-testid={`button-cycles-${cycles}`}
+                >
+                  {cycles}x
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* === KEYBOARD SHORTCUTS === */}
-      {!isCompact && (
+        {/* === KEYBOARD SHORTCUTS === */}
         <div className="pt-3 border-t border-border">
           <div className="flex flex-wrap gap-1.5 justify-center text-[10px] text-muted-foreground">
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">Space</kbd> Play</span>
@@ -1085,7 +1094,359 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">R</kbd> Gen</span>
           </div>
         </div>
-      )}
-    </div>
+      </div>
+      </TooltipProvider>
+    );
+  }
+
+  // ========== COMPACT VIEW - Icon-driven modern design ==========
+  return (
+    <TooltipProvider delayDuration={300}>
+      <div className="space-y-2">
+        {/* Header with expand toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+            <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">Controls</span>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setIsCompact(false)}
+                className="p-1 rounded hover:bg-muted transition-colors"
+              >
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs">Expand controls</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Primary Actions - Play/Stop/Loop/Harmonize */}
+        <div className="flex gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handlePlay}
+                size="sm"
+                disabled={isLoadingInstruments}
+                className={`flex-1 h-8 ${
+                  isPlaying
+                    ? 'bg-destructive hover:bg-destructive/90'
+                    : 'bg-primary hover:bg-primary/90'
+                }`}
+              >
+                {isLoadingInstruments ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : isPlaying ? (
+                  <Square className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isPlaying ? 'Stop (Space)' : 'Play (Space)'}</TooltipContent>
+          </Tooltip>
+
+          {isFeatureEnabled('AUTO_LOOP') && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={toggleLoop}
+                  variant={isLooping ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  data-testid="button-auto-loop"
+                >
+                  <Repeat className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isLooping ? 'Loop On (L)' : 'Loop Off (L)'}</TooltipContent>
+            </Tooltip>
+          )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleRandomHarmonize}
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                data-testid="button-random-chords"
+              >
+                <Zap className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Random Chords</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Notes Section - Compact pill selector */}
+        <div className="bg-muted/30 rounded-lg p-2 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <span className="text-[8px] font-semibold text-muted-foreground uppercase">♪</span>
+              <div className="flex rounded-md overflow-hidden border border-border">
+                {[1, 2, 3, 4, 5].map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => onNoteCountChange?.(count)}
+                    className={`w-5 h-5 text-[10px] font-bold transition-colors ${
+                      noteCount === count
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                    data-testid={`button-note-count-${count}`}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mode Toggle - Icon only */}
+            <div className="flex rounded-md overflow-hidden border border-border">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => handleModeToggle('random')}
+                    className={`w-6 h-5 flex items-center justify-center transition-colors ${
+                      inputMode === 'random'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Dices className="w-3 h-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Random Mode</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => handleModeToggle('manual')}
+                    className={`w-6 h-5 flex items-center justify-center transition-colors ${
+                      inputMode === 'manual'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Manual Mode</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Manual Selection or Generate Button */}
+          {inputMode === 'manual' ? (
+            <div className={`grid gap-1 ${noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'}`}>
+              {Array.from({ length: noteCount }, (_, index) => (
+                <Select
+                  key={index}
+                  value={notes[index] || 'C'}
+                  onValueChange={(value) => handleManualNoteChange(index, value)}
+                >
+                  <SelectTrigger className="w-full h-6 text-[10px] font-bold px-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VALID_NOTES_FOR_SELECTION.map((note) => (
+                      <SelectItem key={note.value} value={note.value} className="font-mono text-xs">
+                        {note.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
+            </div>
+          ) : (
+            <Button
+              onClick={handleGenerate}
+              variant="ghost"
+              size="sm"
+              className="w-full h-6 text-[10px] bg-background/50 hover:bg-background"
+              data-testid="button-generate"
+            >
+              <Shuffle className="w-3 h-3 mr-1" />
+              Generate (R)
+            </Button>
+          )}
+        </div>
+
+        {/* Sound & Tempo - Consolidated Row */}
+        <div className="space-y-2">
+          {/* Instrument Selector */}
+          <div className="flex items-center gap-1.5">
+            <Music className="w-3 h-3 text-muted-foreground" />
+            <Select value={selectedComboId} onValueChange={setSelectedComboId}>
+              <SelectTrigger className="flex-1 h-6 text-[10px]" data-testid="select-instrument-combo">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INSTRUMENT_COMBOS.map((combo) => (
+                  <SelectItem key={combo.id} value={combo.id} className="text-xs">
+                    {combo.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Volume Sliders - Side by side with icons */}
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex-1 flex items-center gap-1">
+                  <span className="text-[9px] text-muted-foreground">🎹</span>
+                  <Slider
+                    value={[blockChordVolume * 100]}
+                    onValueChange={(value) => setBlockChordVolume(value[0] / 100)}
+                    min={0} max={100} step={10}
+                    className="flex-1"
+                    data-testid="slider-block-chord-volume"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Chord Volume: {Math.round(blockChordVolume * 100)}%</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex-1 flex items-center gap-1">
+                  <span className="text-[9px] text-muted-foreground">🎶</span>
+                  <Slider
+                    value={[arpeggioVolume * 100]}
+                    onValueChange={(value) => setArpeggioVolume(value[0] / 100)}
+                    min={0} max={100} step={10}
+                    className="flex-1"
+                    data-testid="slider-arpeggio-volume"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Arpeggio Volume: {Math.round(arpeggioVolume * 100)}%</TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Tempo with LED-style display */}
+          <div className="flex items-center gap-2">
+            <Timer className="w-3 h-3 text-muted-foreground" />
+            <Slider
+              value={[tempo]}
+              onValueChange={(value) => setTempo(value[0])}
+              min={60} max={200} step={10}
+              className="flex-1"
+            />
+            <span className="text-[11px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded min-w-[32px] text-center">
+              {tempo}
+            </span>
+          </div>
+        </div>
+
+        {/* Timing Controls - Single row with all options */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Metronome Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setWithMetronome(!withMetronome)}
+                className={`h-6 w-6 flex items-center justify-center rounded transition-colors text-sm ${
+                  withMetronome
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                ♩
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Metronome (M)</TooltipContent>
+          </Tooltip>
+
+          {withMetronome && (
+            <div className="flex rounded-md overflow-hidden border border-border">
+              {[{ value: 1, label: '♩' }, { value: 2, label: '♫' }, { value: 3, label: '♬' }].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setMetronomeMultiplier(value)}
+                  className={`w-5 h-5 text-[10px] transition-colors ${
+                    metronomeMultiplier === value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="h-4 w-px bg-border" />
+
+          {/* Arpeggio Speed */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex rounded-md overflow-hidden border border-border">
+                <button
+                  onClick={() => setArpeggioSpeed(1)}
+                  className={`px-1.5 h-5 text-[9px] font-medium transition-colors ${
+                    arpeggioSpeed === 1
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                  data-testid="button-arpeggio-eighth"
+                >
+                  ♪
+                </button>
+                <button
+                  onClick={() => setArpeggioSpeed(2)}
+                  className={`px-1.5 h-5 text-[9px] font-medium transition-colors ${
+                    arpeggioSpeed === 2
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                  data-testid="button-arpeggio-sixteenth"
+                >
+                  ♬
+                </button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Arpeggio: {arpeggioSpeed === 1 ? '8th notes' : '16th notes'}</TooltipContent>
+          </Tooltip>
+
+          <div className="h-4 w-px bg-border" />
+
+          {/* Cycles */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex rounded-md overflow-hidden border border-border">
+                {[1, 2, 4].map((cycles) => (
+                  <button
+                    key={cycles}
+                    onClick={() => setChordCycles(cycles)}
+                    className={`w-5 h-5 text-[9px] font-bold transition-colors ${
+                      chordCycles === cycles
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                    data-testid={`button-cycles-${cycles}`}
+                  >
+                    {cycles}×
+                  </button>
+                ))}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Cycles per chord: {chordCycles}×</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Keyboard shortcuts - Minimal */}
+        <div className="flex justify-center gap-2 pt-1 border-t border-border">
+          <span className="text-[8px] text-muted-foreground font-mono">␣ Play</span>
+          <span className="text-[8px] text-muted-foreground font-mono">M ♩</span>
+          <span className="text-[8px] text-muted-foreground font-mono">L ∞</span>
+          <span className="text-[8px] text-muted-foreground font-mono">R ⟳</span>
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }
