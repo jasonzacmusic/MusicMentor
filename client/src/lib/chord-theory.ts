@@ -5,8 +5,18 @@ export interface Chord {
   notes: string[];
   type: string;
   rootNote: string;
-  octaves?: number[]; // Octave positions for each note (0 = middle octave, -1 = lower, +1 = higher)
-  inversion?: number; // 0 = root position, 1 = first inversion, 2 = second inversion
+  octaves?: number[];
+  inversion?: number;
+  category?: 'triad' | 'seventh' | 'extension';
+  parentType?: string;
+}
+
+export interface ChordTreeNode {
+  chord: Chord;
+  isCenter: boolean;
+  branches?: ChordTreeNode[];
+  angleOffset?: number;
+  distance?: number;
 }
 
 // Helper function to get proper note name based on chord type
@@ -42,8 +52,8 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
     throw new Error(`Invalid root note or chord type: ${rootNote}, ${chordType}`);
   }
 
-  // Use proper note naming based on chord type
-  const chordTypeForNaming = (chordType === 'major' || chordType === 'major7' || chordType === 'dominant7' || chordType === 'augmented' || chordType === 'sus2' || chordType === 'sus4') ? 'major' : 'minor';
+  const majorTypes = ['major', 'major7', 'dominant7', 'augmented', 'sus2', 'sus4', '7sus4', 'add9'];
+  const chordTypeForNaming = majorTypes.includes(chordType) ? 'major' : 'minor';
   
   const properRootNote = getProperNoteName(rootIndex, chordTypeForNaming);
   
@@ -52,9 +62,13 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
     return getProperNoteName(noteIndex, chordTypeForNaming);
   });
 
-  // Apply inversion and calculate octave positions (limit to triads - 3 notes max)
-  const triadNotes = notes.slice(0, 3); // Ensure we only use 3 notes for triads
-  const { invertedNotes, octaves } = applyInversion(triadNotes, inversion);
+  const isSeventhChord = intervals.length === 4;
+  const category: 'triad' | 'seventh' | 'extension' = 
+    isSeventhChord ? (chordType.includes('add') ? 'extension' : 'seventh') : 'triad';
+  
+  const { invertedNotes, octaves } = isSeventhChord 
+    ? applySeventhInversion(notes, inversion)
+    : applyInversion(notes.slice(0, 3), inversion);
   
   const inversionSuffix = inversion > 0 ? ` (${getInversionName(inversion)})` : '';
 
@@ -64,8 +78,46 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
     octaves,
     inversion,
     type: chordType,
-    rootNote: properRootNote
+    rootNote: properRootNote,
+    category
   };
+}
+
+function applySeventhInversion(notes: string[], inversion: number): { invertedNotes: string[], octaves: number[] } {
+  if (notes.length < 4) {
+    return applyInversion(notes, inversion);
+  }
+  
+  const [root, third, fifth, seventh] = notes;
+  const positions = notes.map(getChromaticPosition);
+  
+  let orderedNotes: string[];
+  switch (inversion) {
+    case 1:
+      orderedNotes = [third, fifth, seventh, root];
+      break;
+    case 2:
+      orderedNotes = [fifth, seventh, root, third];
+      break;
+    case 3:
+      orderedNotes = [seventh, root, third, fifth];
+      break;
+    default:
+      orderedNotes = [root, third, fifth, seventh];
+  }
+  
+  const octaves = [0, 0, 0, 0];
+  for (let i = 1; i < 4; i++) {
+    const prevPos = getChromaticPosition(orderedNotes[i - 1]);
+    const currPos = getChromaticPosition(orderedNotes[i]);
+    if (currPos <= prevPos) {
+      octaves[i] = octaves[i - 1] + 1;
+    } else {
+      octaves[i] = octaves[i - 1];
+    }
+  }
+  
+  return { invertedNotes: orderedNotes, octaves };
 }
 
 // Get chromatic position for a note (0-11)
@@ -252,50 +304,106 @@ export function getChordsForNoteBySkill(rootNote: string, skillLevel: SkillLevel
     });
     
   } else if (skillLevel === 'intermediate') {
-    // Intermediate: 6 chords using same structure as beginner but with sus2, sus4, 7th variations
+    // Intermediate: Tree structure - triads at center, extended chords as branches
+    // All share the root note for proper voice leading
     
-    // 1. Root Major (Root position)
+    // CENTER: 1. Root Major (trunk)
     const rootMajor = getChordFromNote(rootNote, 'major', 0);
     chords.push({
       ...rootMajor,
-      name: rootNote
+      name: rootNote,
+      category: 'triad',
+      parentType: undefined
     });
     
-    // 2. Root Minor (Root position) 
+    // CENTER: 2. Root Minor (trunk)
     const rootMinor = getChordFromNote(rootNote, 'minor', 0);
     chords.push({
       ...rootMinor,
-      name: `${rootNote}m`
+      name: `${rootNote}m`,
+      category: 'triad',
+      parentType: undefined
     });
     
-    // 3. Root sus2 (instead of related major chord)
-    const rootSus2 = getChordFromNote(rootNote, 'sus2', 0);
+    // BRANCH from Major: 3. Major 7th
+    const rootMaj7 = getChordFromNote(rootNote, 'major7', 0);
     chords.push({
-      ...rootSus2,
-      name: `${rootNote}sus2`
+      ...rootMaj7,
+      name: `${rootNote}maj7`,
+      category: 'seventh',
+      parentType: 'major'
     });
     
-    // 4. Root sus4 (instead of related minor chord)
-    const rootSus4 = getChordFromNote(rootNote, 'sus4', 0);
+    // BRANCH from Major: 4. Dominant 7th
+    const rootDom7 = getChordFromNote(rootNote, 'dominant7', 0);
     chords.push({
-      ...rootSus4,
-      name: `${rootNote}sus4`
+      ...rootDom7,
+      name: `${rootNote}7`,
+      category: 'seventh',
+      parentType: 'major'
     });
     
-    // 5. Root dominant 7th (instead of M3 major)
-    const root7 = getChordFromNote(rootNote, 'dominant7', 0);
+    // BRANCH from Major: 5. Add 9
+    const rootAdd9 = getChordFromNote(rootNote, 'add9', 0);
     chords.push({
-      ...root7,
-      name: `${rootNote}7`
+      ...rootAdd9,
+      name: `${rootNote}add9`,
+      category: 'extension',
+      parentType: 'major'
     });
     
-    // 6. Perfect 5th dominant 7th with voice leading (instead of m3 minor)
-    const p5Index = (rootIndex + 7) % CHROMATIC_NOTES.length;
-    const p5Note = CHROMATIC_NOTES[p5Index];
-    const p57 = getChordFromNote(p5Note, 'dominant7', 1);
+    // BRANCH from Major: 6. 7sus4
+    const root7sus4 = getChordFromNote(rootNote, '7sus4', 0);
     chords.push({
-      ...p57,
-      name: `${p5Note}7 (V)`
+      ...root7sus4,
+      name: `${rootNote}7sus4`,
+      category: 'seventh',
+      parentType: 'major'
+    });
+    
+    // BRANCH from Minor: 7. Minor 7th
+    const rootMin7 = getChordFromNote(rootNote, 'minor7', 0);
+    chords.push({
+      ...rootMin7,
+      name: `${rootNote}m7`,
+      category: 'seventh',
+      parentType: 'minor'
+    });
+    
+    // BRANCH from Minor: 8. Minor(Maj7)
+    const rootMinMaj7 = getChordFromNote(rootNote, 'minorMajor7', 0);
+    chords.push({
+      ...rootMinMaj7,
+      name: `${rootNote}m(maj7)`,
+      category: 'seventh',
+      parentType: 'minor'
+    });
+    
+    // BRANCH from Minor: 9. Minor Add 9
+    const rootMinAdd9 = getChordFromNote(rootNote, 'minorAdd9', 0);
+    chords.push({
+      ...rootMinAdd9,
+      name: `${rootNote}m(add9)`,
+      category: 'extension',
+      parentType: 'minor'
+    });
+    
+    // BRANCH from Minor: 10. Minor 7b5 (half-diminished)
+    const rootMin7b5 = getChordFromNote(rootNote, 'minor7b5', 0);
+    chords.push({
+      ...rootMin7b5,
+      name: `${rootNote}m7b5`,
+      category: 'seventh',
+      parentType: 'minor'
+    });
+    
+    // BRANCH from Minor: 11. Diminished 7
+    const rootDim7 = getChordFromNote(rootNote, 'diminished7', 0);
+    chords.push({
+      ...rootDim7,
+      name: `${rootNote}°7`,
+      category: 'seventh',
+      parentType: 'minor'
     });
     
   } else { // advanced

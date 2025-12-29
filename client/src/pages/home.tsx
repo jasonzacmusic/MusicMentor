@@ -112,7 +112,7 @@ export default function Home() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="beginner" data-testid="option-beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate" disabled data-testid="option-intermediate">Intermediate</SelectItem>
+                  <SelectItem value="intermediate" data-testid="option-intermediate">Intermediate</SelectItem>
                   <SelectItem value="advanced" disabled data-testid="option-advanced">Advanced</SelectItem>
                 </SelectContent>
               </Select>

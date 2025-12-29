@@ -55,7 +55,13 @@ export const CHORD_INTERVALS: Record<string, number[]> = {
   'minor7': [0, 3, 7, 10],
   'dominant7': [0, 4, 7, 10],
   'sus2': [0, 2, 7],
-  'sus4': [0, 5, 7]
+  'sus4': [0, 5, 7],
+  'diminished7': [0, 3, 6, 9],
+  '7sus4': [0, 5, 7, 10],
+  'minorMajor7': [0, 3, 7, 11],
+  'minor7b5': [0, 3, 6, 10],
+  'add9': [0, 2, 4, 7],
+  'minorAdd9': [0, 2, 3, 7]
 };
 
 export const CHORD_NAMES: Record<string, string> = {
@@ -67,7 +73,19 @@ export const CHORD_NAMES: Record<string, string> = {
   'minor7': 'Minor 7th',
   'dominant7': '7th',
   'sus2': 'sus2',
-  'sus4': 'sus4'
+  'sus4': 'sus4',
+  'diminished7': 'Diminished 7th',
+  '7sus4': '7sus4',
+  'minorMajor7': 'Minor(Maj7)',
+  'minor7b5': 'Minor 7b5',
+  'add9': 'Add 9',
+  'minorAdd9': 'Minor Add 9'
+};
+
+export const CHORD_CATEGORIES = {
+  triads: ['major', 'minor', 'diminished', 'augmented', 'sus2', 'sus4'],
+  sevenths: ['major7', 'minor7', 'dominant7', 'diminished7', '7sus4', 'minorMajor7', 'minor7b5'],
+  extensions: ['add9', 'minorAdd9']
 };
 
 export const INTERVALS: Record<string, { semitones: number; name: string }> = {

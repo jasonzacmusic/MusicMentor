@@ -89,6 +89,42 @@ const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: st
       text: 'text-white',
       glow: 'shadow-lime-500/50'
     },
+    'diminished7': {
+      bg: 'bg-gradient-to-br from-rose-600/90 to-red-800/90',
+      border: 'border-rose-400/60',
+      text: 'text-white',
+      glow: 'shadow-rose-600/50'
+    },
+    '7sus4': {
+      bg: 'bg-gradient-to-br from-teal-500/90 to-cyan-700/90',
+      border: 'border-teal-400/60',
+      text: 'text-white',
+      glow: 'shadow-teal-500/50'
+    },
+    'minorMajor7': {
+      bg: 'bg-gradient-to-br from-fuchsia-500/90 to-purple-800/90',
+      border: 'border-fuchsia-400/60',
+      text: 'text-white',
+      glow: 'shadow-fuchsia-500/50'
+    },
+    'minor7b5': {
+      bg: 'bg-gradient-to-br from-slate-500/90 to-zinc-700/90',
+      border: 'border-slate-400/60',
+      text: 'text-white',
+      glow: 'shadow-slate-500/50'
+    },
+    'add9': {
+      bg: 'bg-gradient-to-br from-emerald-400/90 to-green-600/90',
+      border: 'border-emerald-300/60',
+      text: 'text-white',
+      glow: 'shadow-emerald-400/50'
+    },
+    'minorAdd9': {
+      bg: 'bg-gradient-to-br from-violet-400/90 to-purple-600/90',
+      border: 'border-violet-300/60',
+      text: 'text-white',
+      glow: 'shadow-violet-400/50'
+    },
     'default': {
       bg: 'bg-gradient-to-br from-slate-500/90 to-gray-600/90',
       border: 'border-slate-400/60',
@@ -150,6 +186,42 @@ const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: st
       border: 'border-lime-200/70',
       text: 'text-gray-800',
       glow: 'shadow-lime-400/40'
+    },
+    'diminished7': {
+      bg: 'bg-gradient-to-br from-rose-300/80 to-red-400/80',
+      border: 'border-rose-200/70',
+      text: 'text-gray-800',
+      glow: 'shadow-rose-400/40'
+    },
+    '7sus4': {
+      bg: 'bg-gradient-to-br from-teal-300/80 to-cyan-400/80',
+      border: 'border-teal-200/70',
+      text: 'text-gray-800',
+      glow: 'shadow-teal-400/40'
+    },
+    'minorMajor7': {
+      bg: 'bg-gradient-to-br from-fuchsia-300/80 to-purple-400/80',
+      border: 'border-fuchsia-200/70',
+      text: 'text-gray-800',
+      glow: 'shadow-fuchsia-400/40'
+    },
+    'minor7b5': {
+      bg: 'bg-gradient-to-br from-zinc-300/80 to-slate-400/80',
+      border: 'border-zinc-200/70',
+      text: 'text-gray-800',
+      glow: 'shadow-zinc-400/40'
+    },
+    'add9': {
+      bg: 'bg-gradient-to-br from-emerald-300/80 to-green-400/80',
+      border: 'border-emerald-200/70',
+      text: 'text-gray-800',
+      glow: 'shadow-emerald-400/40'
+    },
+    'minorAdd9': {
+      bg: 'bg-gradient-to-br from-violet-300/80 to-purple-400/80',
+      border: 'border-violet-200/70',
+      text: 'text-gray-800',
+      glow: 'shadow-violet-400/40'
     },
     'default': {
       bg: 'bg-gradient-to-br from-slate-300/80 to-gray-400/80',
@@ -213,6 +285,42 @@ const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: st
       text: 'text-white',
       glow: 'shadow-green-600/40'
     },
+    'diminished7': {
+      bg: 'bg-gradient-to-br from-rose-600/85 to-red-800/85',
+      border: 'border-rose-400/50',
+      text: 'text-white',
+      glow: 'shadow-rose-600/40'
+    },
+    '7sus4': {
+      bg: 'bg-gradient-to-br from-teal-600/85 to-cyan-700/85',
+      border: 'border-teal-400/50',
+      text: 'text-white',
+      glow: 'shadow-teal-600/40'
+    },
+    'minorMajor7': {
+      bg: 'bg-gradient-to-br from-fuchsia-600/85 to-purple-700/85',
+      border: 'border-fuchsia-400/50',
+      text: 'text-white',
+      glow: 'shadow-fuchsia-600/40'
+    },
+    'minor7b5': {
+      bg: 'bg-gradient-to-br from-zinc-600/85 to-slate-700/85',
+      border: 'border-zinc-400/50',
+      text: 'text-white',
+      glow: 'shadow-zinc-600/40'
+    },
+    'add9': {
+      bg: 'bg-gradient-to-br from-emerald-600/85 to-green-700/85',
+      border: 'border-emerald-400/50',
+      text: 'text-white',
+      glow: 'shadow-emerald-600/40'
+    },
+    'minorAdd9': {
+      bg: 'bg-gradient-to-br from-violet-600/85 to-purple-700/85',
+      border: 'border-violet-400/50',
+      text: 'text-white',
+      glow: 'shadow-violet-600/40'
+    },
     'default': {
       bg: 'bg-gradient-to-br from-stone-600/85 to-gray-700/85',
       border: 'border-stone-400/50',
@@ -275,6 +383,42 @@ const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: st
       text: 'text-white',
       glow: 'shadow-red-400/50'
     },
+    'diminished7': {
+      bg: 'bg-gradient-to-br from-zinc-600/90 to-slate-800/90',
+      border: 'border-zinc-400/60',
+      text: 'text-white',
+      glow: 'shadow-zinc-500/50'
+    },
+    '7sus4': {
+      bg: 'bg-gradient-to-br from-amber-400/90 to-yellow-600/90',
+      border: 'border-amber-300/60',
+      text: 'text-gray-900',
+      glow: 'shadow-amber-400/50'
+    },
+    'minorMajor7': {
+      bg: 'bg-gradient-to-br from-pink-500/90 to-rose-700/90',
+      border: 'border-pink-400/60',
+      text: 'text-white',
+      glow: 'shadow-pink-500/50'
+    },
+    'minor7b5': {
+      bg: 'bg-gradient-to-br from-slate-500/90 to-gray-700/90',
+      border: 'border-slate-400/60',
+      text: 'text-white',
+      glow: 'shadow-slate-500/50'
+    },
+    'add9': {
+      bg: 'bg-gradient-to-br from-lime-500/90 to-green-600/90',
+      border: 'border-lime-400/60',
+      text: 'text-gray-900',
+      glow: 'shadow-lime-500/50'
+    },
+    'minorAdd9': {
+      bg: 'bg-gradient-to-br from-fuchsia-400/90 to-pink-600/90',
+      border: 'border-fuchsia-300/60',
+      text: 'text-white',
+      glow: 'shadow-fuchsia-400/50'
+    },
     'default': {
       bg: 'bg-gradient-to-br from-orange-600/85 to-amber-700/85',
       border: 'border-orange-400/50',
@@ -336,6 +480,42 @@ const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: st
       border: 'border-blue-300/60',
       text: 'text-white',
       glow: 'shadow-blue-400/50'
+    },
+    'diminished7': {
+      bg: 'bg-gradient-to-br from-slate-600/90 to-zinc-800/90',
+      border: 'border-slate-400/60',
+      text: 'text-white',
+      glow: 'shadow-slate-500/50'
+    },
+    '7sus4': {
+      bg: 'bg-gradient-to-br from-sky-500/90 to-cyan-600/90',
+      border: 'border-sky-400/60',
+      text: 'text-white',
+      glow: 'shadow-sky-500/50'
+    },
+    'minorMajor7': {
+      bg: 'bg-gradient-to-br from-purple-500/90 to-indigo-700/90',
+      border: 'border-purple-400/60',
+      text: 'text-white',
+      glow: 'shadow-purple-500/50'
+    },
+    'minor7b5': {
+      bg: 'bg-gradient-to-br from-zinc-500/90 to-slate-700/90',
+      border: 'border-zinc-400/60',
+      text: 'text-white',
+      glow: 'shadow-zinc-500/50'
+    },
+    'add9': {
+      bg: 'bg-gradient-to-br from-teal-400/90 to-emerald-600/90',
+      border: 'border-teal-300/60',
+      text: 'text-white',
+      glow: 'shadow-teal-400/50'
+    },
+    'minorAdd9': {
+      bg: 'bg-gradient-to-br from-violet-500/90 to-purple-700/90',
+      border: 'border-violet-400/60',
+      text: 'text-white',
+      glow: 'shadow-violet-500/50'
     },
     'default': {
       bg: 'bg-gradient-to-br from-blue-600/85 to-slate-700/85',
@@ -414,7 +594,215 @@ export default function ChordSkillSelector({
     onChordSelect(null, noteIndex);
   };
 
+  const isIntermediateMode = skillLevel === 'intermediate';
+  const triads = availableChords.filter(c => c.category === 'triad' || !c.parentType);
+  const majorBranches = availableChords.filter(c => c.parentType === 'major');
+  const minorBranches = availableChords.filter(c => c.parentType === 'minor');
+
   if (treeLayout) {
+    if (isIntermediateMode && availableChords.length > 6) {
+      return (
+        <div className="flex flex-col items-center">
+          <div className={`relative w-80 h-72 mx-auto flex items-center justify-center transition-all duration-300 ${
+            isPlaying ? 'scale-[1.02]' : ''
+          }`}>
+            <div className={`absolute w-72 h-64 rounded-3xl border transition-all duration-300 ${
+              isPlaying ? 'border-emerald-400/30 shadow-lg shadow-emerald-500/10' : 'border-slate-700/20'
+            }`} />
+            
+            <button
+              onClick={handleDeselectChord}
+              className={`absolute z-30 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 
+                ${isPlaying 
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-300 shadow-xl shadow-emerald-500/50 scale-110 animate-pulse'
+                  : selectedChord
+                    ? 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-slate-500/50 shadow-xl ring-2 ring-emerald-400/60'
+                    : 'bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600/50 shadow-xl hover:border-slate-500/70'
+                }`}
+              style={{ top: '10%', left: '50%', transform: 'translateX(-50%)' }}
+              title={selectedChord ? 'Click to clear selection' : baseNote}
+            >
+              <span className="text-xl font-bold text-white drop-shadow-md">{baseNote}</span>
+            </button>
+
+            {triads.slice(0, 2).map((chord, idx) => {
+              const isLeft = idx === 0;
+              const xPos = isLeft ? '25%' : '75%';
+              const isSelected = selectedChord?.name === chord.name;
+              const colorScheme = getChordColorScheme(chord.type, colorPreset);
+              
+              return (
+                <div key={chord.name}>
+                  <div className={`absolute h-0.5 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-50'}`}
+                    style={{
+                      top: '18%',
+                      left: isLeft ? '35%' : '50%',
+                      width: '15%',
+                      background: getBranchGradient(chord.type, isSelected)
+                    }}
+                  />
+                  <button
+                    className={`absolute w-16 h-16 rounded-full flex items-center justify-center cursor-pointer 
+                      transition-all duration-200 border-2 z-20 font-bold backdrop-blur-sm
+                      ${isSelected 
+                        ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/40` 
+                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md ${colorScheme.glow} opacity-85 hover:opacity-100 hover:scale-105`
+                      }
+                      ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
+                    style={{ top: '28%', left: xPos, transform: 'translate(-50%, -50%)' }}
+                    onClick={() => handleSelectChord(chord)}
+                    data-testid={`chord-triad-${chord.type}`}
+                  >
+                    <span className="text-sm font-bold text-center drop-shadow-md">{chord.name}</span>
+                  </button>
+                </div>
+              );
+            })}
+
+            {majorBranches.map((chord, idx) => {
+              const angles = [-60, -30, 0, 30];
+              const angle = angles[idx] || 0;
+              const radius = 70;
+              const centerX = -80;
+              const centerY = 30;
+              const x = centerX + Math.cos((angle - 90) * Math.PI / 180) * radius;
+              const y = centerY + Math.sin((angle - 90) * Math.PI / 180) * radius;
+              const isSelected = selectedChord?.name === chord.name;
+              const colorScheme = getChordColorScheme(chord.type, colorPreset);
+
+              return (
+                <div key={chord.name}>
+                  <div className={`absolute h-0.5 z-10 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-40'}`}
+                    style={{
+                      top: `calc(28% + ${y * 0.3}px)`,
+                      left: `calc(25% + ${x * 0.3}px)`,
+                      width: '35px',
+                      background: getBranchGradient(chord.type, isSelected),
+                      transform: `rotate(${angle + 180}deg)`,
+                      transformOrigin: 'right center'
+                    }}
+                  />
+                  <button
+                    className={`absolute w-11 h-11 rounded-full flex items-center justify-center cursor-pointer 
+                      transition-all duration-200 border z-20 font-medium backdrop-blur-sm
+                      ${isSelected 
+                        ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/30` 
+                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-sm ${colorScheme.glow} opacity-70 hover:opacity-100 hover:scale-110`
+                      }
+                      ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
+                    style={{ 
+                      top: `calc(28% + ${y}px)`,
+                      left: `calc(25% + ${x}px)`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                    onClick={() => handleSelectChord(chord)}
+                    data-testid={`chord-branch-${chord.type}`}
+                  >
+                    <span className="text-[8px] font-bold text-center leading-tight drop-shadow-sm">
+                      {chord.name.replace(baseNote, '').replace('(', '').replace(')', '') || chord.name}
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+
+            {minorBranches.map((chord, idx) => {
+              const angles = [-30, 0, 30, 60, 90];
+              const angle = angles[idx] || 0;
+              const radius = 70;
+              const centerX = 80;
+              const centerY = 30;
+              const x = centerX + Math.cos((angle - 90) * Math.PI / 180) * radius;
+              const y = centerY + Math.sin((angle - 90) * Math.PI / 180) * radius;
+              const isSelected = selectedChord?.name === chord.name;
+              const colorScheme = getChordColorScheme(chord.type, colorPreset);
+
+              return (
+                <div key={chord.name}>
+                  <div className={`absolute h-0.5 z-10 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-40'}`}
+                    style={{
+                      top: `calc(28% + ${y * 0.3}px)`,
+                      left: `calc(75% + ${x * 0.3}px)`,
+                      width: '35px',
+                      background: getBranchGradient(chord.type, isSelected),
+                      transform: `rotate(${angle}deg)`,
+                      transformOrigin: 'left center'
+                    }}
+                  />
+                  <button
+                    className={`absolute w-11 h-11 rounded-full flex items-center justify-center cursor-pointer 
+                      transition-all duration-200 border z-20 font-medium backdrop-blur-sm
+                      ${isSelected 
+                        ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/30` 
+                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-sm ${colorScheme.glow} opacity-70 hover:opacity-100 hover:scale-110`
+                      }
+                      ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
+                    style={{ 
+                      top: `calc(28% + ${y}px)`,
+                      left: `calc(75% + ${x}px)`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                    onClick={() => handleSelectChord(chord)}
+                    data-testid={`chord-branch-${chord.type}`}
+                  >
+                    <span className="text-[8px] font-bold text-center leading-tight drop-shadow-sm">
+                      {chord.name.replace(baseNote, '').replace('(', '').replace(')', '') || chord.name}
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-1 flex flex-col items-center">
+            {selectedChord ? (
+              <>
+                <div className={`mb-2 px-4 py-1.5 rounded-lg transition-all duration-300 ${
+                  isPlaying 
+                    ? 'bg-gradient-to-r from-emerald-600/80 to-teal-600/80 border border-emerald-400/50 shadow-lg shadow-emerald-500/30'
+                    : 'bg-gradient-to-r from-slate-800/80 to-slate-900/80 border border-slate-600/30 shadow-md'
+                }`}>
+                  <h4 className="text-sm font-semibold text-white text-center tracking-wide">
+                    {selectedChord.name}
+                    {selectedChord.category === 'seventh' && (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200 text-[9px] font-bold">7th</span>
+                    )}
+                  </h4>
+                  <div className="text-xs text-slate-300 text-center font-medium">
+                    {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' • ')}
+                  </div>
+                </div>
+                <PianoKeyboard
+                  highlightedNotes={selectedChord.notes}
+                  compact={true}
+                  onKeyPress={(note) => {}}
+                />
+                <div className="mt-3">
+                  <GuitarFretboard
+                    root={selectedChord.rootNote}
+                    quality={selectedChord.type}
+                    compact={true}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-2 px-4 py-1.5 rounded-lg bg-gradient-to-r from-slate-800/60 to-slate-900/60 border border-slate-700/30 shadow-md">
+                  <h4 className="text-sm font-semibold text-slate-300 text-center">{baseNote}</h4>
+                  <div className="text-xs text-slate-500 text-center">Select a chord from the tree</div>
+                </div>
+                <PianoKeyboard
+                  highlightedNotes={[baseNote]}
+                  compact={true}
+                  onKeyPress={(note) => {}}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center">
         <div className={`relative w-64 h-64 mx-auto flex items-center justify-center transition-all duration-300 ${
