@@ -33,10 +33,10 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
   };
 
   const getKeyPosition = (note: string, index: number) => {
-    const whiteKeyWidth = 32;
-    const blackKeyWidth = 20;
+    const whiteKeyWidth = 44;
+    const blackKeyWidth = 28;
     const whiteKeysBeforeNote = PIANO_NOTES.slice(0, index).filter(n => !isBlackKey(n)).length;
-    
+
     if (isBlackKey(note)) {
       // Position black keys between white keys
       const positions: Record<string, number> = {
@@ -54,26 +54,26 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
 
   return (
     <div className={`relative inline-block ${className}`}>
-      <div className="relative h-32 bg-gray-100 rounded-lg p-2">
+      <div className="relative h-44 bg-gradient-to-b from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black rounded-xl p-3 shadow-2xl border border-gray-700/50">
         {/* White keys */}
         {PIANO_NOTES.filter(note => !isBlackKey(note)).map((note, whiteIndex) => (
           <button
             key={`white-${note}`}
             onClick={() => onKeyPress?.(note)}
-            className={`absolute border border-gray-300 rounded-b transition-colors ${
+            className={`absolute rounded-b-lg transition-all duration-150 shadow-lg ${
               isHighlighted(note)
-                ? 'bg-blue-400 border-blue-500'
-                : 'bg-white hover:bg-gray-50'
+                ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-amber-400 shadow-amber-400/50 shadow-xl'
+                : 'bg-gradient-to-b from-white via-gray-50 to-gray-100 border border-gray-300 hover:from-gray-50 hover:to-gray-200 hover:shadow-xl'
             }`}
             style={{
-              left: `${whiteIndex * 32}px`,
-              width: '30px',
-              height: '112px',
-              top: '8px'
+              left: `${whiteIndex * 44 + 12}px`,
+              width: '42px',
+              height: '140px',
+              top: '12px'
             }}
           >
-            <span className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-medium ${
-              isHighlighted(note) ? 'text-white' : 'text-gray-700'
+            <span className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 text-sm font-mono font-semibold ${
+              isHighlighted(note) ? 'text-amber-900' : 'text-gray-600'
             }`}>
               {note}
             </span>
@@ -85,20 +85,20 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
           <button
             key={`black-${note}`}
             onClick={() => onKeyPress?.(note)}
-            className={`absolute border border-gray-600 rounded-b transition-colors z-10 ${
+            className={`absolute rounded-b-lg transition-all duration-150 z-10 ${
               isHighlighted(note)
-                ? 'bg-blue-600 border-blue-700'
-                : 'bg-gray-800 hover:bg-gray-700'
+                ? 'bg-gradient-to-b from-amber-500 via-amber-600 to-amber-700 border-2 border-amber-400 shadow-xl shadow-amber-500/50'
+                : 'bg-gradient-to-b from-gray-700 via-gray-800 to-gray-900 border border-gray-600 hover:from-gray-600 hover:via-gray-700 hover:to-gray-800 shadow-lg hover:shadow-xl'
             }`}
             style={{
-              left: `${getKeyPosition(note, PIANO_NOTES.indexOf(note))}px`,
-              width: '20px',
-              height: '72px',
-              top: '8px'
+              left: `${getKeyPosition(note, PIANO_NOTES.indexOf(note)) + 12}px`,
+              width: '28px',
+              height: '90px',
+              top: '12px'
             }}
           >
-            <span className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-medium ${
-              isHighlighted(note) ? 'text-white' : 'text-white'
+            <span className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-mono font-semibold ${
+              isHighlighted(note) ? 'text-amber-100' : 'text-gray-400'
             }`}>
               {note}
             </span>

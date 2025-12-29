@@ -3,11 +3,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Shuffle, Play, Square, RotateCcw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Shuffle, Play, Square, RotateCcw, Edit3, Dices } from 'lucide-react';
 import { generateRandomNotes, getChordFromNote, getChordsForNoteBySkill, type Chord, type SkillLevel, applyVoiceLeading } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
 import { isFeatureEnabled } from '@/lib/feature-flags';
+import { VALID_NOTES_FOR_SELECTION } from '@/lib/music-constants';
 
 interface RandomNotesGeneratorProps {
   onNotesChange?: (notes: string[]) => void;
@@ -19,6 +21,7 @@ interface RandomNotesGeneratorProps {
 
 export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'], skillLevel = 'beginner' }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
+  const [inputMode, setInputMode] = useState<'random' | 'manual'>('random');
   const [tempo, setTempo] = useState(60);
   const tempoRef = useRef(60); // Ref for real-time tempo access during playback
   const [isPlaying, setIsPlaying] = useState(false);
@@ -784,34 +787,119 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   const beatTimings = [2, 2, 4];
 
+  // Handler for manual note selection
+  const handleManualNoteChange = useCallback((noteIndex: number, newNote: string) => {
+    const newNotes = [...notes];
+    newNotes[noteIndex] = newNote;
+    setNotes(newNotes);
+    onNotesChange?.(newNotes);
+
+    // Clear chord selection for this position when note changes
+    const newChords = [...(selectedChords || [null, null, null])];
+    newChords[noteIndex] = null;
+    onChordsChange?.(newChords);
+
+    console.log(`🎹 Manual note ${noteIndex + 1} changed to: ${newNote}`);
+  }, [notes, selectedChords, onNotesChange, onChordsChange]);
+
+  // Toggle between random and manual mode
+  const handleModeToggle = useCallback((mode: 'random' | 'manual') => {
+    setInputMode(mode);
+    console.log(`🔄 Input mode changed to: ${mode}`);
+  }, []);
+
   return (
     <div className="space-y-4">
-      {/* Title aligned to the left */}
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white text-left">Random Note Practice</h3>
+      {/* Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-display font-semibold text-foreground">Note Practice</h3>
+        <div className="flex rounded-xl overflow-hidden border-2 border-amber-200 dark:border-amber-800">
+          <button
+            onClick={() => handleModeToggle('random')}
+            className={`px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
+              inputMode === 'random'
+                ? 'bg-amber-500 dark:bg-amber-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+            }`}
+          >
+            <Dices className="w-3.5 h-3.5" />
+            Random
+          </button>
+          <button
+            onClick={() => handleModeToggle('manual')}
+            className={`px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
+              inputMode === 'manual'
+                ? 'bg-amber-500 dark:bg-amber-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+            }`}
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            Manual
+          </button>
+        </div>
       </div>
 
-      {/* Three buttons: Generate, Pause/Play, Auto Loop */}
+      {/* Manual Note Selection - shown when in manual mode */}
+      {inputMode === 'manual' && (
+        <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10 rounded-xl p-4 border border-amber-200/50 dark:border-amber-800/30">
+          <div className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Select Notes</div>
+          <div className="grid grid-cols-3 gap-3">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Note {index + 1}
+                </label>
+                <Select
+                  value={notes[index]}
+                  onValueChange={(value) => handleManualNoteChange(index, value)}
+                >
+                  <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-amber-200 dark:border-amber-700 h-10 text-base font-display font-semibold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VALID_NOTES_FOR_SELECTION.map((note) => (
+                      <SelectItem
+                        key={note.value}
+                        value={note.value}
+                        className={`font-mono ${note.isBlack ? 'text-gray-600 dark:text-gray-400' : 'font-semibold'}`}
+                      >
+                        {note.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Random mode controls */}
+      {inputMode === 'random' && (
+        <div className="flex space-x-2">
+          <Button
+            onClick={handleGenerate}
+            variant="outline"
+            className="hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 flex-1"
+            data-testid="button-generate"
+          >
+            <Shuffle className="w-4 h-4 mr-2" />
+            Generate Notes
+          </Button>
+        </div>
+      )}
+
+      {/* Play/Pause and Auto Loop buttons */}
       <div className="flex space-x-2">
-        <Button
-          onClick={handleGenerate}
-          variant="outline"
-          className="hover:bg-orange-50 dark:hover:bg-orange-900/50 border-orange-200 dark:border-orange-700 text-orange-600 dark:text-orange-400 flex-1"
-          data-testid="button-generate"
-        >
-          <Shuffle className="w-4 h-4 mr-2" />
-          Generate
-        </Button>
-        
         <Button
           onClick={handlePlay}
           variant={isPlaying ? "default" : "outline"}
-          className={`${isPlaying ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white flex-1`}
+          className={`${isPlaying ? 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-600' : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600'} text-white flex-1 h-11 text-base font-semibold`}
         >
           {isPlaying ? (
             <>
               <Square className="w-4 h-4 mr-2" />
-              Pause
+              Stop
             </>
           ) : (
             <>
@@ -826,7 +914,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <Button
             onClick={toggleLoop}
             variant={isLooping ? "default" : "outline"}
-            className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 dark:hover:bg-blue-900/50 border-blue-200 dark:border-blue-700'} flex-1 ${isLooping ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}
+            className={`${isLooping ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600' : 'hover:bg-blue-50 dark:hover:bg-blue-900/30 border-blue-300 dark:border-blue-700'} flex-1 h-11 ${isLooping ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}
             data-testid="button-auto-loop"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
@@ -835,12 +923,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         )}
       </div>
 
-      {/* Random Chords button directly below Pause/Play */}
+      {/* Random Chords button */}
       <div className="flex justify-center">
         <Button
           onClick={handleRandomHarmonize}
           variant="outline"
-          className="hover:bg-purple-50 dark:hover:bg-purple-900/50 border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400 w-full max-w-[200px]"
+          className="hover:bg-purple-50 dark:hover:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 w-full"
           data-testid="button-random-chords"
         >
           <Shuffle className="w-4 h-4 mr-2" />

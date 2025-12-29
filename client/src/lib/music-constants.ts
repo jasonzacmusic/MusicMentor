@@ -7,6 +7,25 @@ export const MAJOR_CHORD_NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab
 // Note naming for Minor chords: use sharps (C#, F#, G#) and some flats (Eb, Bb)
 export const MINOR_CHORD_NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
 
+// Valid notes for manual selection - NO double sharps/flats, NO E#, Fb, Cb, B#
+// White keys: C, D, E, F, G, A, B
+// Black keys with sharps: C#, D#, F#, G#, A#
+// Black keys with flats: Db, Eb, Gb, Ab, Bb
+export const VALID_NOTES_FOR_SELECTION = [
+  { value: 'C', label: 'C', isBlack: false },
+  { value: 'C#', label: 'C# / Db', isBlack: true },
+  { value: 'D', label: 'D', isBlack: false },
+  { value: 'Eb', label: 'D# / Eb', isBlack: true },
+  { value: 'E', label: 'E', isBlack: false },
+  { value: 'F', label: 'F', isBlack: false },
+  { value: 'F#', label: 'F# / Gb', isBlack: true },
+  { value: 'G', label: 'G', isBlack: false },
+  { value: 'Ab', label: 'G# / Ab', isBlack: true },
+  { value: 'A', label: 'A', isBlack: false },
+  { value: 'Bb', label: 'A# / Bb', isBlack: true },
+  { value: 'B', label: 'B', isBlack: false },
+];
+
 export const NOTE_FREQUENCIES: Record<string, number> = {
   'C': 261.63,
   'C#': 277.18,

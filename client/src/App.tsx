@@ -18,7 +18,7 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="music-mentor-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="music-mentor-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />

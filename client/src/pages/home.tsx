@@ -36,66 +36,65 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-lg border-b border-blue-200/50 dark:border-gray-700/50">
+      <header className="bg-card border-b border-border">
         <div className="max-w-full mx-auto px-4 lg:px-6">
           <div className="flex justify-between items-center h-14">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Music className="w-6 h-6 text-white" />
+              <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
+                <Music className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:bg-none dark:text-white">
+                <h1 className="text-xl font-bold text-foreground">
                   Music Mentor
                 </h1>
-                <p className="text-xs text-blue-600 dark:text-white -mt-1">Interactive Music Learning</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <ThemeToggle />
-              <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800" data-testid="button-help">
-                <HelpCircle className="w-4 h-4" />
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="button-help">
+                <HelpCircle className="w-5 h-5" />
               </Button>
-              <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800" data-testid="button-settings">
-                <Settings className="w-4 h-4" />
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="button-settings">
+                <Settings className="w-5 h-5" />
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-4 lg:px-6 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-100px)]">
+      <main className="max-w-full mx-auto px-4 lg:px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)]">
           {/* Left Panel - Controls */}
-          <div className="lg:col-span-4 space-y-4 overflow-y-auto">
+          <div className="lg:col-span-4 space-y-5 overflow-y-auto">
             {/* Practice Session Info & Skill Level */}
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 dark:border-gray-700/50">
-              <div className="mb-4">
-                <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-1">Practice Session</h2>
-                <p className="text-sm text-gray-600 dark:text-white">Master chord relationships</p>
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-amber-200/30 dark:border-amber-900/20">
+              <div className="mb-5">
+                <h2 className="text-xl font-display font-semibold text-foreground mb-1">Practice Session</h2>
+                <p className="text-sm text-muted-foreground">Master chord relationships</p>
               </div>
-              
+
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-white mb-2">Skill Level</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Skill Level</label>
                 <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-full bg-blue-50/80 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/60 transition-all text-blue-800 dark:text-white h-9" data-testid="select-skill-level">
+                  <SelectTrigger className="w-full bg-amber-50/80 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-all text-foreground h-11 rounded-xl" data-testid="select-skill-level">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner" data-testid="option-beginner">🌱 Beginner - Major & Minor</SelectItem>
-                    <SelectItem value="intermediate" disabled data-testid="option-intermediate">🌿 Intermediate - Coming soon</SelectItem>
-                    <SelectItem value="advanced" disabled data-testid="option-advanced">🌳 Advanced - Coming soon</SelectItem>
+                    <SelectItem value="beginner" data-testid="option-beginner">Beginner — Major & Minor</SelectItem>
+                    <SelectItem value="intermediate" disabled data-testid="option-intermediate">Intermediate — Coming soon</SelectItem>
+                    <SelectItem value="advanced" disabled data-testid="option-advanced">Advanced — Coming soon</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             {/* Controls Panel */}
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 dark:border-gray-700/50 flex-1">
-              <h3 className="text-md font-bold text-gray-800 dark:text-white mb-3">Controls</h3>
-              <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                <RandomNotesGenerator 
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-amber-200/30 dark:border-amber-900/20 flex-1">
+              <h3 className="text-lg font-display font-semibold text-foreground mb-4">Controls</h3>
+              <div className="max-h-[calc(100vh-420px)] overflow-y-auto">
+                <RandomNotesGenerator
                   onNotesChange={handleNotesChange}
                   onChordsChange={setSelectedChords}
                   selectedChords={selectedChords}
@@ -106,23 +105,23 @@ export default function Home() {
             </div>
 
             {/* Instructions */}
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-blue-200/50 dark:border-gray-600/50">
-              <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-2">How to Practice</h3>
-              <ul className="space-y-1 text-xs text-gray-700 dark:text-white">
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 font-bold">1.</span>
+            <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-amber-200/30 dark:border-amber-800/30">
+              <h3 className="text-base font-display font-semibold text-foreground mb-3">How to Practice</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start space-x-3">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">1.</span>
                   <span>Generate new note sequences</span>
                 </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 font-bold">2.</span>
+                <li className="flex items-start space-x-3">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">2.</span>
                   <span>Explore 6 chord branches per note</span>
                 </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 font-bold">3.</span>
+                <li className="flex items-start space-x-3">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">3.</span>
                   <span>Use Random for auto selection</span>
                 </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 font-bold">4.</span>
+                <li className="flex items-start space-x-3">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold font-mono">4.</span>
                   <span>Adjust tempo and skill levels</span>
                 </li>
               </ul>
@@ -131,44 +130,50 @@ export default function Home() {
 
           {/* Right Panel - Chord Trees */}
           <div className="lg:col-span-8">
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 dark:border-gray-700/50 h-full">
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">Chord Trees</h3>
-                <p className="text-sm text-gray-600 dark:text-white">Click chord branches to hear harmonies</p>
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-amber-200/30 dark:border-amber-900/20 h-full">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-display font-semibold text-foreground mb-2">Chord Trees</h3>
+                <p className="text-sm text-muted-foreground">Click chord branches to hear harmonies</p>
               </div>
 
               {/* Selected Chords Display */}
-              <div className="mb-4 flex justify-center items-center gap-3">
+              <div className="mb-6 flex justify-center items-center gap-4">
                 {selectedChords.map((chord, index) => (
                   <div
                     key={index}
-                    className="flex-1 max-w-[200px] bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 rounded-lg p-3 text-center border-2 border-blue-200 dark:border-gray-500"
+                    className={`flex-1 max-w-[220px] rounded-xl p-4 text-center border-2 transition-all duration-300 ${
+                      chord
+                        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 border-amber-400 dark:border-amber-600 shadow-lg shadow-amber-200/30 dark:shadow-amber-900/20'
+                        : 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
+                    }`}
                     data-testid={`text-selected-chord-${index}`}
                   >
-                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                    <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                       Position {index + 1}
                     </div>
-                    <div className="text-lg font-bold text-gray-800 dark:text-white">
+                    <div className={`text-2xl font-display font-bold ${
+                      chord ? 'text-amber-700 dark:text-amber-300' : 'text-gray-300 dark:text-gray-600'
+                    }`}>
                       {chord ? chord.name : '—'}
                     </div>
                   </div>
                 ))}
               </div>
-              
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 h-[calc(100%-160px)] overflow-y-auto">
+
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100%-180px)] overflow-y-auto">
                 {activeNotes.map((note, index) => {
                   return (
                     <div key={`${note}-${index}`} className="relative flex justify-center items-center">
                       <div className="relative flex flex-col items-center justify-center">
                         {/* Note Label */}
-                        <div className="mb-2">
-                          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                        <div className="mb-3">
+                          <span className="text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-4 py-1.5 rounded-full shadow-sm">
                             Note {index + 1}
                           </span>
                         </div>
-                        
-                        {/* Chord Selector with Tree Layout - Smaller size */}
-                        <div className="scale-75 origin-center">
+
+                        {/* Chord Selector with Tree Layout */}
+                        <div className="scale-80 origin-center">
                           <ChordSkillSelector
                             baseNote={note}
                             noteIndex={index}

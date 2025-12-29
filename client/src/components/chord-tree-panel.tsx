@@ -35,50 +35,54 @@ export default function ChordTreePanel({ selectedNote }: ChordTreePanelProps) {
   }, [selectedChord, playChord]);
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Beginner Chord Tree</h3>
-        
+    <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
+      <CardContent className="p-8">
+        <h3 className="text-2xl font-display font-semibold text-foreground mb-6 text-center">
+          Chord Tree
+        </h3>
+
         {/* Base Note as Root of Tree */}
-        <div className="mb-6">
+        <div className="mb-8">
           <div className="text-center">
-            <div className="bg-blue-500 text-white rounded-full p-4 mx-auto w-16 h-16 flex items-center justify-center">
-              <span className="text-2xl font-mono font-bold">{selectedNote}</span>
+            <div className="bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 dark:from-amber-500 dark:via-yellow-600 dark:to-orange-600 text-white rounded-full p-6 mx-auto w-24 h-24 flex items-center justify-center shadow-2xl border-4 border-white/30 dark:border-amber-300/20 glow-gold">
+              <span className="text-4xl font-display font-bold drop-shadow-lg">{selectedNote}</span>
             </div>
-            <div className="text-sm text-gray-600 mt-2">Base Note</div>
+            <div className="text-sm text-muted-foreground mt-3 font-medium tracking-wide uppercase">Root Note</div>
           </div>
         </div>
 
         {/* Tree Branches */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium text-gray-700 text-center mb-4">Harmonizing Chords</h4>
-          
+        <div className="space-y-6">
+          <h4 className="text-lg font-display font-medium text-foreground text-center mb-6">
+            Harmonizing Chords
+          </h4>
+
           {/* Tree Structure */}
           <div className="relative">
             {/* Connecting Lines */}
-            <div className="absolute left-1/2 top-0 w-0.5 h-8 bg-gray-300 transform -translate-x-0.5"></div>
-            <div className="absolute left-1/2 top-8 w-full h-0.5 bg-gray-300 transform -translate-x-0.5"></div>
-            
+            <div className="absolute left-1/2 top-0 w-1 h-10 bg-gradient-to-b from-amber-400 to-amber-300 dark:from-amber-500 dark:to-amber-600 transform -translate-x-0.5 rounded-full"></div>
+            <div className="absolute left-1/2 top-10 w-4/5 h-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent dark:via-amber-600 transform -translate-x-1/2 rounded-full"></div>
+
             {/* Chord Options in Tree Layout */}
-            <div className="grid grid-cols-2 gap-3 pt-12">
+            <div className="grid grid-cols-2 gap-4 pt-16">
               {availableChords.map((chord, index) => (
                 <div key={index} className="relative">
                   {/* Branch Line */}
-                  <div className="absolute -top-4 left-1/2 w-0.5 h-4 bg-gray-300 transform -translate-x-0.5"></div>
-                  
+                  <div className="absolute -top-6 left-1/2 w-1 h-6 bg-amber-300 dark:bg-amber-600 transform -translate-x-0.5 rounded-full"></div>
+
                   <div
                     onClick={() => handleSelectChord(chord)}
-                    className={`border rounded-lg p-3 cursor-pointer transition-colors text-center ${
+                    className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 text-center ${
                       selectedChord?.name === chord.name
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:bg-gray-50'
+                        ? 'border-amber-500 dark:border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 shadow-lg shadow-amber-200/50 dark:shadow-amber-900/30'
+                        : 'border-border hover:border-amber-300 dark:hover:border-amber-600 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-orange-50/50 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 hover:shadow-md'
                     }`}
                   >
-                    <div className="space-y-2">
-                      <div className="font-medium text-gray-900 text-sm leading-tight">
+                    <div className="space-y-3">
+                      <div className="font-display font-semibold text-foreground text-xl leading-tight">
                         {chord.name}
                       </div>
-                      <div className="text-xs text-gray-600 font-mono">
+                      <div className="text-sm text-muted-foreground font-mono tracking-wide">
                         {formatChordNotes(chord.notes)}
                       </div>
                       <Button
@@ -89,9 +93,9 @@ export default function ChordTreePanel({ selectedNote }: ChordTreePanelProps) {
                           handlePlayChord(chord);
                         }}
                         disabled={isPlaying}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50 p-1 h-6 w-full"
+                        className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 p-2 h-8 w-full rounded-lg"
                       >
-                        <Play className="w-3 h-3" />
+                        <Play className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -105,9 +109,9 @@ export default function ChordTreePanel({ selectedNote }: ChordTreePanelProps) {
         <Button
           onClick={handlePlaySelectedChord}
           disabled={!selectedChord || isPlaying}
-          className="w-full bg-orange-500 hover:bg-orange-600 mt-4"
+          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 dark:from-amber-600 dark:to-orange-600 dark:hover:from-amber-500 dark:hover:to-orange-500 text-white font-semibold mt-6 h-12 text-base shadow-lg hover:shadow-xl transition-all duration-200"
         >
-          <Volume2 className="w-4 h-4 mr-2" />
+          <Volume2 className="w-5 h-5 mr-2" />
           Play Selected Chord
         </Button>
       </CardContent>
