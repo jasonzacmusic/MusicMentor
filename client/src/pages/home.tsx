@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector, { type ColorPreset } from '@/components/chord-skill-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { HelpCircle, Palette, PanelLeftClose, PanelLeft, Settings2 } from 'lucide-react';
+import { HelpCircle, Palette, PanelLeftClose, PanelLeft, Settings2, Piano, Guitar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Chord } from '@/lib/chord-theory';
 import nsmLogo from '@assets/NSM_LOGO_White_1767023126559.png';
+import { MascotProvider, GlobalMascot, MascotControls, useMascot, type ChordAnchor } from '@/components/animated-mascot';
 
 type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
 
-export default function Home() {
+function HomeContent() {
   const [selectedNote, setSelectedNote] = useState('C');
   const [noteCount, setNoteCount] = useState(4);
   const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A', 'G']);
@@ -20,6 +21,21 @@ export default function Home() {
   const [currentPlayingIndex, setCurrentPlayingIndex] = useState<number | null>(null);
   const [colorPreset, setColorPreset] = useState<ColorPreset>('earth');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [showPiano, setShowPiano] = useState(false);
+  const [showGuitar, setShowGuitar] = useState(false);
+
+  const chordGridRef = useRef<HTMLDivElement>(null);
+  const mascotContext = useMascot();
+
+  useEffect(() => {
+    if (chordGridRef.current) {
+      mascotContext.setContainerRef(chordGridRef as React.RefObject<HTMLDivElement>);
+    }
+  }, []);
+
+  useEffect(() => {
+    mascotContext.setIsPlaying(currentPlayingIndex !== null);
+  }, [currentPlayingIndex]);
 
   const handleNoteCountChange = (count: number) => {
     setNoteCount(count);
@@ -54,6 +70,13 @@ export default function Home() {
 
   const handlePlayingIndexChange = (index: number | null) => {
     setCurrentPlayingIndex(index);
+  };
+
+  const handleAnchorUpdate = (anchor: ChordAnchor) => {
+    mascotContext.registerAnchor(anchor);
+    if (anchor.chordId) {
+      mascotContext.setCurrentAnchor(anchor);
+    }
   };
 
   return (
@@ -102,6 +125,30 @@ export default function Home() {
                   <SelectItem value="pastel" data-testid="option-pastel">Pastel</SelectItem>
                 </SelectContent>
               </Select>
+              {skillLevel === 'intermediate' && (
+                <div className="flex gap-0.5 border border-border rounded-md p-0.5">
+                  <Button
+                    variant={showPiano ? "default" : "ghost"}
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setShowPiano(!showPiano)}
+                    title={showPiano ? "Hide Piano" : "Show Piano"}
+                    data-testid="toggle-piano-global"
+                  >
+                    <Piano className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant={showGuitar ? "default" : "ghost"}
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setShowGuitar(!showGuitar)}
+                    title={showGuitar ? "Hide Guitar" : "Show Guitar"}
+                    data-testid="toggle-guitar-global"
+                  >
+                    <Guitar className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
               <ThemeToggle />
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-7 w-7 p-0" data-testid="button-help">
                 <HelpCircle className="w-4 h-4" />
@@ -147,11 +194,14 @@ export default function Home() {
                 <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
                   {noteCount}
                 </div>
+
+                {/* Compact mascot toggle */}
+                <MascotControls compact={true} />
               </div>
             ) : (
               /* Expanded state - full controls */
-              <div className="h-full lg:overflow-y-auto">
-                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-border">
+              <div className="h-full lg:overflow-y-auto space-y-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-border">
                   <label className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Level</label>
                   <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
                     <SelectTrigger className="w-[90px] h-6 text-xs" data-testid="select-skill-level">
@@ -163,6 +213,11 @@ export default function Home() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Mascot Controls in Settings Panel */}
+                {skillLevel === 'beginner' && (
+                  <MascotControls compact={false} />
+                )}
 
                 <RandomNotesGenerator
                   onNotesChange={handleNotesChange}
@@ -182,7 +237,7 @@ export default function Home() {
 
         {/* Chord Visualization Area - Expands when sidebar collapses */}
         <div className="flex-1 min-h-0 min-w-0">
-          <div className="bg-card rounded-lg border border-border h-full flex flex-col p-2 lg:p-3">
+          <div className="bg-card rounded-lg border border-border h-full flex flex-col p-2 lg:p-3 relative">
             {/* Minimal instruction - hidden on smaller screens */}
             <div className="text-center mb-1.5 hidden xl:block">
               <p className="text-[11px] text-muted-foreground">
@@ -191,19 +246,27 @@ export default function Home() {
             </div>
 
             {/* Chord Grid - Responsive, no scroll on desktop, dynamic sizing based on panel state */}
-            <div className={`flex-1 grid gap-1 min-h-0 auto-rows-fr ${
-              noteCount === 1 ? 'grid-cols-1' :
-              noteCount === 2 ? 'grid-cols-2' :
-              noteCount === 3 ? 'grid-cols-3' :
-              noteCount === 4 ? 'grid-cols-2 lg:grid-cols-4' :
-              'grid-cols-3 lg:grid-cols-5'
-            } ${isPanelCollapsed ? 'lg:gap-3' : 'lg:gap-2'}`}>
+            <div 
+              ref={chordGridRef}
+              className={`flex-1 grid gap-1 min-h-0 auto-rows-fr relative ${
+                noteCount === 1 ? 'grid-cols-1' :
+                noteCount === 2 ? 'grid-cols-2' :
+                noteCount === 3 ? 'grid-cols-3' :
+                noteCount === 4 ? 'grid-cols-2 lg:grid-cols-4' :
+                'grid-cols-3 lg:grid-cols-5'
+              } ${isPanelCollapsed ? 'lg:gap-3' : 'lg:gap-2'}`}
+            >
+              {/* Global Mascot Overlay */}
+              {skillLevel === 'beginner' && chordGridRef.current && (
+                <GlobalMascot containerRef={chordGridRef as React.RefObject<HTMLDivElement>} />
+              )}
+
               {activeNotes.map((note, index) => {
                 const isPlaying = currentPlayingIndex === index;
                 return (
                   <div 
                     key={`${note}-${index}`} 
-                    className="flex justify-center items-start min-h-0 overflow-hidden"
+                    className="flex justify-center items-start min-h-0 overflow-visible"
                   >
                     <div className={`flex flex-col items-center justify-start transition-all duration-300 h-full w-full ${
                       isPlaying ? 'scale-[1.02]' : ''
@@ -220,6 +283,9 @@ export default function Home() {
                         isPlaying={isPlaying}
                         colorPreset={colorPreset}
                         expandedView={isPanelCollapsed}
+                        onAnchorUpdate={handleAnchorUpdate}
+                        showPiano={showPiano}
+                        showGuitar={showGuitar}
                       />
                     </div>
                   </div>
@@ -230,5 +296,13 @@ export default function Home() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <MascotProvider>
+      <HomeContent />
+    </MascotProvider>
   );
 }

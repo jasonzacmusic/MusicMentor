@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel, getAllChordsContainingNote, type ChordMembership } from '@/lib/chord-theory';
@@ -7,7 +7,7 @@ import PianoKeyboard from './piano-keyboard';
 import GuitarFretboard from './guitar-fretboard';
 import { Piano, Guitar, ChevronDown, ChevronUp } from 'lucide-react';
 import { CHORD_SYMBOLS, CHORD_NAMES } from '@/lib/music-constants';
-import { AnimatedMascot, AnimalSelector, VineRope, type AnimalType } from './animated-mascot';
+import type { ChordAnchor } from './animated-mascot';
 
 // Format chord with jazz symbols (e.g., "C°7" instead of "C Diminished 7th")
 function formatJazzChord(rootNote: string, chordType: string): string {
@@ -577,6 +577,7 @@ interface ChordSkillSelectorProps {
   expandedView?: boolean;
   showPiano?: boolean;
   showGuitar?: boolean;
+  onAnchorUpdate?: (anchor: ChordAnchor) => void;
 }
 
 export default function ChordSkillSelector({
@@ -592,10 +593,13 @@ export default function ChordSkillSelector({
   colorPreset = 'earth',
   expandedView = false,
   showPiano = false,
-  showGuitar = false
+  showGuitar = false,
+  onAnchorUpdate
 }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord } = useAudio();
+  const treeContainerRef = useRef<HTMLDivElement>(null);
+  const centerButtonRef = useRef<HTMLButtonElement>(null);
 
   const selectedChord = parentSelectedChord;
 
@@ -604,59 +608,47 @@ export default function ChordSkillSelector({
     setAvailableChords(chords);
   }, [baseNote, skillLevel]);
 
-  const handleSelectChord = (chord: Chord) => {
+  const handleSelectChord = useCallback((chord: Chord) => {
     onChordSelect(chord, noteIndex);
-  };
+    
+    if (onAnchorUpdate && centerButtonRef.current) {
+      const rect = centerButtonRef.current.getBoundingClientRect();
+      onAnchorUpdate({
+        id: `tree-${noteIndex}`,
+        noteIndex,
+        chordId: chord.name,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+        element: centerButtonRef.current,
+      });
+    }
+  }, [onChordSelect, noteIndex, onAnchorUpdate]);
 
   const handleDeselectChord = () => {
     onChordSelect(null, noteIndex);
   };
-  // Show key categories expanded by default for usability
+
+  useEffect(() => {
+    if (isPlaying && selectedChord && onAnchorUpdate && centerButtonRef.current) {
+      const rect = centerButtonRef.current.getBoundingClientRect();
+      onAnchorUpdate({
+        id: `tree-${noteIndex}`,
+        noteIndex,
+        chordId: selectedChord.name,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+        element: centerButtonRef.current,
+      });
+    }
+  }, [isPlaying, selectedChord, noteIndex, onAnchorUpdate]);
+
+  const [showPianoView, setShowPianoView] = useState(false);
+  const [showGuitarView, setShowGuitarView] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     'Major': true, 'Minor': true, 'Dominant 7th': true, 'Major 7th': true, 'Minor 7th': true,
     'Diminished': true, 'Diminished 7th': true, 'Augmented': true, 'sus2': false, 'sus4': false,
     '7sus4': false, 'Minor(Maj7)': false, 'Minor 7b5': false, 'Add 9': false, 'Minor Add 9': false
   });
-
-  // Mascot state for beginner mode
-  const [mascotEnabled, setMascotEnabled] = useState(true);
-  const [selectedAnimal, setSelectedAnimal] = useState<AnimalType>('monkey');
-  const [mascotPosition, setMascotPosition] = useState({ x: 0, y: 0 });
-  const [isJumping, setIsJumping] = useState(false);
-  const [mascotDirection, setMascotDirection] = useState<'left' | 'right'>('right');
-  const treeContainerRef = useRef<HTMLDivElement>(null);
-
-  // Calculate chord positions for beginner mode radial tree
-  const chordPositions = useMemo(() => {
-    const angles = [270, 330, 30, 90, 150, 210];
-    const radius = 90;
-    return availableChords.map((_, index) => {
-      const angle = angles[index] || 0;
-      const x = Math.cos(angle * Math.PI / 180) * radius;
-      const y = Math.sin(angle * Math.PI / 180) * radius;
-      return { x, y };
-    });
-  }, [availableChords]);
-
-  // Update mascot position when selected chord changes
-  useEffect(() => {
-    if (!mascotEnabled || skillLevel !== 'beginner') return;
-    
-    const chordIndex = selectedChord 
-      ? availableChords.findIndex(c => c.name === selectedChord.name)
-      : -1;
-    
-    if (chordIndex >= 0 && chordPositions[chordIndex]) {
-      const newPos = chordPositions[chordIndex];
-      const currentX = mascotPosition.x;
-      setMascotDirection(newPos.x > currentX ? 'right' : 'left');
-      setIsJumping(true);
-      setMascotPosition({ x: newPos.x, y: newPos.y - 30 });
-      setTimeout(() => setIsJumping(false), 300);
-    } else {
-      setMascotPosition({ x: 0, y: -50 });
-    }
-  }, [selectedChord, availableChords, chordPositions, mascotEnabled, skillLevel]);
 
   const isIntermediateMode = skillLevel === 'intermediate';
   const triads = availableChords.filter(c => c.category === 'triad' || !c.parentType);
@@ -696,12 +688,12 @@ export default function ChordSkillSelector({
         <div className={`flex flex-col h-full w-full overflow-hidden transition-all duration-300 ${
           expandedView ? 'max-w-sm' : 'max-w-xs'
         }`}>
-          {/* Header with base note and instrument toggles */}
-          <div className="flex items-center justify-between mb-1 px-1">
+          {/* Header with base note */}
+          <div className="flex items-center justify-center mb-1 px-1">
             <button
               onClick={handleDeselectChord}
-              className={`px-3 py-1 rounded-full flex items-center gap-1 transition-all duration-300 
-                ${isPlaying 
+              className={`px-3 py-1 rounded-full flex items-center gap-1 transition-all duration-300
+                ${isPlaying
                   ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border border-emerald-300 shadow-md'
                   : selectedChord
                     ? 'bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-500/50 ring-1 ring-emerald-400/60'
@@ -714,24 +706,6 @@ export default function ChordSkillSelector({
                 <span className="text-[10px] text-slate-300">• {selectedChord.name}</span>
               )}
             </button>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setShowPiano(!showPiano)}
-                className={`p-1.5 rounded transition-all ${showPiano ? 'bg-emerald-600/80 text-white' : 'bg-slate-700/50 text-slate-400 hover:text-white'}`}
-                title="Toggle Piano"
-                data-testid="toggle-piano"
-              >
-                <Piano className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setShowGuitar(!showGuitar)}
-                className={`p-1.5 rounded transition-all ${showGuitar ? 'bg-emerald-600/80 text-white' : 'bg-slate-700/50 text-slate-400 hover:text-white'}`}
-                title="Toggle Guitar"
-                data-testid="toggle-guitar"
-              >
-                <Guitar className="w-3.5 h-3.5" />
-              </button>
-            </div>
           </div>
 
           {/* Scrollable chord categories */}
@@ -852,62 +826,49 @@ export default function ChordSkillSelector({
 
     return (
       <div className="flex flex-col items-center w-full">
-        {/* Animal Selector Toggle */}
-        <div className="mb-2">
-          <AnimalSelector
-            selectedAnimal={selectedAnimal}
-            onSelectAnimal={setSelectedAnimal}
-            enabled={mascotEnabled}
-            onToggleEnabled={() => setMascotEnabled(!mascotEnabled)}
-          />
-        </div>
-
         <div 
           ref={treeContainerRef}
           className={`relative ${treeSize} mx-auto flex items-center justify-center transition-all duration-300 ${
             isPlaying ? 'scale-105' : ''
           }`}
         >
-          {/* Decorative vine circle when mascot is enabled */}
-          {mascotEnabled && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-              <defs>
-                <linearGradient id="vineCircleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />
-                  <stop offset="50%" stopColor="#4ade80" stopOpacity="0.5" />
-                  <stop offset="100%" stopColor="#22c55e" stopOpacity="0.3" />
-                </linearGradient>
-              </defs>
-              <circle 
-                cx="128" cy="128" r="110" 
-                fill="none" 
-                stroke="url(#vineCircleGradient)" 
-                strokeWidth="6"
-                strokeDasharray="8 4"
-                className="animate-spin"
-                style={{ animationDuration: '60s' }}
-              />
-              {/* Decorative leaves around the circle */}
-              {[0, 60, 120, 180, 240, 300].map((angle, i) => {
-                const leafX = 128 + Math.cos((angle * Math.PI) / 180) * 115;
-                const leafY = 128 + Math.sin((angle * Math.PI) / 180) * 115;
-                return (
-                  <text
-                    key={i}
-                    x={leafX}
-                    y={leafY}
-                    fontSize="14"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    className="animate-pulse"
-                    style={{ animationDelay: `${i * 0.2}s` }}
-                  >
-                    🍃
-                  </text>
-                );
-              })}
-            </svg>
-          )}
+          {/* Decorative vine circle */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+            <defs>
+              <linearGradient id={`vineCircleGradient-${noteIndex}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#22c55e" stopOpacity="0.2" />
+                <stop offset="50%" stopColor="#4ade80" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#22c55e" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
+            <circle 
+              cx="128" cy="128" r="110" 
+              fill="none" 
+              stroke={`url(#vineCircleGradient-${noteIndex})`}
+              strokeWidth="4"
+              strokeDasharray="8 4"
+              className="animate-spin"
+              style={{ animationDuration: '60s' }}
+            />
+            {[0, 60, 120, 180, 240, 300].map((angle, i) => {
+              const leafX = 128 + Math.cos((angle * Math.PI) / 180) * 115;
+              const leafY = 128 + Math.sin((angle * Math.PI) / 180) * 115;
+              return (
+                <text
+                  key={i}
+                  x={leafX}
+                  y={leafY}
+                  fontSize="12"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="animate-pulse"
+                  style={{ animationDelay: `${i * 0.2}s`, opacity: 0.6 }}
+                >
+                  🍃
+                </text>
+              );
+            })}
+          </svg>
 
           <div className={`absolute w-56 h-56 rounded-full border transition-all duration-300 ${
             isPlaying ? 'border-emerald-400/50 shadow-lg shadow-emerald-500/20' : 'border-slate-700/30'
@@ -918,6 +879,7 @@ export default function ChordSkillSelector({
           
           <div className="absolute z-20 flex items-center justify-center">
             <button
+              ref={centerButtonRef}
               onClick={handleDeselectChord}
               className={`${centerSize} rounded-full flex items-center justify-center transition-all duration-300 
                 ${isPlaying 
@@ -934,17 +896,6 @@ export default function ChordSkillSelector({
             </button>
           </div>
 
-          {/* Animated Mascot */}
-          {mascotEnabled && (
-            <AnimatedMascot
-              animal={selectedAnimal}
-              position={mascotPosition}
-              isPlaying={isPlaying}
-              isJumping={isJumping}
-              direction={mascotDirection}
-            />
-          )}
-
           {availableChords.map((chord, index) => {
             const angles = [270, 330, 30, 90, 150, 210];
             const angle = angles[index] || 0;
@@ -956,50 +907,33 @@ export default function ChordSkillSelector({
 
             return (
               <div key={index} className="absolute">
-                {/* Vine/rope connector instead of plain line when mascot enabled */}
-                {mascotEnabled ? (
-                  <svg 
-                    className="absolute pointer-events-none overflow-visible"
-                    style={{ 
-                      left: '50%', 
-                      top: '50%', 
-                      width: '200px', 
-                      height: '200px',
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: 5
-                    }}
-                  >
-                    <defs>
-                      <linearGradient id={`vineGrad-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor={isSelected ? '#22c55e' : '#4b5563'} stopOpacity="0.4" />
-                        <stop offset="50%" stopColor={isSelected ? '#4ade80' : '#6b7280'} stopOpacity="0.8" />
-                        <stop offset="100%" stopColor={isSelected ? '#22c55e' : '#4b5563'} stopOpacity="0.4" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d={`M 100 100 Q ${100 + x * 0.5} ${100 + y * 0.5 + 10} ${100 + x * 0.55} ${100 + y * 0.55}`}
-                      fill="none"
-                      stroke={`url(#vineGrad-${index})`}
-                      strokeWidth={isSelected ? 4 : 3}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                ) : (
-                  <div
-                    className={`absolute z-10 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-60 hover:opacity-80'}`}
-                    style={{
-                      left: '50%',
-                      top: '50%',
-                      width: `${treeRadius - 40}px`,
-                      height: isSelected ? '3px' : '2px',
-                      background: getBranchGradient(chord.type, isSelected),
-                      transform: `translate(0, -50%) rotate(${angle}deg)`,
-                      transformOrigin: 'left center',
-                      borderRadius: '2px',
-                      boxShadow: isSelected ? '0 0 8px rgba(80, 220, 185, 0.3)' : 'none'
-                    }}
+                {/* Vine/rope connector */}
+                <svg 
+                  className="absolute pointer-events-none overflow-visible"
+                  style={{ 
+                    left: '50%', 
+                    top: '50%', 
+                    width: '200px', 
+                    height: '200px',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 5
+                  }}
+                >
+                  <defs>
+                    <linearGradient id={`vineGrad-${noteIndex}-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor={isSelected ? '#22c55e' : '#4b5563'} stopOpacity="0.4" />
+                      <stop offset="50%" stopColor={isSelected ? '#4ade80' : '#6b7280'} stopOpacity="0.8" />
+                      <stop offset="100%" stopColor={isSelected ? '#22c55e' : '#4b5563'} stopOpacity="0.4" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d={`M 100 100 Q ${100 + x * 0.5} ${100 + y * 0.5 + 10} ${100 + x * 0.55} ${100 + y * 0.55}`}
+                    fill="none"
+                    stroke={`url(#vineGrad-${noteIndex}-${index})`}
+                    strokeWidth={isSelected ? 4 : 3}
+                    strokeLinecap="round"
                   />
-                )}
+                </svg>
 
                 <button
                   className={`absolute ${chordButtonSize} rounded-full flex flex-col items-center justify-center cursor-pointer 
