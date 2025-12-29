@@ -935,27 +935,42 @@ export default function ChordSkillSelector({
                   />
                 </svg>
 
-                <button
-                  className={`absolute ${chordButtonSize} rounded-full flex flex-col items-center justify-center cursor-pointer 
-                    transition-all duration-200 border-2 z-30 font-semibold backdrop-blur-sm
-                    ${isSelected 
-                      ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/40` 
-                      : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md ${colorScheme.glow} opacity-80 hover:opacity-100 hover:scale-105`
-                    }
-                    ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
+                <div
+                  className="absolute z-30"
                   style={{
                     left: `calc(50% + ${x}px)`,
                     top: `calc(50% + ${y}px)`,
                     transform: 'translate(-50%, -50%)'
                   }}
-                  onClick={() => handleSelectChord(chord)}
-                  title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type}`}
-                  data-testid={`chord-button-${chord.type}-${index}`}
                 >
-                  <span className={`${expandedView ? 'text-[14px]' : 'text-[13px]'} font-bold text-center leading-tight drop-shadow-md`}>
-                    {formatJazzChord(chord.rootNote, chord.type)}
-                  </span>
-                </button>
+                  {isSelected && (
+                    <>
+                      <div className="absolute inset-0 -m-2 rounded-full bg-gradient-to-r from-emerald-400/40 via-teal-300/50 to-emerald-400/40 animate-spin" style={{ animationDuration: '3s' }} />
+                      <div className="absolute inset-0 -m-1 rounded-full bg-emerald-400/30 animate-ping" style={{ animationDuration: '1.5s' }} />
+                    </>
+                  )}
+                  <button
+                    className={`relative ${chordButtonSize} rounded-full flex flex-col items-center justify-center cursor-pointer 
+                      transition-all duration-200 border-2 font-semibold backdrop-blur-sm
+                      ${isSelected 
+                        ? `${colorScheme.bg} border-emerald-300 ${colorScheme.text} shadow-xl shadow-emerald-500/50 scale-115 ring-4 ring-emerald-400/60 ring-offset-2 ring-offset-slate-900` 
+                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md ${colorScheme.glow} opacity-50 hover:opacity-90 hover:scale-105 grayscale-[30%] hover:grayscale-0`
+                      }
+                      ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
+                    onClick={() => handleSelectChord(chord)}
+                    title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type}`}
+                    data-testid={`chord-button-${chord.type}-${index}`}
+                  >
+                    <span className={`${expandedView ? 'text-[14px]' : 'text-[13px]'} font-bold text-center leading-tight drop-shadow-md`}>
+                      {formatJazzChord(chord.rootNote, chord.type)}
+                    </span>
+                    {isSelected && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+                        <span className="text-[6px] text-emerald-900 font-bold">✓</span>
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
             );
           })}
