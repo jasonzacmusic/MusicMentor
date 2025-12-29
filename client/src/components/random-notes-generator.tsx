@@ -19,6 +19,7 @@ interface RandomNotesGeneratorProps {
   skillLevel?: SkillLevel;
   noteCount?: number;
   onNoteCountChange?: (count: number) => void;
+  onPlayingIndexChange?: (index: number | null) => void;
 }
 
 // Beat duration patterns for different note counts (total: 8 beats)
@@ -30,7 +31,7 @@ const BEAT_PATTERNS: Record<number, number[]> = {
   5: [1.5, 1.5, 1.5, 1.5, 2]
 };
 
-export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange, onPlayingIndexChange }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G', 'F']); // Default to 4 notes
   const [inputMode, setInputMode] = useState<'random' | 'manual'>('random');
   const [tempo, setTempo] = useState(120);
@@ -53,6 +54,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
   const loopSchedulerRef = useRef<number | null>(null);
+  const playingIndexTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  const onPlayingIndexChangeRef = useRef(onPlayingIndexChange);
 
   // Update refs when values change
   useEffect(() => {
@@ -73,9 +76,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   useEffect(() => {
     arpeggioSpeedRef.current = arpeggioSpeed;
-    // Update global for audio engine
     (window as any).__arpeggioSpeed = arpeggioSpeed;
   }, [arpeggioSpeed]);
+
+  useEffect(() => {
+    onPlayingIndexChangeRef.current = onPlayingIndexChange;
+  }, [onPlayingIndexChange]);
 
   // Helper function to generate unique notes
   const generateUniqueNotes = useCallback((count: number, baseNote?: string): string[] => {
@@ -214,6 +220,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     isSequenceActiveRef.current = false;
     setIsPlaying(false);
 
+    // Clear playing index
+    onPlayingIndexChangeRef.current?.(null);
+    playingIndexTimeoutsRef.current.forEach(t => clearTimeout(t));
+    playingIndexTimeoutsRef.current.clear();
+
     // Cancel seamless loop scheduler (requestAnimationFrame)
     if (loopSchedulerRef.current) {
       cancelAnimationFrame(loopSchedulerRef.current);
@@ -265,15 +276,29 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     const chordDurations = BEAT_PATTERNS[currentNoteCount] || BEAT_PATTERNS[4];
     const totalBeats = 8;
     const currentTempo = tempoRef.current;
-    const beatDuration = 60 / currentTempo; // seconds per beat
+    const beatDuration = 60 / currentTempo;
+
+    // Clear any stale highlight timeouts from previous cycle
+    playingIndexTimeoutsRef.current.forEach(t => clearTimeout(t));
+    playingIndexTimeoutsRef.current.clear();
 
     let currentTime = startTime;
+    const audioContextStartTime = audioEngine.audioContext?.currentTime || 0;
 
-    // Schedule all notes/chords with precise Web Audio timing
     for (let i = 0; i < currentNoteCount; i++) {
       const durationBeats = chordDurations[i];
       const durationMs = durationBeats * beatDuration * 1000;
       const selectedChord = chordsToUse[i];
+
+      const delayMs = (currentTime - audioContextStartTime) * 1000;
+      const indexToSet = i;
+      const timeout = setTimeout(() => {
+        playingIndexTimeoutsRef.current.delete(timeout);
+        if (isSequenceActiveRef.current) {
+          onPlayingIndexChangeRef.current?.(indexToSet);
+        }
+      }, Math.max(0, delayMs));
+      playingIndexTimeoutsRef.current.add(timeout);
 
       if (selectedChord) {
         const baseNotes = selectedChord.notes.slice(0, 3);
@@ -292,7 +317,6 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       currentTime += durationBeats * beatDuration;
     }
 
-    // Schedule metronome clicks for this cycle
     scheduleMetronomeClicks(startTime, totalBeats, currentTempo);
 
     const sequenceEndTime = startTime + (totalBeats * beatDuration);
@@ -341,6 +365,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       if (!isLoopingRef.current && currentTime >= scheduledEndTimeRef.current) {
         isSequenceActiveRef.current = false;
         setIsPlaying(false);
+        onPlayingIndexChangeRef.current?.(null);
+        playingIndexTimeoutsRef.current.forEach(t => clearTimeout(t));
+        playingIndexTimeoutsRef.current.clear();
         console.log('✅ Sequence complete (non-looping)');
         return;
       }

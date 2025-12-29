@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
-import ChordSkillSelector from '@/components/chord-skill-selector';
+import ChordSkillSelector, { type ColorPreset } from '@/components/chord-skill-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Music, HelpCircle, Settings } from 'lucide-react';
+import { Music, HelpCircle, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Chord } from '@/lib/chord-theory';
@@ -11,19 +11,18 @@ type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export default function Home() {
   const [selectedNote, setSelectedNote] = useState('C');
-  const [noteCount, setNoteCount] = useState(4); // Default to 4 notes
+  const [noteCount, setNoteCount] = useState(4);
   const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A', 'G']);
   const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null, null]);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
   const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto', 'auto']);
+  const [currentPlayingIndex, setCurrentPlayingIndex] = useState<number | null>(null);
+  const [colorPreset, setColorPreset] = useState<ColorPreset>('neon');
 
-  // Update arrays when note count changes
   const handleNoteCountChange = (count: number) => {
     setNoteCount(count);
-    // Resize arrays to match new count
     setActiveNotes(prev => {
       if (prev.length >= count) return prev.slice(0, count);
-      // Pad with placeholder notes if needed (will be replaced on generate)
       const padded = [...prev];
       while (padded.length < count) padded.push('C');
       return padded;
@@ -34,9 +33,9 @@ export default function Home() {
 
   const handleNotesChange = (notes: string[]) => {
     setActiveNotes(notes);
-    setSelectedNote(notes[0]); // Use the first note (base note) for chord harmonization
-    setSelectedChords(Array(notes.length).fill(null)); // Reset selected chords when notes change
-    setInversionModes(Array(notes.length).fill('auto')); // Reset inversion modes
+    setSelectedNote(notes[0]);
+    setSelectedChords(Array(notes.length).fill(null));
+    setInversionModes(Array(notes.length).fill('auto'));
   };
 
   const handleInversionChange = (mode: 'auto' | 'root' | 'first' | 'second', noteIndex: number) => {
@@ -51,9 +50,12 @@ export default function Home() {
     setSelectedChords(newSelectedChords);
   };
 
+  const handlePlayingIndexChange = (index: number | null) => {
+    setCurrentPlayingIndex(index);
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="max-w-full mx-auto px-4 lg:px-6">
           <div className="flex justify-between items-center h-14">
@@ -67,13 +69,21 @@ export default function Home() {
                 </h1>
               </div>
             </div>
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
+              <Select value={colorPreset} onValueChange={(value: ColorPreset) => setColorPreset(value)}>
+                <SelectTrigger className="w-[100px] h-8 text-xs" data-testid="select-color-preset">
+                  <Palette className="w-3 h-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="neon" data-testid="option-neon">Neon</SelectItem>
+                  <SelectItem value="pastel" data-testid="option-pastel">Pastel</SelectItem>
+                  <SelectItem value="earth" data-testid="option-earth">Earth</SelectItem>
+                </SelectContent>
+              </Select>
               <ThemeToggle />
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="button-help">
                 <HelpCircle className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="button-settings">
-                <Settings className="w-5 h-5" />
               </Button>
             </div>
           </div>
@@ -82,15 +92,12 @@ export default function Home() {
 
       <main className="max-w-full mx-auto px-3 lg:px-4 py-3">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-[calc(100vh-90px)]">
-          {/* Left Panel - Controls (Compact) */}
-          <div className="lg:col-span-3 space-y-2 overflow-y-auto">
-            {/* Combined Settings & Controls */}
+          <div className="lg:col-span-2 xl:col-span-2 space-y-2 overflow-y-auto">
             <div className="bg-card rounded-lg p-3 border border-border">
-              {/* Skill Level - Inline */}
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Skill</label>
                 <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="select-skill-level">
+                  <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="select-skill-level">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -101,7 +108,6 @@ export default function Home() {
                 </Select>
               </div>
 
-              {/* Controls */}
               <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
                 <RandomNotesGenerator
                   onNotesChange={handleNotesChange}
@@ -111,11 +117,11 @@ export default function Home() {
                   skillLevel={skillLevel}
                   noteCount={noteCount}
                   onNoteCountChange={handleNoteCountChange}
+                  onPlayingIndexChange={handlePlayingIndexChange}
                 />
               </div>
             </div>
 
-            {/* Compact Instructions */}
             <div className="bg-muted/30 rounded-lg p-2 border border-border">
               <div className="text-xs text-muted-foreground space-y-0.5">
                 <p><span className="text-primary font-medium">Tip:</span> Click center note to clear chord</p>
@@ -123,39 +129,14 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Panel - Chord Trees */}
-          <div className="lg:col-span-9">
+          <div className="lg:col-span-10 xl:col-span-10">
             <div className="bg-card rounded-lg p-4 border border-border h-full">
-              <div className="text-center mb-4">
+              <div className="text-center mb-3">
                 <h3 className="text-lg font-semibold text-foreground">Chord Trees</h3>
                 <p className="text-sm text-muted-foreground">Click chord branches to hear harmonies</p>
               </div>
 
-              {/* Selected Chords Display */}
-              <div className="mb-4 flex justify-center items-center gap-3">
-                {selectedChords.map((chord, index) => (
-                  <div
-                    key={index}
-                    className={`flex-1 max-w-[180px] rounded-lg p-3 text-center border transition-colors ${
-                      chord
-                        ? 'bg-primary/5 dark:bg-primary/10 border-primary'
-                        : 'bg-muted/30 border-border'
-                    }`}
-                    data-testid={`text-selected-chord-${index}`}
-                  >
-                    <div className="text-xs font-medium text-muted-foreground mb-1">
-                      Position {index + 1}
-                    </div>
-                    <div className={`text-xl font-bold ${
-                      chord ? 'text-foreground' : 'text-muted-foreground/30'
-                    }`}>
-                      {chord ? chord.name : '—'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={`grid grid-cols-1 gap-4 h-[calc(100%-140px)] overflow-y-auto ${
+              <div className={`grid grid-cols-1 gap-2 h-[calc(100%-60px)] overflow-y-auto ${
                 noteCount === 1 ? 'xl:grid-cols-1' :
                 noteCount === 2 ? 'xl:grid-cols-2' :
                 noteCount === 3 ? 'xl:grid-cols-3' :
@@ -163,17 +144,12 @@ export default function Home() {
                 'xl:grid-cols-5'
               }`}>
                 {activeNotes.map((note, index) => {
+                  const isPlaying = currentPlayingIndex === index;
                   return (
-                    <div key={`${note}-${index}`} className="relative flex justify-center items-center">
-                      <div className="relative flex flex-col items-center justify-center">
-                        {/* Note Label */}
-                        <div className="mb-2">
-                          <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                            Note {index + 1}
-                          </span>
-                        </div>
-
-                        {/* Chord Selector with Tree Layout - NO SCALE TRANSFORM */}
+                    <div key={`${note}-${index}`} className="relative flex justify-center items-start pt-2">
+                      <div className={`relative flex flex-col items-center justify-center transition-all duration-300 ${
+                        isPlaying ? 'scale-102' : ''
+                      }`}>
                         <ChordSkillSelector
                           baseNote={note}
                           noteIndex={index}
@@ -183,6 +159,8 @@ export default function Home() {
                           onInversionChange={(mode) => handleInversionChange(mode, index)}
                           skillLevel={skillLevel}
                           treeLayout={true}
+                          isPlaying={isPlaying}
+                          colorPreset={colorPreset}
                         />
                       </div>
                     </div>
