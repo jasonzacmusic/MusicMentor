@@ -275,33 +275,34 @@ export class AudioEngine {
 
       // ARPEGGIO ALWAYS USES ROOT POSITION (all notes at octave 0)
       // This ensures the arpeggio sounds IDENTICAL regardless of chord inversion
-      // The octaves array is only for simultaneous chord voicing, NOT for arpeggios
 
       // Arpeggio pattern: 5-1-3-1 played TWICE = 8 notes total
-      // ALL notes played at octave 0 for consistent sound across all inversions
       const arpeggioPattern = [
-        { note: fifth, octave: 0 }, // 5th (fifth)
-        { note: root, octave: 0 },   // 1st (root)
-        { note: third, octave: 0 }, // 3rd (third)
-        { note: root, octave: 0 },   // 1st (root) again
-        { note: fifth, octave: 0 }, // 5th (fifth) - second iteration
-        { note: root, octave: 0 },   // 1st (root)
-        { note: third, octave: 0 }, // 3rd (third)
-        { note: root, octave: 0 }    // 1st (root) again
+        { note: fifth, octave: 0 },
+        { note: root, octave: 0 },
+        { note: third, octave: 0 },
+        { note: root, octave: 0 },
+        { note: fifth, octave: 0 },
+        { note: root, octave: 0 },
+        { note: third, octave: 0 },
+        { note: root, octave: 0 }
       ];
 
-      // FIXED TEMPO-BASED NOTE DURATION: Each note is 1/4 beat (sixteenth note)
-      // This ensures consistent tempo across all positions regardless of slot duration
+      // Get arpeggio speed from global setting (default: eighth notes = 1/2 beat)
+      // arpeggioSpeed: 1 = eighth notes (1/2 beat), 2 = sixteenth notes (1/4 beat)
+      const arpeggioSpeed = (window as any).__arpeggioSpeed || 1;
       const beatDuration = 60 / tempo; // seconds per beat
-      const noteDuration = (beatDuration / 4) * 1000; // 1/4 beat in milliseconds (sixteenth note)
+      const notesPerBeat = arpeggioSpeed === 2 ? 4 : 2; // 4 for sixteenth, 2 for eighth
+      const noteDurationSec = beatDuration / notesPerBeat;
+      const noteDurationMs = noteDurationSec * 1000;
       const baseStartTime = startTime || this.audioContext!.currentTime;
 
-      console.log(`🎸 Playing arpeggio x2: ${root}-${third}-${fifth} as 5-1-3-1-5-1-3-1 pattern at fixed tempo (${tempo} BPM)`);
+      console.log(`🎸 Arpeggio: ${root}-${third}-${fifth} at ${tempo} BPM, ${arpeggioSpeed === 2 ? '16th' : '8th'} notes`);
 
-      // Schedule all notes in the arpeggio with precise timing and correct octaves
+      // Schedule all notes with precise Web Audio timing
       const promises = arpeggioPattern.map((item, index) => {
-        const noteStartTime = baseStartTime + (index * noteDuration / 1000);
-        return this.playNote(item.note, noteDuration, item.octave, noteStartTime).catch(error => {
+        const noteStartTime = baseStartTime + (index * noteDurationSec);
+        return this.playNote(item.note, noteDurationMs, item.octave, noteStartTime).catch(error => {
           console.error('Error playing arpeggio note:', item.note, error);
           return Promise.resolve();
         });

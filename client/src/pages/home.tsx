@@ -11,16 +11,32 @@ type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export default function Home() {
   const [selectedNote, setSelectedNote] = useState('C');
-  const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A']);
-  const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null]);
+  const [noteCount, setNoteCount] = useState(4); // Default to 4 notes
+  const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A', 'G']);
+  const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null, null]);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
-  const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto']);
+  const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto', 'auto']);
+
+  // Update arrays when note count changes
+  const handleNoteCountChange = (count: number) => {
+    setNoteCount(count);
+    // Resize arrays to match new count
+    setActiveNotes(prev => {
+      if (prev.length >= count) return prev.slice(0, count);
+      // Pad with placeholder notes if needed (will be replaced on generate)
+      const padded = [...prev];
+      while (padded.length < count) padded.push('C');
+      return padded;
+    });
+    setSelectedChords(Array(count).fill(null));
+    setInversionModes(Array(count).fill('auto'));
+  };
 
   const handleNotesChange = (notes: string[]) => {
     setActiveNotes(notes);
     setSelectedNote(notes[0]); // Use the first note (base note) for chord harmonization
-    setSelectedChords([null, null, null]); // Reset selected chords when notes change
-    setInversionModes(['auto', 'auto', 'auto']); // Reset inversion modes
+    setSelectedChords(Array(notes.length).fill(null)); // Reset selected chords when notes change
+    setInversionModes(Array(notes.length).fill('auto')); // Reset inversion modes
   };
 
   const handleInversionChange = (mode: 'auto' | 'root' | 'first' | 'second', noteIndex: number) => {
@@ -64,72 +80,51 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-4 lg:px-6 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-100px)]">
-          {/* Left Panel - Controls */}
-          <div className="lg:col-span-4 space-y-4 overflow-y-auto">
-            {/* Practice Session Info & Skill Level */}
-            <div className="bg-card rounded-lg p-4 border border-border">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-foreground">Practice Session</h2>
-                <p className="text-sm text-muted-foreground">Master chord relationships</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Skill Level</label>
+      <main className="max-w-full mx-auto px-3 lg:px-4 py-3">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-[calc(100vh-90px)]">
+          {/* Left Panel - Controls (Compact) */}
+          <div className="lg:col-span-3 space-y-2 overflow-y-auto">
+            {/* Combined Settings & Controls */}
+            <div className="bg-card rounded-lg p-3 border border-border">
+              {/* Skill Level - Inline */}
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Skill</label>
                 <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                  <SelectTrigger className="w-full" data-testid="select-skill-level">
+                  <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="select-skill-level">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner" data-testid="option-beginner">Beginner — Major & Minor</SelectItem>
-                    <SelectItem value="intermediate" disabled data-testid="option-intermediate">Intermediate — Coming soon</SelectItem>
-                    <SelectItem value="advanced" disabled data-testid="option-advanced">Advanced — Coming soon</SelectItem>
+                    <SelectItem value="beginner" data-testid="option-beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate" disabled data-testid="option-intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced" disabled data-testid="option-advanced">Advanced</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Controls Panel */}
-            <div className="bg-card rounded-lg p-4 border border-border flex-1">
-              <h3 className="text-base font-semibold text-foreground mb-3">Controls</h3>
-              <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
+              {/* Controls */}
+              <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
                 <RandomNotesGenerator
                   onNotesChange={handleNotesChange}
                   onChordsChange={setSelectedChords}
                   selectedChords={selectedChords}
                   inversionModes={inversionModes}
                   skillLevel={skillLevel}
+                  noteCount={noteCount}
+                  onNoteCountChange={handleNoteCountChange}
                 />
               </div>
             </div>
 
-            {/* Instructions */}
-            <div className="bg-muted/50 rounded-lg p-4 border border-border">
-              <h3 className="text-sm font-semibold text-foreground mb-2">How to Practice</h3>
-              <ul className="space-y-1.5 text-sm text-muted-foreground">
-                <li className="flex items-start space-x-2">
-                  <span className="text-primary font-semibold font-mono">1.</span>
-                  <span>Generate new note sequences</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-primary font-semibold font-mono">2.</span>
-                  <span>Explore 6 chord branches per note</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-primary font-semibold font-mono">3.</span>
-                  <span>Use Random for auto selection</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-primary font-semibold font-mono">4.</span>
-                  <span>Adjust tempo and skill levels</span>
-                </li>
-              </ul>
+            {/* Compact Instructions */}
+            <div className="bg-muted/30 rounded-lg p-2 border border-border">
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <p><span className="text-primary font-medium">Tip:</span> Click center note to clear chord</p>
+              </div>
             </div>
           </div>
 
           {/* Right Panel - Chord Trees */}
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-9">
             <div className="bg-card rounded-lg p-4 border border-border h-full">
               <div className="text-center mb-4">
                 <h3 className="text-lg font-semibold text-foreground">Chord Trees</h3>
@@ -160,7 +155,13 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 h-[calc(100%-140px)] overflow-y-auto">
+              <div className={`grid grid-cols-1 gap-4 h-[calc(100%-140px)] overflow-y-auto ${
+                noteCount === 1 ? 'xl:grid-cols-1' :
+                noteCount === 2 ? 'xl:grid-cols-2' :
+                noteCount === 3 ? 'xl:grid-cols-3' :
+                noteCount === 4 ? 'xl:grid-cols-4' :
+                'xl:grid-cols-5'
+              }`}>
                 {activeNotes.map((note, index) => {
                   return (
                     <div key={`${note}-${index}`} className="relative flex justify-center items-center">

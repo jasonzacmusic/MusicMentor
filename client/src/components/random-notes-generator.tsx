@@ -17,10 +17,21 @@ interface RandomNotesGeneratorProps {
   selectedChords?: (Chord | null)[];
   inversionModes?: ('auto' | 'root' | 'first' | 'second')[];
   skillLevel?: SkillLevel;
+  noteCount?: number;
+  onNoteCountChange?: (count: number) => void;
 }
 
-export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null], inversionModes = ['auto', 'auto', 'auto'], skillLevel = 'beginner' }: RandomNotesGeneratorProps) {
-  const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G']); // Default to Bb, D, G
+// Beat duration patterns for different note counts (total: 8 beats)
+const BEAT_PATTERNS: Record<number, number[]> = {
+  1: [8],
+  2: [4, 4],
+  3: [2, 2, 4],
+  4: [2, 2, 2, 2],
+  5: [1.5, 1.5, 1.5, 1.5, 2]
+};
+
+export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange }: RandomNotesGeneratorProps) {
+  const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G', 'F']); // Default to 4 notes
   const [inputMode, setInputMode] = useState<'random' | 'manual'>('random');
   const [tempo, setTempo] = useState(60);
   const tempoRef = useRef(60); // Ref for real-time tempo access during playback
@@ -35,48 +46,101 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
   const metronomeMultiplierRef = useRef(1); // Ref for real-time metronome speed access
 
+  // Arpeggio speed: 1 = eighth notes (default), 2 = sixteenth notes
+  const [arpeggioSpeed, setArpeggioSpeed] = useState(1);
+  const arpeggioSpeedRef = useRef(1);
+
+  // Scheduled loop tracking for seamless looping
+  const scheduledEndTimeRef = useRef<number>(0);
+  const loopSchedulerRef = useRef<number | null>(null);
+
   // Update refs when values change
   useEffect(() => {
     tempoRef.current = tempo;
   }, [tempo]);
-  
+
   useEffect(() => {
     withMetronomeRef.current = withMetronome;
   }, [withMetronome]);
-  
+
   useEffect(() => {
     metronomeMultiplierRef.current = metronomeMultiplier;
   }, [metronomeMultiplier]);
-  
+
   useEffect(() => {
     isLoopingRef.current = isLooping;
   }, [isLooping]);
-  // Removed old useAudio hook - using direct audioEngine now
+
+  useEffect(() => {
+    arpeggioSpeedRef.current = arpeggioSpeed;
+    // Update global for audio engine
+    (window as any).__arpeggioSpeed = arpeggioSpeed;
+  }, [arpeggioSpeed]);
+
+  // Helper function to generate unique notes
+  const generateUniqueNotes = useCallback((count: number, baseNote?: string): string[] => {
+    const chromaticNotes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+    // Musical intervals from base note (all unique intervals ensure unique notes)
+    const intervals = [0, 4, -3, 7, 5, 2, -5, 1, 6, -1, 3, -4]; // Extended for safety
+
+    // Use provided base or pick random
+    const base = baseNote || chromaticNotes[Math.floor(Math.random() * chromaticNotes.length)];
+    const baseIndex = chromaticNotes.indexOf(base);
+
+    const usedNotes = new Set<string>();
+    const newNotes: string[] = [];
+
+    // First, try to use the musical intervals
+    for (let i = 0; i < count && i < intervals.length; i++) {
+      const interval = intervals[i];
+      const noteIndex = (baseIndex + interval + 12) % 12;
+      const note = chromaticNotes[noteIndex];
+
+      if (!usedNotes.has(note)) {
+        usedNotes.add(note);
+        newNotes.push(note);
+      }
+    }
+
+    // If we still need more unique notes, pick randomly from remaining
+    if (newNotes.length < count) {
+      const remainingNotes = chromaticNotes.filter(n => !usedNotes.has(n));
+      while (newNotes.length < count && remainingNotes.length > 0) {
+        const randomIndex = Math.floor(Math.random() * remainingNotes.length);
+        const note = remainingNotes.splice(randomIndex, 1)[0];
+        newNotes.push(note);
+      }
+    }
+
+    return newNotes;
+  }, []);
+
+  // Regenerate notes when noteCount changes
+  useEffect(() => {
+    // Only regenerate if we're in random mode
+    if (inputMode === 'random') {
+      const baseNote = notes[0] || undefined;
+      const newNotes = generateUniqueNotes(noteCount, baseNote);
+
+      setNotes(newNotes);
+      onNotesChange?.(newNotes);
+      onChordsChange?.(Array(noteCount).fill(null));
+      console.log(`🔄 Note count changed to ${noteCount}, regenerated unique notes:`, newNotes);
+    }
+  }, [noteCount]); // Only depend on noteCount
 
   const generateNew = useCallback(() => {
-    const chromaticNotes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
-    
-    // Note 1: Any of the 12 chromatic notes (random base note)
-    const note1 = chromaticNotes[Math.floor(Math.random() * chromaticNotes.length)];
-    const note1Index = chromaticNotes.indexOf(note1);
-    
-    // Note 2: Major 3rd up from Note 1 (4 semitones up)
-    const note2Index = (note1Index + 4) % 12;
-    const note2 = chromaticNotes[note2Index];
-    
-    // Note 3: Minor 3rd down from Note 1 (3 semitones down)
-    const note3Index = (note1Index - 3 + 12) % 12;
-    const note3 = chromaticNotes[note3Index];
-    
-    const newNotes = [note1, note2, note3];
+    const newNotes = generateUniqueNotes(noteCount);
+
     setNotes(newNotes);
     onNotesChange?.(newNotes);
-    
+
     // Clear all chord selections when generating new notes
-    const clearedChords: (Chord | null)[] = [null, null, null];
+    const clearedChords: (Chord | null)[] = Array(noteCount).fill(null);
     onChordsChange?.(clearedChords);
-    console.log('🧹 Cleared chord selections after generating new notes');
-  }, [onNotesChange, onChordsChange]);
+    console.log(`🧹 Generated ${noteCount} unique notes:`, newNotes);
+  }, [onNotesChange, onChordsChange, noteCount, generateUniqueNotes]);
 
   // Single loop control ref 
   const loopIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -145,186 +209,233 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // EMERGENCY RESET FUNCTION - Completely stop all audio
   const emergencyReset = useCallback(() => {
     console.log('🚨 EMERGENCY RESET - Clearing all audio');
-    
+
     // Set flags to prevent new sequences
     isSequenceActiveRef.current = false;
     setIsPlaying(false);
-    
+
+    // Cancel seamless loop scheduler (requestAnimationFrame)
+    if (loopSchedulerRef.current) {
+      cancelAnimationFrame(loopSchedulerRef.current);
+      loopSchedulerRef.current = null;
+      console.log('🔄 Cancelled seamless loop scheduler');
+    }
+
     // Clear all intervals/timeouts
     if (loopIntervalRef.current) {
       clearInterval(loopIntervalRef.current);
       loopIntervalRef.current = null;
       console.log('🔄 Cleared loop interval');
     }
-    
+
     // Cancel all scheduled timeouts immediately
     activeTimeoutsRef.current.forEach(timeout => {
       clearTimeout(timeout);
     });
     activeTimeoutsRef.current.clear();
     console.log('🔄 Cancelled all scheduled audio');
-    
+
     // Stop all oscillators immediately
     audioEngine.stopAll();
-    
+
     console.log('✅ Emergency reset complete');
   }, []);
 
-  // DYNAMIC METRONOME with real-time tempo and speed adaptation
-  const startDynamicMetronome = useCallback((startRealTime: number) => {
-    if (!withMetronomeRef.current) return null;
-    
-    let lastClickBeat = -1;
-    const metronomeStartTime = audioEngine.audioContext!.currentTime + 0.1;
-    
-    const checkAndPlayMetronome = () => {
-      if (!isSequenceActiveRef.current || !withMetronomeRef.current) {
-        console.log("🥁 Metronome stopped");
-        return;
-      }
-      
-      const realElapsedMs = Date.now() - startRealTime;
-      const currentTempo = tempoRef.current;
-      const msPerBeat = (60 / currentTempo) * 1000;
-      const realElapsedBeats = realElapsedMs / msPerBeat;
-      
-      // Determine metronome subdivision based on current multiplier
-      const currentMultiplier = metronomeMultiplierRef.current;
-      let clicksPerBeat = 1;
-      switch (currentMultiplier) {
-        case 1: clicksPerBeat = 1; break; // Quarter notes
-        case 2: clicksPerBeat = 2; break; // Eighth notes
-        case 3: clicksPerBeat = 4; break; // Sixteenth notes
-      }
-      
-      const totalClicksElapsed = realElapsedBeats * clicksPerBeat;
-      const nextClickNumber = Math.floor(totalClicksElapsed);
-      
-      // Play click if we've crossed into a new subdivision
-      if (nextClickNumber > lastClickBeat && realElapsedBeats < 8) {
-        const audioClickTime = metronomeStartTime + (realElapsedMs / 1000);
-        scheduleMetronomeClick(audioClickTime);
-        lastClickBeat = nextClickNumber;
-      }
-      
-      // Continue polling
-      if (isSequenceActiveRef.current && realElapsedBeats < 8) {
-        const metronomeTimeout = setTimeout(checkAndPlayMetronome, 10);
-        activeTimeoutsRef.current.add(metronomeTimeout);
-      }
-    };
-    
-    checkAndPlayMetronome();
+  // PRE-SCHEDULE METRONOME CLICKS - DAW-style precise timing
+  const scheduleMetronomeClicks = useCallback((startTime: number, totalBeats: number, tempo: number) => {
+    if (!withMetronomeRef.current || !audioEngine.audioContext) return;
+
+    const beatDuration = 60 / tempo; // seconds per beat
+    const multiplier = metronomeMultiplierRef.current;
+    const clicksPerBeat = multiplier === 1 ? 1 : multiplier === 2 ? 2 : 4;
+    const clickInterval = beatDuration / clicksPerBeat;
+    const totalClicks = Math.floor(totalBeats * clicksPerBeat);
+
+    for (let i = 0; i < totalClicks; i++) {
+      const clickTime = startTime + (i * clickInterval);
+      scheduleMetronomeClick(clickTime);
+    }
+
+    console.log(`🥁 Scheduled ${totalClicks} metronome clicks over ${totalBeats} beats`);
   }, []);
 
-  // REAL-TIME TEMPO-ADAPTIVE SEQUENCE PLAYER with dynamic metronome (Promise-based)
+  // DAW-STYLE PRE-SCHEDULED SEQUENCE PLAYER - schedules all audio upfront
+  const scheduleSequence = useCallback((startTime: number, chordsToUse: (Chord | null)[]): number => {
+    const currentNoteCount = notes.length;
+    const chordDurations = BEAT_PATTERNS[currentNoteCount] || BEAT_PATTERNS[4];
+    const totalBeats = 8;
+    const currentTempo = tempoRef.current;
+    const beatDuration = 60 / currentTempo; // seconds per beat
+
+    let currentTime = startTime;
+
+    // Schedule all notes/chords with precise Web Audio timing
+    for (let i = 0; i < currentNoteCount; i++) {
+      const durationBeats = chordDurations[i];
+      const durationMs = durationBeats * beatDuration * 1000;
+      const selectedChord = chordsToUse[i];
+
+      if (selectedChord) {
+        const baseNotes = selectedChord.notes.slice(0, 3);
+        if (baseNotes.length === 3) {
+          audioEngine.playChord(baseNotes, durationMs, currentTime, currentTempo, selectedChord.rootNote, selectedChord.octaves).catch(err => {
+            console.error('Error playing chord:', err);
+          });
+        }
+      } else {
+        const octaveOffset = i === 2 ? -1 : 0;
+        audioEngine.playNote(notes[i], durationMs, octaveOffset, currentTime).catch(err => {
+          console.error('Error playing note:', err);
+        });
+      }
+
+      currentTime += durationBeats * beatDuration;
+    }
+
+    // Schedule metronome clicks for this cycle
+    scheduleMetronomeClicks(startTime, totalBeats, currentTempo);
+
+    const sequenceEndTime = startTime + (totalBeats * beatDuration);
+    console.log(`🎵 Scheduled sequence: ${currentNoteCount} positions, ${totalBeats} beats, ends at ${sequenceEndTime.toFixed(3)}`);
+
+    return sequenceEndTime;
+  }, [notes, scheduleMetronomeClicks]);
+
+  // SEAMLESS LOOP SCHEDULER - schedules next iteration before current ends
+  const startSeamlessLoop = useCallback(async (chordsToUse: (Chord | null)[]) => {
+    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+      await audioEngine.initialize();
+    }
+
+    if (audioEngine.audioContext?.state === 'suspended') {
+      await audioEngine.audioContext.resume();
+    }
+
+    isSequenceActiveRef.current = true;
+    const lookAheadTime = 0.1; // Schedule 100ms ahead
+    let nextStartTime = audioEngine.audioContext!.currentTime + 0.05;
+
+    // Schedule first iteration
+    let endTime = scheduleSequence(nextStartTime, chordsToUse);
+    scheduledEndTimeRef.current = endTime;
+
+    // Continuous scheduling loop
+    const scheduleAhead = () => {
+      if (!isSequenceActiveRef.current) {
+        console.log('🛑 Loop scheduler stopped');
+        return;
+      }
+
+      const currentTime = audioEngine.audioContext!.currentTime;
+      const timeUntilEnd = scheduledEndTimeRef.current - currentTime;
+
+      // If we're within lookAhead time of the end, schedule next iteration
+      if (isLoopingRef.current && timeUntilEnd < lookAheadTime) {
+        nextStartTime = scheduledEndTimeRef.current;
+        endTime = scheduleSequence(nextStartTime, currentChordsRef.current);
+        scheduledEndTimeRef.current = endTime;
+        console.log(`🔄 Seamless loop: scheduled next at ${nextStartTime.toFixed(3)}`);
+      }
+
+      // Check if we should stop (non-looping mode and sequence ended)
+      if (!isLoopingRef.current && currentTime >= scheduledEndTimeRef.current) {
+        isSequenceActiveRef.current = false;
+        setIsPlaying(false);
+        console.log('✅ Sequence complete (non-looping)');
+        return;
+      }
+
+      // Continue the scheduler
+      loopSchedulerRef.current = requestAnimationFrame(scheduleAhead);
+    };
+
+    // Start the scheduling loop
+    loopSchedulerRef.current = requestAnimationFrame(scheduleAhead);
+  }, [scheduleSequence]);
+
+  // Legacy function for compatibility - now uses pre-scheduling
   const playSequenceOnce = useCallback((): Promise<void> => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve) => {
       console.log("🎯 playSequenceOnce called!");
-      
+
       if (isSequenceActiveRef.current) {
         console.log("🚫 Sequence already active, skipping");
         resolve();
         return;
       }
 
-      isSequenceActiveRef.current = true;
-      console.log("🎵 Starting real-time tempo-adaptive sequence");
-
-      const initializeAndPlay = async () => {
-        try {
-          if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-            await audioEngine.initialize();
-          }
-          
-          if (audioEngine.audioContext?.state === 'suspended') {
-            await audioEngine.audioContext.resume();
-          }
-
-          const chordDurations = [2, 2, 4]; // beats per position
-          const totalBeats = 8; // Total duration: 2+2+4 beats
-          let positionIndex = 0;
-          let elapsedBeats = 0;
-          const startRealTime = Date.now();
-          
-          // Start dynamic metronome
-          startDynamicMetronome(startRealTime);
-          
-          // Polling function that checks if it's time to play next position
-          const checkAndPlayNext = () => {
-            // Calculate how many beats have elapsed based on current tempo
-            const realElapsedMs = Date.now() - startRealTime;
-            const currentTempo = tempoRef.current;
-            const msPerBeat = (60 / currentTempo) * 1000;
-            const realElapsedBeats = realElapsedMs / msPerBeat;
-
-            // Check if sequence is complete (all positions played AND full duration elapsed)
-            if (!isSequenceActiveRef.current || (positionIndex >= 3 && realElapsedBeats >= totalBeats)) {
-              isSequenceActiveRef.current = false;
-              // Clear all pending timeouts before resolving
-              activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-              activeTimeoutsRef.current.clear();
-              console.log("✅ Sequence complete");
-              resolve(); // Resolve promise on actual completion
-              return;
-            }
-
-            // Check if it's time to play the next position
-            if (positionIndex < 3 && realElapsedBeats >= elapsedBeats) {
-              const durationBeats = chordDurations[positionIndex];
-              const durationMs = (60 / currentTempo) * durationBeats * 1000;
-              const selectedChord = selectedChords[positionIndex];
-              const audioStartTime = audioEngine.audioContext!.currentTime + 0.05;
-              
-              console.log(`🎯 Pos ${positionIndex + 1}: tempo=${currentTempo} BPM, ${durationBeats}beats = ${(durationMs/1000).toFixed(2)}s`);
-
-              if (selectedChord) {
-                const baseNotes = selectedChord.notes.slice(0, 3);
-                if (baseNotes.length === 3) {
-                  audioEngine.playChord(baseNotes, durationMs, audioStartTime, currentTempo, selectedChord.rootNote, selectedChord.octaves).catch(err => {
-                    console.error('Error playing chord:', err);
-                  });
-                }
-              } else {
-                const octaveOffset = (positionIndex === 2) ? -1 : 0;
-                audioEngine.playNote(notes[positionIndex], durationMs, octaveOffset, audioStartTime).catch(err => {
-                  console.error('Error playing note:', err);
-                });
-              }
-
-              elapsedBeats += durationBeats;
-              positionIndex++;
-            }
-
-            // Continue polling every 10ms
-            if (isSequenceActiveRef.current) {
-              const pollTimeout = setTimeout(() => {
-                // Remove this timeout from tracking when it fires
-                activeTimeoutsRef.current.delete(pollTimeout);
-                checkAndPlayNext();
-              }, 10);
-              activeTimeoutsRef.current.add(pollTimeout);
-            }
-          };
-
-          // Start polling
-          checkAndPlayNext();
-        } catch (error) {
-          console.error("❌ Sequence error:", error);
-          isSequenceActiveRef.current = false;
-          reject(error);
+      try {
+        if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
+          await audioEngine.initialize();
         }
-      };
 
-      initializeAndPlay();
+        if (audioEngine.audioContext?.state === 'suspended') {
+          await audioEngine.audioContext.resume();
+        }
+
+        isSequenceActiveRef.current = true;
+        const startTime = audioEngine.audioContext!.currentTime + 0.05;
+        const endTime = scheduleSequence(startTime, selectedChords);
+        scheduledEndTimeRef.current = endTime;
+
+        const totalDurationMs = (endTime - startTime) * 1000;
+
+        // Wait for sequence to complete
+        setTimeout(() => {
+          isSequenceActiveRef.current = false;
+          console.log("✅ Sequence complete");
+          resolve();
+        }, totalDurationMs + 50);
+
+      } catch (error) {
+        console.error("❌ Sequence error:", error);
+        isSequenceActiveRef.current = false;
+        resolve();
+      }
     });
-  }, [selectedChords, notes, startDynamicMetronome]);
+  }, [selectedChords, scheduleSequence]);
+
+  // DYNAMIC METRONOME - Polls and schedules clicks in real-time based on tempo
+  // NOTE: Must be defined BEFORE playSequenceWithChords which calls it
+  const startDynamicMetronome = useCallback((startRealTime: number) => {
+    if (!withMetronomeRef.current) return;
+    
+    let lastScheduledBeat = -1;
+    
+    const pollMetronome = () => {
+      if (!isSequenceActiveRef.current || !audioEngine.audioContext) return;
+      
+      const realElapsedMs = Date.now() - startRealTime;
+      const currentTempo = tempoRef.current;
+      const msPerBeat = (60 / currentTempo) * 1000;
+      const multiplier = metronomeMultiplierRef.current;
+      const clicksPerBeat = multiplier === 1 ? 1 : multiplier === 2 ? 2 : 4;
+      const msPerClick = msPerBeat / clicksPerBeat;
+      
+      const currentClick = Math.floor(realElapsedMs / msPerClick);
+      
+      // Schedule next click if we haven't already
+      if (currentClick > lastScheduledBeat && withMetronomeRef.current) {
+        lastScheduledBeat = currentClick;
+        const nextClickTime = audioEngine.audioContext.currentTime + 0.01;
+        scheduleMetronomeClick(nextClickTime);
+      }
+      
+      // Continue polling while playing
+      if (isSequenceActiveRef.current) {
+        const pollTimeout = setTimeout(pollMetronome, 10);
+        activeTimeoutsRef.current.add(pollTimeout);
+      }
+    };
+    
+    pollMetronome();
+  }, []);
 
   // DEDICATED FUNCTION FOR RANDOM CHORD PLAYBACK with dynamic tempo/metronome (Promise-based)
   const playSequenceWithChords = useCallback((chordsToPlay: (Chord | null)[]): Promise<void> => {
     return new Promise((resolve, reject) => {
       console.log("🎯 playSequenceWithChords called with:", chordsToPlay.map(c => c?.name || 'Note'));
-      
+
       if (isSequenceActiveRef.current) {
         console.log("🚫 Sequence already active, skipping");
         resolve();
@@ -332,27 +443,29 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       }
 
       isSequenceActiveRef.current = true;
-      console.log("🎵 Starting real-time chord sequence");
+      const currentNoteCount = chordsToPlay.length;
+      console.log(`🎵 Starting chord sequence with ${currentNoteCount} positions`);
 
       const initializeAndPlay = async () => {
         try {
           if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
             await audioEngine.initialize();
           }
-          
+
           if (audioEngine.audioContext?.state === 'suspended') {
             await audioEngine.audioContext.resume();
           }
 
-          const chordDurations = [2, 2, 4]; // beats per position
-          const totalBeats = 8; // Total duration: 2+2+4 beats
+          // Use dynamic beat pattern based on note count
+          const chordDurations = BEAT_PATTERNS[currentNoteCount] || BEAT_PATTERNS[4];
+          const totalBeats = 8; // Total duration always 8 beats
           let positionIndex = 0;
           let elapsedBeats = 0;
           const startRealTime = Date.now();
-          
+
           // Start dynamic metronome
           startDynamicMetronome(startRealTime);
-          
+
           // Polling function for chord playback
           const checkAndPlayNext = () => {
             const realElapsedMs = Date.now() - startRealTime;
@@ -361,7 +474,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             const realElapsedBeats = realElapsedMs / msPerBeat;
 
             // Check if sequence is complete (all positions played AND full duration elapsed)
-            if (!isSequenceActiveRef.current || (positionIndex >= 3 && realElapsedBeats >= totalBeats)) {
+            if (!isSequenceActiveRef.current || (positionIndex >= currentNoteCount && realElapsedBeats >= totalBeats)) {
               isSequenceActiveRef.current = false;
               // Clear all pending timeouts before resolving
               activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
@@ -371,13 +484,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
               return;
             }
 
-            if (positionIndex < 3 && realElapsedBeats >= elapsedBeats) {
+            if (positionIndex < currentNoteCount && realElapsedBeats >= elapsedBeats) {
               const durationBeats = chordDurations[positionIndex];
               const durationMs = (60 / currentTempo) * durationBeats * 1000;
               const chordToPlay = chordsToPlay[positionIndex];
               const audioStartTime = audioEngine.audioContext!.currentTime + 0.05;
-              
-              console.log(`🎯 Pos ${positionIndex + 1}: tempo=${currentTempo} BPM, ${durationBeats}beats, hasChord=${!!chordToPlay}`);
+
+              console.log(`🎯 Pos ${positionIndex + 1}/${currentNoteCount}: tempo=${currentTempo} BPM, ${durationBeats}beats, hasChord=${!!chordToPlay}`);
 
               if (chordToPlay) {
                 const baseNotes = chordToPlay.notes.slice(0, 3);
@@ -387,7 +500,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                   });
                 }
               } else {
-                const octaveOffset = (positionIndex === 2) ? -1 : 0;
+                const octaveOffset = positionIndex === 2 ? -1 : 0;
                 audioEngine.playNote(notes[positionIndex], durationMs, octaveOffset, audioStartTime).catch(err => {
                   console.error('Error playing note:', err);
                 });
@@ -417,137 +530,52 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       initializeAndPlay();
     });
-  }, [notes, startDynamicMetronome]);
+    // Note: startDynamicMetronome is defined later but is a stable useCallback
+  }, [notes]);
 
-  // PLAY FUNCTION WITH SPECIFIC CHORDS - bypasses prop timing issues
+  // PLAY FUNCTION WITH SPECIFIC CHORDS - Uses DAW-style seamless pre-scheduling
   const handlePlayWithChords = useCallback(async (chordsToUse: (Chord | null)[]) => {
     console.log('▶️ PLAY WITH CHORDS - Using provided chords:', chordsToUse.map(c => c?.name || 'Note'));
-    
-    if (isPlaying) {      
+
+    if (isPlaying) {
       emergencyReset();
       return;
     }
 
-    // Pre-initialize audio context
-    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-      await audioEngine.initialize();
-    }
-    
-    if (audioEngine.audioContext?.state === 'suspended') {
-      await audioEngine.audioContext.resume();
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
+    // Update the current chords ref so seamless loop uses these chords
+    currentChordsRef.current = chordsToUse;
 
     setIsPlaying(true);
 
-    try {
-      // Await actual sequence completion
-      await playSequenceWithChords(chordsToUse);
-      console.log('⏱️ Sequence with specific chords complete');
-      
-      // Check if we should loop or play once
-      const currentShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
-      
-      if (currentShouldLoop) {
-        console.log('🔄 Auto Loop enabled for specific chords');
-        
-        const runLoop = async () => {
-          while (isFeatureEnabled('AUTO_LOOP') && isLoopingRef.current) {
-            // Use current chords from ref to get real-time updates
-            const currentChords = currentChordsRef.current;
-            console.log('🔄 Loop iteration - Reading from REF:', currentChords.map(c => c?.name || 'Note'));
-            try {
-              await playSequenceWithChords(currentChords);
-              console.log('⏱️ Loop iteration complete');
-            } catch (error) {
-              console.error('Loop iteration error:', error);
-              setIsPlaying(false);
-              break;
-            }
-          }
-          // Loop exited - stop playing
-          setIsPlaying(false);
-        };
-        
-        runLoop();
-      } else {
-        // Single play - stop after completion
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.error('❌ Play with chords error:', error);
-      setIsPlaying(false);
-    }
-  }, [isPlaying, isLooping, emergencyReset, playSequenceWithChords, selectedChords]);
+    // Use the DAW-style seamless loop system
+    // It handles both single play and looping via isLoopingRef
+    await startSeamlessLoop(chordsToUse);
 
-  // SIMPLIFIED PLAY FUNCTION  
+  }, [isPlaying, emergencyReset, startSeamlessLoop]);
+
+  // SIMPLIFIED PLAY FUNCTION - Uses DAW-style seamless pre-scheduling
   const handlePlay = useCallback(async () => {
-    console.log('▶️ PLAY PRESSED - Starting sequence');
-    
+    console.log('▶️ PLAY PRESSED - Starting seamless sequence');
+
     // Track play sequence event
     if (typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('event', 'play_sequence', {
         event_category: 'music_interaction'
       });
     }
-    
-    if (isPlaying) {      
+
+    if (isPlaying) {
       emergencyReset();
       return;
     }
 
-    // Pre-initialize audio context and wait for it to be ready
-    if (!audioEngine.audioContext || !audioEngine.masterGainNode) {
-      await audioEngine.initialize();
-    }
-    
-    // Ensure audio context is running and stable
-    if (audioEngine.audioContext?.state === 'suspended') {
-      await audioEngine.audioContext.resume();
-      // Small delay to ensure context is fully running
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-
     setIsPlaying(true);
 
-    try {
-      // Await actual sequence completion
-      await playSequenceOnce();
-      console.log('⏱️ Sequence complete');
-      
-      // Check if we should loop or play once
-      const currentShouldLoop = isFeatureEnabled('AUTO_LOOP') && isLooping;
-      
-      if (currentShouldLoop) {
-        console.log('🔄 Auto Loop enabled - seamless continuous playback');
-        
-        const runLoop = async () => {
-          while (isFeatureEnabled('AUTO_LOOP') && isLoopingRef.current) {
-            console.log('🔄 Loop iteration - starting next sequence');
-            try {
-              await playSequenceOnce();
-              console.log('⏱️ Loop iteration complete');
-            } catch (error) {
-              console.error('Loop iteration error:', error);
-              setIsPlaying(false);
-              break;
-            }
-          }
-          // Loop exited - stop playing
-          setIsPlaying(false);
-        };
-        
-        runLoop();
-      } else {
-        // Single play - stop after completion
-        console.log('🔇 Single play - stopping after sequence');
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.error('❌ Play error:', error);
-      setIsPlaying(false);
-    }
-  }, [isPlaying, playSequenceOnce, emergencyReset, isLooping]);
+    // Use the DAW-style seamless loop system
+    // It handles both single play and looping via isLoopingRef
+    await startSeamlessLoop(selectedChords);
+
+  }, [isPlaying, emergencyReset, startSeamlessLoop, selectedChords]);
 
   // REMOVED OLD CONFLICTING AUDIO FUNCTIONS
 
@@ -661,18 +689,16 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // RANDOM HARMONIZER - Select random chords from available options for each note
   const handleRandomHarmonize = useCallback(() => {
     console.log('🎭 RANDOM HARMONIZER PRESSED');
-    
-    // Get beginner chords for each note position
-    
+
     const randomChords: (Chord | null)[] = [];
-    
+
     // For each note position, get its available chords and pick one randomly
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < notes.length; i++) {
       const noteForPosition = notes[i];
       const availableChords = getChordsForNoteBySkill(noteForPosition, skillLevel);
-      
+
       if (availableChords.length > 0) {
-        // Pick a random chord from the 6 available options
+        // Pick a random chord from the available options
         const randomIndex = Math.floor(Math.random() * availableChords.length);
         const selectedChord = availableChords[randomIndex];
         randomChords.push(selectedChord);
@@ -682,12 +708,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         console.log(`❌ Position ${i + 1} (${noteForPosition}): No chords available`);
       }
     }
-    
+
     console.log('🎯 Random chords selected:', randomChords.map(c => c?.name || 'None'));
-    
+
     // Update the chord selections
     onChordsChange?.(randomChords);
-    
+
     // Store the random chords in the ref to avoid prop timing issues
     randomChordsRef.current = randomChords;
 
@@ -700,7 +726,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         handlePlayWithChords(randomChordsRef.current);
       }, 100);
     }, 50);
-  }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset]);
+  }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset, skillLevel]);
 
   // Use refs to track previous values for tempo restart detection
   const prevTempoRef = useRef(tempo);
@@ -733,6 +759,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Clean up on unmount
   useEffect(() => {
     return () => {
+      // Cancel seamless loop scheduler
+      if (loopSchedulerRef.current) {
+        cancelAnimationFrame(loopSchedulerRef.current);
+        loopSchedulerRef.current = null;
+      }
       if (loopIntervalRef.current) {
         clearInterval(loopIntervalRef.current);
         loopIntervalRef.current = null;
@@ -809,31 +840,52 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   }, []);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
+      {/* Note Count Selector */}
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">Notes</label>
+        <div className="flex rounded-md overflow-hidden border border-border">
+          {[1, 2, 3, 4, 5].map((count) => (
+            <button
+              key={count}
+              onClick={() => onNoteCountChange?.(count)}
+              className={`px-2 py-1 text-xs font-semibold transition-colors min-w-[28px] ${
+                noteCount === count
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+              data-testid={`button-note-count-${count}`}
+            >
+              {count}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Mode Toggle */}
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-foreground">Note Practice</h3>
+        <label className="text-xs font-medium text-muted-foreground">Mode</label>
         <div className="flex rounded-md overflow-hidden border border-border">
           <button
             onClick={() => handleModeToggle('random')}
-            className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-2 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
               inputMode === 'random'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-background text-muted-foreground hover:bg-muted'
             }`}
           >
-            <Dices className="w-3.5 h-3.5" />
+            <Dices className="w-3 h-3" />
             Random
           </button>
           <button
             onClick={() => handleModeToggle('manual')}
-            className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-2 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
               inputMode === 'manual'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-background text-muted-foreground hover:bg-muted'
             }`}
           >
-            <Edit3 className="w-3.5 h-3.5" />
+            <Edit3 className="w-3 h-3" />
             Manual
           </button>
         </div>
@@ -841,19 +893,17 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       {/* Manual Note Selection - shown when in manual mode */}
       {inputMode === 'manual' && (
-        <div className="bg-muted/50 rounded-lg p-3 border border-border">
-          <div className="text-xs font-medium text-muted-foreground mb-2">Select Notes</div>
-          <div className="grid grid-cols-3 gap-2">
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="space-y-1">
-                <label className="text-xs text-muted-foreground">
-                  Note {index + 1}
-                </label>
+        <div className="bg-muted/50 rounded-md p-2 border border-border">
+          <div className={`grid gap-1.5 ${
+            noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'
+          }`}>
+            {Array.from({ length: noteCount }, (_, index) => (
+              <div key={index}>
                 <Select
-                  value={notes[index]}
+                  value={notes[index] || 'C'}
                   onValueChange={(value) => handleManualNoteChange(index, value)}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm font-semibold">
+                  <SelectTrigger className="w-full h-8 text-xs font-semibold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -879,19 +929,21 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         <Button
           onClick={handleGenerate}
           variant="outline"
-          className="w-full"
+          size="sm"
+          className="w-full h-8 text-xs"
           data-testid="button-generate"
         >
-          <Shuffle className="w-4 h-4 mr-2" />
+          <Shuffle className="w-3 h-3 mr-1.5" />
           Generate Notes
         </Button>
       )}
 
       {/* Play/Pause and Auto Loop buttons */}
-      <div className="flex space-x-2">
+      <div className="flex space-x-1.5">
         <Button
           onClick={handlePlay}
-          className={`flex-1 h-10 font-semibold ${
+          size="sm"
+          className={`flex-1 h-8 text-xs font-semibold ${
             isPlaying
               ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
               : 'bg-primary hover:bg-primary/90 text-primary-foreground'
@@ -899,12 +951,12 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         >
           {isPlaying ? (
             <>
-              <Square className="w-4 h-4 mr-2" />
+              <Square className="w-3 h-3 mr-1" />
               Stop
             </>
           ) : (
             <>
-              <Play className="w-4 h-4 mr-2" />
+              <Play className="w-3 h-3 mr-1" />
               Play
             </>
           )}
@@ -915,10 +967,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <Button
             onClick={toggleLoop}
             variant={isLooping ? "default" : "outline"}
-            className="flex-1 h-10"
+            size="sm"
+            className="flex-1 h-8 text-xs"
             data-testid="button-auto-loop"
           >
-            <RotateCcw className="w-4 h-4 mr-2" />
+            <RotateCcw className="w-3 h-3 mr-1" />
             Loop
           </Button>
         )}
@@ -928,30 +981,32 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       <Button
         onClick={handleRandomHarmonize}
         variant="outline"
-        className="w-full"
+        size="sm"
+        className="w-full h-8 text-xs"
         data-testid="button-random-chords"
       >
-        <Shuffle className="w-4 h-4 mr-2" />
+        <Shuffle className="w-3 h-3 mr-1.5" />
         Random Chords
       </Button>
 
       {/* Tempo slider and metronome */}
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5">
           <Checkbox
             id="metronome"
             checked={withMetronome}
             onCheckedChange={(checked) => setWithMetronome(checked === true)}
+            className="h-3.5 w-3.5"
           />
-          <label htmlFor="metronome" className="text-xs font-medium text-foreground">
-            Metronome
+          <label htmlFor="metronome" className="text-xs text-muted-foreground">
+            Metro
           </label>
         </div>
 
-        <div className="flex-1 flex items-center space-x-2">
-          <label className="text-xs font-medium text-foreground min-w-[60px]">
-            {tempo} BPM
-          </label>
+        <div className="flex-1 flex items-center space-x-1.5">
+          <span className="text-xs font-medium text-foreground min-w-[45px]">
+            {tempo}
+          </span>
           <Slider
             value={[tempo]}
             onValueChange={(value) => setTempo(value[0])}
@@ -965,23 +1020,20 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
       {/* Metronome speed controls */}
       {withMetronome && (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5">
           <span className="text-xs text-muted-foreground">Speed:</span>
-          <div className="flex space-x-1">
+          <div className="flex space-x-0.5">
             {[
-              { value: 1, label: '♩' }, // Quarter notes
-              { value: 2, label: '♫' }, // Eighth notes
-              { value: 3, label: '♬' }  // Sixteenth notes
+              { value: 1, label: '♩' },
+              { value: 2, label: '♫' },
+              { value: 3, label: '♬' }
             ].map(({ value, label }) => (
               <Button
                 key={value}
                 size="sm"
                 variant={metronomeMultiplier === value ? "default" : "outline"}
-                onClick={() => {
-                  console.log(`🔄 Setting metronome multiplier from ${metronomeMultiplier} to ${value}`);
-                  setMetronomeMultiplier(value);
-                }}
-                className="px-2 py-1 text-xs"
+                onClick={() => setMetronomeMultiplier(value)}
+                className="px-1.5 py-0.5 h-6 text-xs"
               >
                 {label}
               </Button>
@@ -990,16 +1042,43 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         </div>
       )}
 
-      {/* Keyboard shortcuts help */}
-      <div className="p-2 bg-muted/50 rounded-lg border border-border">
-        <div className="text-xs text-muted-foreground flex flex-wrap gap-2 justify-center">
-          <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">Space</kbd> Play/Pause</span>
-          <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">M</kbd> Metronome</span>
-          {isFeatureEnabled('AUTO_LOOP') && (
-            <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">L</kbd> Loop</span>
-          )}
-          <span><kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs text-foreground font-mono">R</kbd> Generate</span>
+      {/* Arpeggio Speed Toggle */}
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">Arpeggio</label>
+        <div className="flex rounded-md overflow-hidden border border-border">
+          <button
+            onClick={() => setArpeggioSpeed(1)}
+            className={`px-2 py-1 text-xs font-medium transition-colors ${
+              arpeggioSpeed === 1
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
+            }`}
+            data-testid="button-arpeggio-eighth"
+          >
+            8th
+          </button>
+          <button
+            onClick={() => setArpeggioSpeed(2)}
+            className={`px-2 py-1 text-xs font-medium transition-colors ${
+              arpeggioSpeed === 2
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
+            }`}
+            data-testid="button-arpeggio-sixteenth"
+          >
+            16th
+          </button>
         </div>
+      </div>
+
+      {/* Keyboard shortcuts */}
+      <div className="flex flex-wrap gap-1.5 justify-center text-[10px] text-muted-foreground">
+        <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono">Space</kbd> Play</span>
+        <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono">M</kbd> Metro</span>
+        {isFeatureEnabled('AUTO_LOOP') && (
+          <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono">L</kbd> Loop</span>
+        )}
+        <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono">R</kbd> Gen</span>
       </div>
     </div>
   );
