@@ -69,10 +69,10 @@ export default function Home() {
               />
               <div>
                 <h1 className="text-lg lg:text-base font-bold text-foreground tracking-tight leading-tight">
-                  Cadenza
+                  Chord Trees
                 </h1>
                 <p className="text-[10px] text-muted-foreground -mt-0.5 hidden sm:block leading-tight">
-                  See chords. Hear them. Master them.
+                  Visualize harmony. Play real instruments. Build your ear.
                 </p>
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function Home() {
             {/* Minimal instruction - hidden on smaller screens */}
             <div className="text-center mb-2 hidden xl:block">
               <p className="text-xs text-muted-foreground">
-                Click chords to select • Tap center note to clear
+                Select a chord to add it to your progression • Click the root note again to deselect
               </p>
             </div>
 

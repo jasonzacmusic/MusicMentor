@@ -14,13 +14,13 @@
   <text x="180" y="335" text-anchor="middle" font-family="Georgia, serif" 
         font-size="72" font-style="italic" font-weight="600" fill="white">C</text>
   <text x="320" y="280" font-family="system-ui, sans-serif" font-size="80" 
-        font-weight="700" fill="white">Cadenza</text>
+        font-weight="700" fill="white">Chord Trees</text>
   <text x="320" y="350" font-family="system-ui, sans-serif" font-size="32" 
-        fill="#50dcb9">See chords. Hear them. Master them.</text>
+        fill="#50dcb9">Visualize harmony. Play real instruments. Build your ear.</text>
   <text x="320" y="410" font-family="system-ui, sans-serif" font-size="22" 
-        fill="#888">Interactive music learning with visual chord trees</text>
+        fill="#888">Beautiful chord visualization with piano, guitar, strings &amp; brass.</text>
   <text x="320" y="445" font-family="system-ui, sans-serif" font-size="22" 
-        fill="#888">and real instrument sounds</text>
+        fill="#888">See inversions, fingerings, and loop arpeggios. Free for all.</text>
   <rect x="320" y="490" width="180" height="46" rx="23" fill="url(#accent)"/>
   <text x="410" y="520" text-anchor="middle" font-family="system-ui, sans-serif" 
         font-size="18" font-weight="600" fill="#121212">Start Learning</text>

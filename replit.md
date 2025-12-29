@@ -1,7 +1,7 @@
-# Cadenza - Interactive Music Learning
+# Chord Trees - Interactive Music Learning
 
 ## Overview
-Cadenza is a web-based music learning application by Nathaniel School of Music, designed to help users learn and practice musical concepts including chord theory, interval training, and note recognition. The application features an interactive piano keyboard, guitar fretboard diagrams, random note generation, chord harmonization tools, and practice session tracking with real instrument sample playback.
+Chord Trees is a web-based music learning application by Nathaniel School of Music, designed to help users learn and practice musical concepts including chord theory, interval training, and note recognition. The application features an interactive piano keyboard, guitar fretboard diagrams, random note generation, chord harmonization tools, and practice session tracking with real instrument sample playback.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
