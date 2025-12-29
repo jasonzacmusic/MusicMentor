@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
+import GuitarFretboard from './guitar-fretboard';
 
 export type ColorPreset = 'neon' | 'pastel' | 'earth';
 
@@ -372,6 +373,13 @@ export default function ChordSkillSelector({
                 compact={true}
                 onKeyPress={(note) => {}}
               />
+              <div className="mt-2">
+                <GuitarFretboard
+                  root={selectedChord.rootNote}
+                  quality={selectedChord.type}
+                  compact={true}
+                />
+              </div>
             </>
           ) : (
             <>
@@ -486,13 +494,20 @@ export default function ChordSkillSelector({
           <CardContent className="p-4">
             <div className="space-y-3">
               <h4 className="text-sm font-medium text-foreground text-center">
-                <span className="text-primary">{selectedChord.name}</span> on Piano
+                <span className="text-primary">{selectedChord.name}</span> on Piano & Guitar
               </h4>
               <div className="flex justify-center">
                 <PianoKeyboard
                   highlightedNotes={selectedChord.notes}
                   compact={true}
                   onKeyPress={(note) => {}}
+                />
+              </div>
+              <div className="flex justify-center">
+                <GuitarFretboard
+                  root={selectedChord.rootNote}
+                  quality={selectedChord.type}
+                  compact={true}
                 />
               </div>
             </div>
