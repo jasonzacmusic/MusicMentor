@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector, { type ColorPreset } from '@/components/chord-skill-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { HelpCircle, Palette, PanelLeftClose, PanelLeft, Settings2, Piano, Guitar } from 'lucide-react';
+import { HelpCircle, Palette, PanelLeftClose, PanelLeft, Settings2, Piano, Guitar, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Chord } from '@/lib/chord-theory';
@@ -10,6 +10,19 @@ import nsmLogo from '@assets/NSM_LOGO_White_1767023126559.png';
 import { MascotProvider, GlobalMascot, MascotControls, useMascot, type ChordAnchor } from '@/components/animated-mascot';
 
 type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
+
+// Panel width breakpoints for progressive UI modes
+const PANEL_MIN_WIDTH = 48;  // Icon-only mode
+const PANEL_COMPACT_WIDTH = 140;  // Compact mode - icons + minimal text
+const PANEL_DEFAULT_WIDTH = 240;  // Normal mode
+const PANEL_MAX_WIDTH = 320;  // Maximum width
+
+// Get UI density mode based on panel width
+function getPanelMode(width: number): 'icon' | 'compact' | 'normal' {
+  if (width <= PANEL_MIN_WIDTH + 20) return 'icon';
+  if (width <= PANEL_COMPACT_WIDTH + 20) return 'compact';
+  return 'normal';
+}
 
 function HomeContent() {
   const [selectedNote, setSelectedNote] = useState('C');
@@ -20,12 +33,48 @@ function HomeContent() {
   const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto', 'auto']);
   const [currentPlayingIndex, setCurrentPlayingIndex] = useState<number | null>(null);
   const [colorPreset, setColorPreset] = useState<ColorPreset>('earth');
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [showPiano, setShowPiano] = useState(false);
   const [showGuitar, setShowGuitar] = useState(false);
 
+  // Panel width state for resizable sidebar
+  const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_WIDTH);
+  const [isDragging, setIsDragging] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
   const chordGridRef = useRef<HTMLDivElement>(null);
   const mascotContext = useMascot();
+
+  // Derive panel mode from width
+  const panelMode = getPanelMode(panelWidth);
+  const isPanelCollapsed = panelMode === 'icon';
+
+  // Handle drag start
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  // Handle drag
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, e.clientX - 8));
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   useEffect(() => {
     if (chordGridRef.current) {
@@ -106,7 +155,7 @@ function HomeContent() {
                 variant="ghost"
                 size="sm"
                 className="hidden lg:flex text-muted-foreground hover:text-foreground h-7 w-7 p-0"
-                onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+                onClick={() => setPanelWidth(isPanelCollapsed ? PANEL_DEFAULT_WIDTH : PANEL_MIN_WIDTH)}
                 data-testid="button-toggle-panel"
                 title={isPanelCollapsed ? "Expand settings" : "Collapse settings"}
               >
@@ -159,37 +208,35 @@ function HomeContent() {
       </header>
 
       {/* Main Content - Flex layout for no scrolling on desktop */}
-      <main className="flex-1 flex flex-col lg:flex-row gap-2 p-2 lg:p-3 min-h-0 overflow-hidden">
-        {/* Control Panel - Collapsible sidebar on desktop, top section on mobile */}
-        <div 
-          className={`flex-shrink-0 lg:h-full transition-all duration-300 ease-in-out ${
-            isPanelCollapsed 
-              ? 'lg:w-12' 
-              : 'lg:w-56 xl:w-64 2xl:w-72'
-          }`}
+      <main className="flex-1 flex flex-col lg:flex-row p-2 lg:p-3 min-h-0 overflow-hidden">
+        {/* Control Panel - Resizable sidebar on desktop */}
+        <div
+          ref={panelRef}
+          className="flex-shrink-0 lg:h-full hidden lg:block"
+          style={{ width: panelWidth }}
         >
-          <div className={`bg-card rounded-lg border border-border h-full transition-all duration-300 ${
-            isPanelCollapsed ? 'p-1.5' : 'p-2.5'
+          <div className={`bg-card rounded-lg border border-border h-full ${
+            panelMode === 'icon' ? 'p-1.5' : panelMode === 'compact' ? 'p-2' : 'p-2.5'
           }`}>
-            {isPanelCollapsed ? (
-              /* Collapsed state - icons only */
+            {panelMode === 'icon' ? (
+              /* Icon-only state */
               <div className="flex flex-col items-center gap-2 h-full">
                 <Button
                   variant="ghost"
                   size="sm"
                   className="w-8 h-8 p-0"
-                  onClick={() => setIsPanelCollapsed(false)}
+                  onClick={() => setPanelWidth(PANEL_DEFAULT_WIDTH)}
                   title="Expand settings"
                   data-testid="button-expand-panel"
                 >
                   <Settings2 className="w-4 h-4" />
                 </Button>
-                
+
                 {/* Quick level indicator */}
                 <div className="text-[9px] font-bold text-center uppercase tracking-wide text-muted-foreground px-1">
                   {skillLevel.charAt(0).toUpperCase()}
                 </div>
-                
+
                 {/* Note count indicator */}
                 <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
                   {noteCount}
@@ -199,12 +246,14 @@ function HomeContent() {
                 <MascotControls compact={true} />
               </div>
             ) : (
-              /* Expanded state - full controls */
+              /* Compact or Normal state - full controls with density adaptation */
               <div className="h-full lg:overflow-y-auto space-y-2">
                 <div className="flex items-center justify-between pb-1.5 border-b border-border">
-                  <label className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Level</label>
+                  {panelMode === 'normal' && (
+                    <label className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Level</label>
+                  )}
                   <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
-                    <SelectTrigger className="w-[90px] h-6 text-xs" data-testid="select-skill-level">
+                    <SelectTrigger className={`h-6 text-xs ${panelMode === 'compact' ? 'w-full' : 'w-[90px]'}`} data-testid="select-skill-level">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -216,7 +265,7 @@ function HomeContent() {
 
                 {/* Mascot Controls in Settings Panel */}
                 {skillLevel === 'beginner' && (
-                  <MascotControls compact={false} />
+                  <MascotControls compact={panelMode === 'compact'} />
                 )}
 
                 <RandomNotesGenerator
@@ -228,14 +277,43 @@ function HomeContent() {
                   noteCount={noteCount}
                   onNoteCountChange={handleNoteCountChange}
                   onPlayingIndexChange={handlePlayingIndexChange}
-                  compact={isPanelCollapsed}
+                  panelMode={panelMode}
                 />
               </div>
             )}
           </div>
         </div>
 
-        {/* Chord Visualization Area - Expands when sidebar collapses */}
+        {/* Draggable Divider */}
+        <div
+          className={`hidden lg:flex items-center justify-center w-2 cursor-col-resize group hover:bg-primary/10 transition-colors ${
+            isDragging ? 'bg-primary/20' : ''
+          }`}
+          onMouseDown={handleDragStart}
+        >
+          <div className={`w-1 h-12 rounded-full transition-colors ${
+            isDragging ? 'bg-primary' : 'bg-border group-hover:bg-primary/50'
+          }`} />
+        </div>
+
+        {/* Mobile settings panel */}
+        <div className="lg:hidden mb-2">
+          <div className="bg-card rounded-lg border border-border p-2.5">
+            <RandomNotesGenerator
+              onNotesChange={handleNotesChange}
+              onChordsChange={setSelectedChords}
+              selectedChords={selectedChords}
+              inversionModes={inversionModes}
+              skillLevel={skillLevel}
+              noteCount={noteCount}
+              onNoteCountChange={handleNoteCountChange}
+              onPlayingIndexChange={handlePlayingIndexChange}
+              panelMode="normal"
+            />
+          </div>
+        </div>
+
+        {/* Chord Visualization Area - Expands when sidebar shrinks */}
         <div className="flex-1 min-h-0 min-w-0">
           <div className="bg-card rounded-lg border border-border h-full flex flex-col p-2 lg:p-3 relative">
             {/* Minimal instruction - hidden on smaller screens */}

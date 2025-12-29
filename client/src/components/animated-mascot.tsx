@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
 export type AnimalType = 'monkey' | 'bird' | 'frog' | 'squirrel' | 'cat';
 export type MovementStyle = 'swing' | 'hop' | 'fly' | 'climb' | 'bounce';
@@ -29,6 +29,8 @@ interface MascotContextType {
   setIsPlaying: (playing: boolean) => void;
   containerRef: React.RefObject<HTMLDivElement> | null;
   setContainerRef: (ref: React.RefObject<HTMLDivElement>) => void;
+  tempo: number;
+  setTempo: (tempo: number) => void;
 }
 
 const MascotContext = createContext<MascotContextType | null>(null);
@@ -41,6 +43,7 @@ export function MascotProvider({ children }: { children: React.ReactNode }) {
   const [anchors] = useState<Map<string, ChordAnchor>>(new Map());
   const [isPlaying, setIsPlaying] = useState(false);
   const [containerRef, setContainerRef] = useState<React.RefObject<HTMLDivElement> | null>(null);
+  const [tempo, setTempo] = useState(120);
 
   const registerAnchor = useCallback((anchor: ChordAnchor) => {
     anchors.set(anchor.id, anchor);
@@ -67,6 +70,8 @@ export function MascotProvider({ children }: { children: React.ReactNode }) {
       setIsPlaying,
       containerRef,
       setContainerRef,
+      tempo,
+      setTempo,
     }}>
       {children}
     </MascotContext.Provider>
@@ -105,196 +110,314 @@ const MOVEMENT_NAMES: Record<MovementStyle, string> = {
   bounce: 'Bouncy Ball',
 };
 
+interface AnimalHabit {
+  travelEase: number[];
+  arcHeight: number;
+  bobAmplitude: number;
+  bobFrequency: number;
+  speedMultiplier: number;
+  rotationRange: number;
+  squashStretch: { x: number; y: number };
+  trailEffect: string;
+  idleAnimation: {
+    y?: number[];
+    rotate?: number[];
+    scale?: number[];
+    scaleX?: number[];
+    scaleY?: number[];
+  };
+  idleDuration: number;
+  travelStyle: 'arc' | 'zigzag' | 'parabola' | 'glide' | 'prowl';
+}
+
+const ANIMAL_HABITS: Record<AnimalType, AnimalHabit> = {
+  monkey: {
+    travelEase: [0.68, -0.55, 0.27, 1.55],
+    arcHeight: 80,
+    bobAmplitude: 15,
+    bobFrequency: 3,
+    speedMultiplier: 0.9,
+    rotationRange: 25,
+    squashStretch: { x: 1.1, y: 0.9 },
+    trailEffect: '🍌',
+    idleAnimation: {
+      y: [0, -8, 0, -4, 0],
+      rotate: [-8, 8, -5, 5, 0],
+      scale: [1, 1.05, 1, 1.02, 1],
+    },
+    idleDuration: 1.2,
+    travelStyle: 'arc',
+  },
+  bird: {
+    travelEase: [0.25, 0.1, 0.25, 1],
+    arcHeight: 120,
+    bobAmplitude: 20,
+    bobFrequency: 5,
+    speedMultiplier: 1.2,
+    rotationRange: 15,
+    squashStretch: { x: 1.15, y: 0.85 },
+    trailEffect: '✨',
+    idleAnimation: {
+      y: [0, -6, 0, -12, 0, -3, 0],
+      rotate: [0, -5, 0, 5, 0],
+      scaleX: [1, 1.1, 1, 1.05, 1],
+    },
+    idleDuration: 0.8,
+    travelStyle: 'glide',
+  },
+  frog: {
+    travelEase: [0.34, 1.56, 0.64, 1],
+    arcHeight: 100,
+    bobAmplitude: 0,
+    bobFrequency: 1,
+    speedMultiplier: 0.7,
+    rotationRange: 10,
+    squashStretch: { x: 0.8, y: 1.3 },
+    trailEffect: '💧',
+    idleAnimation: {
+      y: [0, 0, 0, -25, 0],
+      scaleY: [1, 0.7, 1, 1.3, 1],
+      scaleX: [1, 1.2, 1, 0.85, 1],
+    },
+    idleDuration: 1.5,
+    travelStyle: 'parabola',
+  },
+  squirrel: {
+    travelEase: [0.5, 0, 0.2, 1],
+    arcHeight: 40,
+    bobAmplitude: 8,
+    bobFrequency: 8,
+    speedMultiplier: 1.4,
+    rotationRange: 30,
+    squashStretch: { x: 1.05, y: 0.95 },
+    trailEffect: '🌰',
+    idleAnimation: {
+      rotate: [0, 15, -15, 10, -10, 0],
+      y: [0, -3, 0, -2, 0],
+      scale: [1, 1.08, 1, 1.05, 1],
+    },
+    idleDuration: 0.6,
+    travelStyle: 'zigzag',
+  },
+  cat: {
+    travelEase: [0.4, 0, 0.2, 1],
+    arcHeight: 20,
+    bobAmplitude: 5,
+    bobFrequency: 2,
+    speedMultiplier: 1.0,
+    rotationRange: 8,
+    squashStretch: { x: 1.2, y: 0.9 },
+    trailEffect: '🐾',
+    idleAnimation: {
+      scaleX: [1, 1.1, 0.95, 1.05, 1],
+      y: [0, -2, 0, -1, 0],
+      rotate: [0, -3, 3, 0],
+    },
+    idleDuration: 2.0,
+    travelStyle: 'prowl',
+  },
+};
+
 interface GlobalMascotProps {
   containerRef: React.RefObject<HTMLDivElement>;
 }
 
 export function GlobalMascot({ containerRef }: GlobalMascotProps) {
-  const { enabled, animal, movementStyle, currentAnchor, isPlaying } = useMascot();
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [prevPosition, setPrevPosition] = useState({ x: 0, y: 0 });
+  const { enabled, animal, currentAnchor, isPlaying, tempo } = useMascot();
+  const [position, setPosition] = useState({ x: 200, y: 200 });
+  const [prevPosition, setPrevPosition] = useState({ x: 200, y: 200 });
   const [isMoving, setIsMoving] = useState(false);
-  const [direction, setDirection] = useState<'left' | 'right'>('right');
-  const [bounce, setBounce] = useState(0);
+  const [facingRight, setFacingRight] = useState(true);
   const [trail, setTrail] = useState<{ x: number; y: number; id: number }[]>([]);
   const trailIdRef = useRef(0);
+  const controls = useAnimation();
+  const lastAnchorRef = useRef<string | null>(null);
+
+  const habit = ANIMAL_HABITS[animal];
+  const beatDuration = 60 / tempo;
 
   useEffect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        setBounce(prev => (prev + 1) % 8);
-      }, 150);
-      return () => clearInterval(interval);
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    if (!currentAnchor || !containerRef.current) return;
+    if (!currentAnchor || !containerRef.current || !isPlaying) return;
+    if (lastAnchorRef.current === currentAnchor.id) return;
+    
+    lastAnchorRef.current = currentAnchor.id;
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const newX = currentAnchor.x - containerRect.left;
-    const newY = currentAnchor.y - containerRect.top - 40;
+    const newY = currentAnchor.y - containerRect.top - 30;
+
+    const dx = newX - position.x;
+    if (Math.abs(dx) > 10) {
+      setFacingRight(dx > 0);
+    }
 
     setPrevPosition(position);
-    setDirection(newX > position.x ? 'right' : 'left');
     setIsMoving(true);
     
     trailIdRef.current++;
-    setTrail(prev => [...prev.slice(-5), { x: position.x, y: position.y, id: trailIdRef.current }]);
+    setTrail(prev => [...prev.slice(-6), { 
+      x: position.x, 
+      y: position.y, 
+      id: trailIdRef.current 
+    }]);
 
     setPosition({ x: newX, y: newY });
 
-    const timeout = setTimeout(() => setIsMoving(false), 600);
+    const moveDuration = beatDuration * habit.speedMultiplier;
+    const timeout = setTimeout(() => setIsMoving(false), moveDuration * 1000);
     return () => clearTimeout(timeout);
-  }, [currentAnchor, containerRef]);
+  }, [currentAnchor, containerRef, isPlaying, beatDuration, habit.speedMultiplier, position]);
 
   if (!enabled) return null;
 
   const emoji = ANIMAL_EMOJIS[animal];
+  const moveDuration = beatDuration * habit.speedMultiplier;
   
-  const getMovementAnimation = () => {
+  const getPathKeyframes = () => {
     const dx = position.x - prevPosition.x;
     const dy = position.y - prevPosition.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const midX = (prevPosition.x + position.x) / 2;
     
-    switch (movementStyle) {
-      case 'swing':
+    switch (habit.travelStyle) {
+      case 'arc':
         return {
-          x: position.x,
-          y: position.y,
-          rotate: isMoving ? [0, -30, 30, -15, 0] : 0,
-          scale: isMoving ? [1, 1.2, 0.9, 1.1, 1] : 1,
+          x: [prevPosition.x, midX, position.x],
+          y: [prevPosition.y, Math.min(prevPosition.y, position.y) - habit.arcHeight, position.y],
         };
-      case 'hop':
+      case 'parabola':
         return {
-          x: position.x,
-          y: isMoving ? [prevPosition.y, position.y - 60, position.y - 30, position.y] : position.y,
-          rotate: isMoving ? [0, 15, -15, 0] : 0,
-          scale: isMoving ? [1, 1.3, 1.1, 1] : 1,
+          x: [prevPosition.x, midX - 20, midX + 20, position.x],
+          y: [prevPosition.y, prevPosition.y - habit.arcHeight * 0.8, position.y - habit.arcHeight, position.y],
         };
-      case 'fly':
+      case 'zigzag':
+        const quarterX = prevPosition.x + dx * 0.25;
+        const threeQuarterX = prevPosition.x + dx * 0.75;
         return {
-          x: position.x,
-          y: position.y,
-          rotate: isMoving ? (direction === 'right' ? [0, -20, -10, 0] : [0, 20, 10, 0]) : 0,
-          scale: isMoving ? [1, 0.8, 1.1, 1] : 1,
+          x: [prevPosition.x, quarterX, midX, threeQuarterX, position.x],
+          y: [prevPosition.y, prevPosition.y - 30, prevPosition.y - 15, position.y - 25, position.y],
         };
-      case 'climb':
+      case 'glide':
         return {
-          x: position.x,
-          y: position.y,
-          rotate: isMoving ? [0, 45, -45, 30, -30, 0] : 0,
-          scale: isMoving ? [1, 0.9, 1.1, 0.95, 1.05, 1] : 1,
+          x: [prevPosition.x, midX, position.x],
+          y: [prevPosition.y, Math.min(prevPosition.y, position.y) - habit.arcHeight, position.y],
         };
-      case 'bounce':
+      case 'prowl':
         return {
-          x: position.x,
-          y: isMoving ? [prevPosition.y, position.y - 80, position.y + 20, position.y - 40, position.y] : position.y,
-          rotate: isMoving ? [0, 360, 720] : 0,
-          scale: isMoving ? [1, 0.7, 1.4, 0.9, 1] : 1,
+          x: [prevPosition.x, prevPosition.x + dx * 0.3, midX, prevPosition.x + dx * 0.7, position.x],
+          y: [prevPosition.y, prevPosition.y - 10, prevPosition.y - habit.arcHeight, position.y - 8, position.y],
         };
       default:
-        return { x: position.x, y: position.y, rotate: 0, scale: 1 };
+        return { x: position.x, y: position.y };
     }
   };
 
-  const getTransition = () => {
-    switch (movementStyle) {
-      case 'swing':
-        return { type: 'spring', stiffness: 120, damping: 12, mass: 1 };
-      case 'hop':
-        return { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] };
-      case 'fly':
-        return { duration: 0.8, ease: 'easeInOut' };
-      case 'climb':
-        return { duration: 0.6, ease: [0.45, 0, 0.55, 1] };
-      case 'bounce':
-        return { duration: 0.7, ease: [0.36, 0, 0.66, -0.56] };
-      default:
-        return { type: 'spring', stiffness: 200, damping: 20 };
+  const getTravelAnimation = () => {
+    if (!isMoving) {
+      return { 
+        x: position.x, 
+        y: position.y,
+        rotate: 0,
+        scaleX: facingRight ? 1 : -1,
+        scaleY: 1,
+      };
     }
+
+    const path = getPathKeyframes();
+    const rotateAmount = facingRight ? habit.rotationRange : -habit.rotationRange;
+    
+    return {
+      ...path,
+      rotate: isMoving ? [0, rotateAmount, -rotateAmount * 0.5, rotateAmount * 0.3, 0] : 0,
+      scaleX: facingRight ? [1, habit.squashStretch.x, 1] : [-1, -habit.squashStretch.x, -1],
+      scaleY: isMoving ? [1, habit.squashStretch.y, 1.1, 1] : 1,
+    };
   };
 
-  const getIdleAnimation = () => {
-    if (!isPlaying) return {};
-    
-    switch (animal) {
-      case 'monkey':
-        return { y: [0, -10, 0], rotate: [-5, 5, -5] };
-      case 'bird':
-        return { y: [0, -15, 0, -8, 0], scale: [1, 1.1, 1, 1.05, 1] };
-      case 'frog':
-        return { y: [0, -20, 0], scaleY: [1, 0.8, 1.2, 1] };
-      case 'squirrel':
-        return { rotate: [0, 10, -10, 5, 0], x: [0, 3, -3, 0] };
-      case 'cat':
-        return { scaleX: [1, 1.1, 0.9, 1], y: [0, -5, 0] };
-      default:
-        return {};
-    }
-  };
+  const getTravelTransition = () => ({
+    duration: moveDuration,
+    ease: habit.travelEase,
+    times: habit.travelStyle === 'zigzag' ? [0, 0.25, 0.5, 0.75, 1] : undefined,
+  });
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 100 }}>
       <AnimatePresence>
-        {trail.map((point) => (
+        {trail.map((point, i) => (
           <motion.div
             key={point.id}
-            initial={{ opacity: 0.6, scale: 0.8 }}
-            animate={{ opacity: 0, scale: 0.3 }}
+            initial={{ opacity: 0.7, scale: 0.8 }}
+            animate={{ opacity: 0, scale: 0.2, y: 10 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 1.2, delay: i * 0.05 }}
             className="absolute"
             style={{ left: point.x, top: point.y, transform: 'translate(-50%, -50%)' }}
           >
-            <span className="text-xl opacity-40">✨</span>
+            <span className="text-lg">{habit.trailEffect}</span>
           </motion.div>
         ))}
       </AnimatePresence>
 
-      {isMoving && movementStyle === 'swing' && (
+      {isMoving && habit.travelStyle === 'arc' && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
-          <motion.path
-            d={`M ${prevPosition.x} ${prevPosition.y - 50} Q ${(prevPosition.x + position.x) / 2} ${Math.min(prevPosition.y, position.y) - 100} ${position.x} ${position.y - 50}`}
-            fill="none"
-            stroke="url(#vineSwingGradient)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.7 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          />
           <defs>
-            <linearGradient id="vineSwingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#4ade80" stopOpacity="0.3" />
-              <stop offset="50%" stopColor="#22c55e" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#4ade80" stopOpacity="0.3" />
+            <linearGradient id="vinePathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#4ade80" stopOpacity="0.2" />
+              <stop offset="50%" stopColor="#22c55e" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#4ade80" stopOpacity="0.2" />
             </linearGradient>
           </defs>
+          <motion.path
+            d={`M ${prevPosition.x} ${prevPosition.y} Q ${(prevPosition.x + position.x) / 2} ${Math.min(prevPosition.y, position.y) - habit.arcHeight} ${position.x} ${position.y}`}
+            fill="none"
+            stroke="url(#vinePathGradient)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray="8 4"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 0.8 }}
+            transition={{ duration: moveDuration * 0.8 }}
+          />
         </svg>
+      )}
+
+      {isMoving && habit.travelStyle === 'parabola' && (
+        <motion.div
+          className="absolute pointer-events-none"
+          style={{ left: position.x, top: position.y }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 0.5], y: [0, -30, 0] }}
+          transition={{ duration: moveDuration }}
+        >
+          <span className="text-2xl">💫</span>
+        </motion.div>
       )}
 
       <motion.div
         className="absolute"
         initial={false}
-        animate={getMovementAnimation()}
-        transition={getTransition()}
-        style={{ transform: 'translate(-50%, -50%)' }}
+        animate={getTravelAnimation()}
+        transition={getTravelTransition()}
+        style={{ originX: 0.5, originY: 0.5 }}
       >
         <motion.div
-          animate={getIdleAnimation()}
-          transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 0.1 }}
+          animate={!isMoving && !isPlaying ? habit.idleAnimation : {}}
+          transition={{ 
+            duration: habit.idleDuration, 
+            repeat: Infinity, 
+            repeatType: 'loop',
+            ease: 'easeInOut'
+          }}
           className="relative"
+          style={{ transform: 'translate(-50%, -50%)' }}
         >
           <motion.span 
             className="text-4xl drop-shadow-xl select-none block"
-            style={{
-              filter: isMoving ? 'brightness(1.3) drop-shadow(0 0 10px rgba(74, 222, 128, 0.5))' : 'none',
-              transform: direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
-            }}
             animate={{
-              scale: isPlaying ? [1, 1.1, 1][bounce % 3] : 1,
+              filter: isMoving 
+                ? 'brightness(1.3) drop-shadow(0 0 12px rgba(74, 222, 128, 0.6))' 
+                : isPlaying
+                  ? 'brightness(1.1) drop-shadow(0 0 6px rgba(74, 222, 128, 0.3))'
+                  : 'brightness(1)',
             }}
           >
             {emoji}
@@ -302,34 +425,56 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
           
           {isMoving && (
             <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: [0, 1.5, 1] }}
-              exit={{ opacity: 0 }}
-              className="absolute -top-6 left-1/2 -translate-x-1/2"
+              initial={{ opacity: 0, scale: 0, y: 10 }}
+              animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.8], y: [-5, -25, -35] }}
+              transition={{ duration: moveDuration * 0.6 }}
+              className="absolute top-0 left-1/2 -translate-x-1/2"
             >
-              <span className="text-2xl">
-                {movementStyle === 'swing' ? '🌿' : 
-                 movementStyle === 'hop' ? '💫' :
-                 movementStyle === 'fly' ? '🌟' :
-                 movementStyle === 'climb' ? '🍃' : '⭐'}
+              <span className="text-xl">
+                {habit.travelStyle === 'arc' ? '🌿' : 
+                 habit.travelStyle === 'parabola' ? '💨' :
+                 habit.travelStyle === 'glide' ? '🌟' :
+                 habit.travelStyle === 'zigzag' ? '⚡' : '🐾'}
               </span>
             </motion.div>
           )}
           
           {isPlaying && !isMoving && (
             <motion.div
-              animate={{ opacity: [0.5, 1, 0.5], y: [0, -3, 0] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
-              className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-0.5"
             >
-              {[1, 2, 3, 4].map((i) => (
+              {[0, 1, 2, 3].map((i) => (
                 <motion.div
                   key={i}
-                  animate={{ scaleY: [0.3, 1, 0.3], backgroundColor: ['#4ade80', '#22c55e', '#4ade80'] }}
-                  transition={{ duration: 0.25, repeat: Infinity, delay: i * 0.08 }}
-                  className="w-1 h-3 bg-emerald-400 rounded-full"
+                  animate={{ 
+                    scaleY: [0.4, 1, 0.4], 
+                    backgroundColor: ['#4ade80', '#22c55e', '#4ade80'] 
+                  }}
+                  transition={{ 
+                    duration: 0.3, 
+                    repeat: Infinity, 
+                    delay: i * 0.1,
+                    ease: 'easeInOut'
+                  }}
+                  className="w-1 h-3 bg-emerald-400 rounded-full origin-bottom"
                 />
               ))}
+            </motion.div>
+          )}
+
+          {!isPlaying && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ 
+                opacity: [0.5, 1, 0.5], 
+                y: [-8, -15, -8],
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-slate-400 whitespace-nowrap"
+            >
+              💤
             </motion.div>
           )}
         </motion.div>
@@ -403,22 +548,14 @@ export function MascotControls({ compact = false }: MascotControlsProps) {
             ))}
           </div>
           
-          <div className="flex gap-1 flex-wrap">
-            {movements.map((m) => (
-              <button
-                key={m}
-                onClick={() => setMovementStyle(m)}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-all ${
-                  movementStyle === m
-                    ? 'bg-primary/20 text-primary border border-primary/50'
-                    : 'bg-slate-700/50 text-slate-400 border border-slate-600/30 hover:bg-slate-600/50'
-                }`}
-                title={MOVEMENT_NAMES[m]}
-                data-testid={`select-movement-${m}`}
-              >
-                {m.charAt(0).toUpperCase() + m.slice(1)}
-              </button>
-            ))}
+          <div className="text-[9px] text-slate-500 mt-1">
+            {ANIMAL_NAMES[animal]}: {
+              animal === 'monkey' ? 'Swings through vines' :
+              animal === 'bird' ? 'Glides gracefully' :
+              animal === 'frog' ? 'Leaps high' :
+              animal === 'squirrel' ? 'Darts quickly' :
+              'Prowls smoothly'
+            }
           </div>
         </>
       )}
@@ -478,5 +615,5 @@ export function AnimalSelector({
   );
 }
 
-export { ANIMAL_EMOJIS, ANIMAL_NAMES, MOVEMENT_NAMES };
+export { ANIMAL_EMOJIS, ANIMAL_NAMES, MOVEMENT_NAMES, ANIMAL_HABITS };
 export type { ChordAnchor };
