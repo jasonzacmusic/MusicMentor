@@ -29,9 +29,10 @@ Preferred communication style: Simple, everyday language.
 - **Development Storage**: In-memory storage
 
 ### Key Components
-- **Audio System**: Custom Web Audio API wrapper for note synthesis, single note/chord playback, ADSR envelope control.
+- **Audio System**: Sample-based audio engine (smplr for Splendid Grand Piano, soundfont-player for other instruments), 5 instrument combo presets, separate volume controls for block chords and arpeggios.
 - **Music Theory Engine**: Chromatic scale implementation, interval-based chord construction and harmonization, interval recognition, random note generation.
-- **UI Components**: Interactive virtual piano, modular practice panels, responsive design with a mobile-first approach.
+- **UI Components**: Interactive virtual piano, guitar fretboard diagrams with Open/Barre/Alternative shapes, modular practice panels, responsive design with a mobile-first approach.
+- **Guitar Chord Library**: Comprehensive library covering all 12 roots × 9 chord qualities (major, minor, diminished, augmented, major7, minor7, dominant7, sus2, sus4) with 3 shapes each (Open, Barre, Alternative).
 - **Practice Session Management**: Session tracking (duration, notes played, chords practiced), user preferences (tempo, keys, goals), progress analytics.
 
 ### Data Flow
