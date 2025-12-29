@@ -40,8 +40,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [isPlaying, setIsPlaying] = useState(false);
   
   // Auto Loop state - only active when feature flag is enabled
-  const [isLooping, setIsLooping] = useState(false);
-  const isLoopingRef = useRef(false); // Ref for real-time loop state access during playback
+  const [isLooping, setIsLooping] = useState(true);
+  const isLoopingRef = useRef(true); // Ref for real-time loop state access during playback
   
   const [withMetronome, setWithMetronome] = useState(false);
   const withMetronomeRef = useRef(false); // Ref for real-time metronome access
@@ -589,10 +589,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
 
   // RANDOM HARMONIZER - Select random chords from available options for each note
+  // Prevents duplicate chords when 4 or fewer notes are selected
   const handleRandomHarmonize = useCallback(() => {
     console.log('🎭 RANDOM HARMONIZER PRESSED');
 
     const randomChords: (Chord | null)[] = [];
+    const usedChordNames = new Set<string>();
+    const allowDuplicates = notes.length >= 5;
 
     // For each note position, get its available chords and pick one randomly
     for (let i = 0; i < notes.length; i++) {
@@ -600,11 +603,23 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       const availableChords = getChordsForNoteBySkill(noteForPosition, skillLevel);
 
       if (availableChords.length > 0) {
-        // Pick a random chord from the available options
-        const randomIndex = Math.floor(Math.random() * availableChords.length);
-        const selectedChord = availableChords[randomIndex];
+        // Filter out already used chords (unless 5+ notes or no unique options left)
+        let candidateChords = allowDuplicates 
+          ? availableChords 
+          : availableChords.filter(c => !usedChordNames.has(c.name));
+        
+        // Fallback to all chords if no unique options available
+        if (candidateChords.length === 0) {
+          candidateChords = availableChords;
+          console.log(`⚠️ Position ${i + 1}: No unique chords left, allowing duplicate`);
+        }
+
+        // Pick a random chord from the candidates
+        const randomIndex = Math.floor(Math.random() * candidateChords.length);
+        const selectedChord = candidateChords[randomIndex];
         randomChords.push(selectedChord);
-        console.log(`🎯 Position ${i + 1} (${noteForPosition}): Selected "${selectedChord.name}" from ${availableChords.length} options`);
+        usedChordNames.add(selectedChord.name);
+        console.log(`🎯 Position ${i + 1} (${noteForPosition}): Selected "${selectedChord.name}" from ${candidateChords.length} options`);
       } else {
         randomChords.push(null);
         console.log(`❌ Position ${i + 1} (${noteForPosition}): No chords available`);
@@ -741,172 +756,178 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     console.log(`🔄 Input mode changed to: ${mode}`);
   }, []);
 
+  // Compact mode state
+  const [isCompact, setIsCompact] = useState(false);
+
   return (
-    <div className="space-y-4">
-      {/* Note Count Selector */}
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-foreground">Notes</label>
-        <div className="flex rounded-md overflow-hidden border border-border">
-          {[1, 2, 3, 4, 5].map((count) => (
+    <div className={isCompact ? "space-y-2" : "space-y-3"}>
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Settings</span>
+        <button
+          onClick={() => setIsCompact(!isCompact)}
+          className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {isCompact ? 'Expand' : 'Compact'}
+        </button>
+      </div>
+
+      {/* === NOTES SECTION === */}
+      <div className={isCompact ? "space-y-1.5" : "space-y-2"}>
+        <div className="flex items-center justify-between">
+          <label className={`font-medium text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Notes</label>
+          <div className="flex rounded-md overflow-hidden border border-border">
+            {[1, 2, 3, 4, 5].map((count) => (
+              <button
+                key={count}
+                onClick={() => onNoteCountChange?.(count)}
+                className={`${isCompact ? 'px-1.5 py-0.5 text-[10px] min-w-[22px]' : 'px-2 py-1 text-xs min-w-[28px]'} font-semibold transition-colors ${
+                  noteCount === count
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+                data-testid={`button-note-count-${count}`}
+              >
+                {count}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label className={`font-medium text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Mode</label>
+          <div className="flex rounded-md overflow-hidden border border-border">
             <button
-              key={count}
-              onClick={() => onNoteCountChange?.(count)}
-              className={`px-2.5 py-1.5 text-xs font-semibold transition-colors min-w-[32px] ${
-                noteCount === count
+              onClick={() => handleModeToggle('random')}
+              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors flex items-center gap-1 ${
+                inputMode === 'random'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground hover:bg-muted'
               }`}
-              data-testid={`button-note-count-${count}`}
             >
-              {count}
+              <Dices className={isCompact ? "w-2.5 h-2.5" : "w-3 h-3"} />
+              Random
             </button>
-          ))}
+            <button
+              onClick={() => handleModeToggle('manual')}
+              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors flex items-center gap-1 ${
+                inputMode === 'manual'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <Edit3 className={isCompact ? "w-2.5 h-2.5" : "w-3 h-3"} />
+              Manual
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Mode Toggle */}
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-foreground">Mode</label>
-        <div className="flex rounded-md overflow-hidden border border-border">
-          <button
-            onClick={() => handleModeToggle('random')}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
-              inputMode === 'random'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-background text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            <Dices className="w-3 h-3" />
-            Random
-          </button>
-          <button
-            onClick={() => handleModeToggle('manual')}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
-              inputMode === 'manual'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-background text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            <Edit3 className="w-3 h-3" />
-            Manual
-          </button>
-        </div>
-      </div>
-
-      {/* Manual Note Selection - shown when in manual mode */}
-      {inputMode === 'manual' && (
-        <div className="bg-muted/50 rounded-md p-2 border border-border">
-          <div className={`grid gap-1.5 ${
-            noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'
-          }`}>
-            {Array.from({ length: noteCount }, (_, index) => (
-              <div key={index}>
+        {/* Manual Note Selection */}
+        {inputMode === 'manual' && (
+          <div className={`bg-muted/30 rounded-md ${isCompact ? 'p-1.5' : 'p-2'} border border-border`}>
+            <div className={`grid gap-1 ${
+              noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'
+            }`}>
+              {Array.from({ length: noteCount }, (_, index) => (
                 <Select
+                  key={index}
                   value={notes[index] || 'C'}
                   onValueChange={(value) => handleManualNoteChange(index, value)}
                 >
-                  <SelectTrigger className="w-full h-8 text-xs font-semibold">
+                  <SelectTrigger className={`w-full ${isCompact ? 'h-6 text-[10px]' : 'h-7 text-xs'} font-semibold`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {VALID_NOTES_FOR_SELECTION.map((note) => (
-                      <SelectItem
-                        key={note.value}
-                        value={note.value}
-                        className={`font-mono ${note.isBlack ? 'text-muted-foreground' : ''}`}
-                      >
+                      <SelectItem key={note.value} value={note.value} className="font-mono text-xs">
                         {note.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Random mode controls */}
-      {inputMode === 'random' && (
-        <Button
-          onClick={handleGenerate}
-          variant="outline"
-          size="sm"
-          className="w-full h-9 text-xs"
-          data-testid="button-generate"
-        >
-          <Shuffle className="w-3.5 h-3.5 mr-2" />
-          Generate Notes
-        </Button>
-      )}
-
-      {/* Play/Pause and Auto Loop buttons */}
-      <div className="flex space-x-2 pt-2 border-t border-border">
-        <Button
-          onClick={handlePlay}
-          size="sm"
-          disabled={isLoadingInstruments}
-          className={`flex-1 h-10 text-sm font-semibold ${
-            isPlaying
-              ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
-              : 'bg-primary hover:bg-primary/90 text-primary-foreground'
-          }`}
-        >
-          {isLoadingInstruments ? (
-            <>
-              <span className="w-4 h-4 mr-2 animate-spin">⏳</span>
-              Loading...
-            </>
-          ) : isPlaying ? (
-            <>
-              <Square className="w-4 h-4 mr-2" />
-              Stop
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 mr-2" />
-              Play
-            </>
-          )}
-        </Button>
-
-        {/* Auto Loop Button - only show if feature enabled */}
-        {isFeatureEnabled('AUTO_LOOP') && (
+        {/* Generate Button */}
+        {inputMode === 'random' && (
           <Button
-            onClick={toggleLoop}
-            variant={isLooping ? "default" : "outline"}
+            onClick={handleGenerate}
+            variant="outline"
             size="sm"
-            className="flex-1 h-10 text-sm"
-            data-testid="button-auto-loop"
+            className={`w-full ${isCompact ? 'h-7 text-[10px]' : 'h-8 text-xs'}`}
+            data-testid="button-generate"
           >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Loop
+            <Shuffle className={isCompact ? "w-3 h-3 mr-1.5" : "w-3.5 h-3.5 mr-2"} />
+            Generate
           </Button>
         )}
       </div>
 
-      {/* Random Chords button */}
-      <Button
-        onClick={handleRandomHarmonize}
-        variant="outline"
-        size="sm"
-        className="w-full h-9 text-xs"
-        data-testid="button-random-chords"
-      >
-        <Shuffle className="w-3.5 h-3.5 mr-2" />
-        Random Chords
-      </Button>
+      {/* === PLAYBACK SECTION === */}
+      <div className={`${isCompact ? 'pt-2 space-y-1.5' : 'pt-3 space-y-2'} border-t border-border`}>
+        <div className="flex gap-1.5">
+          <Button
+            onClick={handlePlay}
+            size="sm"
+            disabled={isLoadingInstruments}
+            className={`flex-1 ${isCompact ? 'h-8 text-xs' : 'h-9 text-sm'} font-semibold ${
+              isPlaying
+                ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+                : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+            }`}
+          >
+            {isLoadingInstruments ? (
+              <span className="animate-pulse">Loading...</span>
+            ) : isPlaying ? (
+              <>
+                <Square className={isCompact ? "w-3 h-3 mr-1" : "w-3.5 h-3.5 mr-1.5"} />
+                Stop
+              </>
+            ) : (
+              <>
+                <Play className={isCompact ? "w-3 h-3 mr-1" : "w-3.5 h-3.5 mr-1.5"} />
+                Play
+              </>
+            )}
+          </Button>
 
-      {/* Instrument Combo Selector */}
-      <div className="space-y-3 pt-4 border-t border-border">
+          {isFeatureEnabled('AUTO_LOOP') && (
+            <Button
+              onClick={toggleLoop}
+              variant={isLooping ? "default" : "outline"}
+              size="sm"
+              className={`${isCompact ? 'h-8 px-3 text-xs' : 'h-9 px-4 text-sm'}`}
+              data-testid="button-auto-loop"
+            >
+              <RotateCcw className={isCompact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+            </Button>
+          )}
+        </div>
+
+        <Button
+          onClick={handleRandomHarmonize}
+          variant="outline"
+          size="sm"
+          className={`w-full ${isCompact ? 'h-7 text-[10px]' : 'h-8 text-xs'}`}
+          data-testid="button-random-chords"
+        >
+          <Shuffle className={isCompact ? "w-3 h-3 mr-1.5" : "w-3.5 h-3.5 mr-2"} />
+          Random Chords
+        </Button>
+      </div>
+
+      {/* === SOUND SECTION === */}
+      <div className={`${isCompact ? 'pt-2 space-y-1.5' : 'pt-3 space-y-2'} border-t border-border`}>
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-2">
-            <Music className="w-3.5 h-3.5" />
-            Instruments
+          <label className={`font-medium text-foreground flex items-center gap-1.5 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
+            <Music className={isCompact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+            Sound
           </label>
           <Select value={selectedComboId} onValueChange={setSelectedComboId}>
-            <SelectTrigger className="w-[130px] h-8 text-xs" data-testid="select-instrument-combo">
-              <SelectValue placeholder="Select" />
+            <SelectTrigger className={`${isCompact ? 'w-[100px] h-6 text-[10px]' : 'w-[120px] h-7 text-xs'}`} data-testid="select-instrument-combo">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {INSTRUMENT_COMBOS.map((combo) => (
@@ -917,105 +938,88 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             </SelectContent>
           </Select>
         </div>
-        {isLoadingInstruments && (
-          <div className="text-xs text-muted-foreground text-center animate-pulse">
-            Loading instruments...
+
+        {!isCompact && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-3 h-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground w-12">Chords</span>
+              <Slider
+                value={[blockChordVolume * 100]}
+                onValueChange={(value) => setBlockChordVolume(value[0] / 100)}
+                min={0} max={100} step={5}
+                className="flex-1"
+                data-testid="slider-block-chord-volume"
+              />
+              <span className="text-[10px] text-muted-foreground w-7 text-right">{Math.round(blockChordVolume * 100)}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-3 h-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground w-12">Arpeggio</span>
+              <Slider
+                value={[arpeggioVolume * 100]}
+                onValueChange={(value) => setArpeggioVolume(value[0] / 100)}
+                min={0} max={100} step={5}
+                className="flex-1"
+                data-testid="slider-arpeggio-volume"
+              />
+              <span className="text-[10px] text-muted-foreground w-7 text-right">{Math.round(arpeggioVolume * 100)}%</span>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Volume Balance Controls */}
-      <div className="space-y-3 pt-4 border-t border-border">
-        <label className="text-xs font-semibold text-foreground flex items-center gap-2">
-          <Volume2 className="w-3.5 h-3.5" />
-          Volume
-        </label>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-3">
-            <span className="text-xs text-muted-foreground min-w-[50px]">Chords</span>
-            <Slider
-              value={[blockChordVolume * 100]}
-              onValueChange={(value) => setBlockChordVolume(value[0] / 100)}
-              min={0}
-              max={100}
-              step={5}
-              className="flex-1"
-              data-testid="slider-block-chord-volume"
-            />
-            <span className="text-xs text-muted-foreground min-w-[30px] text-right">{Math.round(blockChordVolume * 100)}%</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-xs text-muted-foreground min-w-[50px]">Arpeggio</span>
-            <Slider
-              value={[arpeggioVolume * 100]}
-              onValueChange={(value) => setArpeggioVolume(value[0] / 100)}
-              min={0}
-              max={100}
-              step={5}
-              className="flex-1"
-              data-testid="slider-arpeggio-volume"
-            />
-            <span className="text-xs text-muted-foreground min-w-[30px] text-right">{Math.round(arpeggioVolume * 100)}%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tempo & Timing Controls */}
-      <div className="space-y-3 pt-4 border-t border-border">
+      {/* === TEMPO SECTION === */}
+      <div className={`${isCompact ? 'pt-2 space-y-1.5' : 'pt-3 space-y-2'} border-t border-border`}>
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-foreground">Tempo</label>
-          <span className="text-sm font-bold text-primary">{tempo} BPM</span>
+          <label className={`font-medium text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Tempo</label>
+          <span className={`font-bold text-primary ${isCompact ? 'text-xs' : 'text-sm'}`}>{tempo}</span>
         </div>
         <Slider
           value={[tempo]}
           onValueChange={(value) => setTempo(value[0])}
-          min={60}
-          max={200}
-          step={10}
+          min={60} max={200} step={10}
           className="w-full"
         />
 
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
             <Checkbox
               id="metronome"
               checked={withMetronome}
               onCheckedChange={(checked) => setWithMetronome(checked === true)}
-              className="h-4 w-4"
+              className={isCompact ? "h-3 w-3" : "h-3.5 w-3.5"}
             />
-            <label htmlFor="metronome" className="text-xs font-medium text-foreground">
+            <label htmlFor="metronome" className={`text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
               Metronome
             </label>
           </div>
 
           {withMetronome && (
-            <div className="flex space-x-1">
-              {[
-                { value: 1, label: '♩' },
-                { value: 2, label: '♫' },
-                { value: 3, label: '♬' }
-              ].map(({ value, label }) => (
-                <Button
+            <div className="flex gap-0.5">
+              {[{ value: 1, label: '♩' }, { value: 2, label: '♫' }, { value: 3, label: '♬' }].map(({ value, label }) => (
+                <button
                   key={value}
-                  size="sm"
-                  variant={metronomeMultiplier === value ? "default" : "outline"}
                   onClick={() => setMetronomeMultiplier(value)}
-                  className="px-2 py-1 h-7 text-sm"
+                  className={`${isCompact ? 'w-6 h-5 text-[10px]' : 'w-7 h-6 text-xs'} rounded transition-colors ${
+                    metronomeMultiplier === value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
                 >
                   {label}
-                </Button>
+                </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Arpeggio Speed Toggle */}
-        <div className="flex items-center justify-between pt-2">
-          <label className="text-xs font-medium text-foreground">Arpeggio Speed</label>
+        <div className="flex items-center justify-between">
+          <label className={`text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Arpeggio</label>
           <div className="flex rounded-md overflow-hidden border border-border">
             <button
               onClick={() => setArpeggioSpeed(1)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors ${
                 arpeggioSpeed === 1
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground hover:bg-muted'
@@ -1026,7 +1030,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             </button>
             <button
               onClick={() => setArpeggioSpeed(2)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors ${
                 arpeggioSpeed === 2
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground hover:bg-muted'
@@ -1039,17 +1043,19 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         </div>
       </div>
 
-      {/* Keyboard shortcuts */}
-      <div className="pt-4 border-t border-border">
-        <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
-          <span><kbd className="px-1.5 py-1 bg-muted rounded font-mono text-foreground">Space</kbd> Play</span>
-          <span><kbd className="px-1.5 py-1 bg-muted rounded font-mono text-foreground">M</kbd> Metro</span>
-          {isFeatureEnabled('AUTO_LOOP') && (
-            <span><kbd className="px-1.5 py-1 bg-muted rounded font-mono text-foreground">L</kbd> Loop</span>
-          )}
-          <span><kbd className="px-1.5 py-1 bg-muted rounded font-mono text-foreground">R</kbd> Gen</span>
+      {/* === KEYBOARD SHORTCUTS === */}
+      {!isCompact && (
+        <div className="pt-3 border-t border-border">
+          <div className="flex flex-wrap gap-1.5 justify-center text-[10px] text-muted-foreground">
+            <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">Space</kbd> Play</span>
+            <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">M</kbd> Metro</span>
+            {isFeatureEnabled('AUTO_LOOP') && (
+              <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">L</kbd> Loop</span>
+            )}
+            <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">R</kbd> Gen</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

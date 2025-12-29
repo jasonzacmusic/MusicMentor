@@ -68,7 +68,7 @@ export default function Home() {
               />
               <div>
                 <h1 className="text-xl font-bold text-foreground tracking-tight">
-                  Cadenza
+                  Chord Trees
                 </h1>
                 <p className="text-[11px] text-muted-foreground -mt-0.5 hidden sm:block">
                   See chords. Hear them. Master them.
@@ -100,7 +100,7 @@ export default function Home() {
 
       <main className="max-w-full mx-auto px-3 lg:px-4 py-3">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-[calc(100vh-90px)]">
-          <div className="lg:col-span-2 xl:col-span-2 space-y-3">
+          <div className="lg:col-span-3 xl:col-span-3 space-y-3">
             <div className="bg-card rounded-lg p-4 border border-border">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
                 <label className="text-xs font-semibold text-foreground uppercase tracking-wide">Skill Level</label>
@@ -135,11 +135,12 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:col-span-10 xl:col-span-10">
+          <div className="lg:col-span-9 xl:col-span-9">
             <div className="bg-card rounded-lg p-4 border border-border h-full">
-              <div className="text-center mb-3">
-                <h3 className="text-lg font-semibold text-foreground">Chord Trees</h3>
-                <p className="text-sm text-muted-foreground">Click chord branches to hear harmonies</p>
+              <div className="text-center mb-4">
+                <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                  Select notes, explore chord options, and hear how they sound together. Click any chord to play it.
+                </p>
               </div>
 
               <div className={`grid grid-cols-1 gap-2 h-[calc(100%-60px)] overflow-y-auto ${
