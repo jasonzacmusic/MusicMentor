@@ -33,8 +33,8 @@ const BEAT_PATTERNS: Record<number, number[]> = {
 export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange }: RandomNotesGeneratorProps) {
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G', 'F']); // Default to 4 notes
   const [inputMode, setInputMode] = useState<'random' | 'manual'>('random');
-  const [tempo, setTempo] = useState(60);
-  const tempoRef = useRef(60); // Ref for real-time tempo access during playback
+  const [tempo, setTempo] = useState(120);
+  const tempoRef = useRef(120); // Ref for real-time tempo access during playback
   const [isPlaying, setIsPlaying] = useState(false);
   
   // Auto Loop state - only active when feature flag is enabled
