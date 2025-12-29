@@ -575,20 +575,24 @@ interface ChordSkillSelectorProps {
   isPlaying?: boolean;
   colorPreset?: ColorPreset;
   expandedView?: boolean;
+  showPiano?: boolean;
+  showGuitar?: boolean;
 }
 
-export default function ChordSkillSelector({ 
-  baseNote, 
-  noteIndex, 
-  selectedChord: parentSelectedChord, 
-  onChordSelect, 
-  inversionMode = 'auto', 
-  onInversionChange, 
-  skillLevel = 'beginner', 
+export default function ChordSkillSelector({
+  baseNote,
+  noteIndex,
+  selectedChord: parentSelectedChord,
+  onChordSelect,
+  inversionMode = 'auto',
+  onInversionChange,
+  skillLevel = 'beginner',
   treeLayout = false,
   isPlaying = false,
   colorPreset = 'earth',
-  expandedView = false
+  expandedView = false,
+  showPiano = false,
+  showGuitar = false
 }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord } = useAudio();
@@ -607,9 +611,6 @@ export default function ChordSkillSelector({
   const handleDeselectChord = () => {
     onChordSelect(null, noteIndex);
   };
-
-  const [showPiano, setShowPiano] = useState(false);
-  const [showGuitar, setShowGuitar] = useState(false);
   // Show key categories expanded by default for usability
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     'Major': true, 'Minor': true, 'Dominant 7th': true, 'Major 7th': true, 'Minor 7th': true,
