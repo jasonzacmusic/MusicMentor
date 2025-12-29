@@ -268,9 +268,12 @@ interface EnvironmentLayerProps {
   animal: AnimalType;
   noteIndex: number;
   isPlaying: boolean;
+  enabled?: boolean;
 }
 
-export function EnvironmentLayer({ animal, noteIndex, isPlaying }: EnvironmentLayerProps) {
+export function EnvironmentLayer({ animal, noteIndex, isPlaying, enabled = true }: EnvironmentLayerProps) {
+  if (!enabled) return null;
+  
   const env = ANIMAL_ENVIRONMENTS[animal];
   
   const getAmbientKeyframes = () => {

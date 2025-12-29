@@ -864,7 +864,8 @@ export default function ChordSkillSelector({
           <EnvironmentLayer 
             animal={currentAnimal} 
             noteIndex={noteIndex} 
-            isPlaying={isPlaying} 
+            isPlaying={isPlaying}
+            enabled={mascotContext.enabled}
           />
 
           <div className={`absolute w-56 h-56 rounded-full border transition-all duration-300 ${
