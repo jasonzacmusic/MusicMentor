@@ -1099,353 +1099,121 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     );
   }
 
-  // ========== COMPACT VIEW - Icon-driven modern design ==========
+  // ========== COMPACT VIEW - Minimal icon row ==========
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="space-y-2">
-        {/* Header with expand toggle */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
-            <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">Controls</span>
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setIsCompact(false)}
-                className="p-1 rounded hover:bg-muted transition-colors"
-              >
-                <ChevronDown className="w-3 h-3 text-muted-foreground" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="text-xs">Expand controls</TooltipContent>
-          </Tooltip>
-        </div>
+      <div className="flex items-center gap-1.5 py-1">
+        {/* Play/Stop */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={handlePlay}
+              size="sm"
+              disabled={isLoadingInstruments}
+              className={`h-7 w-7 p-0 ${
+                isPlaying
+                  ? 'bg-destructive hover:bg-destructive/90'
+                  : 'bg-primary hover:bg-primary/90'
+              }`}
+            >
+              {isLoadingInstruments ? (
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : isPlaying ? (
+                <Square className="w-3 h-3" />
+              ) : (
+                <Play className="w-3 h-3" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isPlaying ? 'Stop' : 'Play'}</TooltipContent>
+        </Tooltip>
 
-        {/* Primary Actions - Play/Stop/Loop/Harmonize */}
-        <div className="flex gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={handlePlay}
-                size="sm"
-                disabled={isLoadingInstruments}
-                className={`flex-1 h-8 ${
-                  isPlaying
-                    ? 'bg-destructive hover:bg-destructive/90'
-                    : 'bg-primary hover:bg-primary/90'
-                }`}
-              >
-                {isLoadingInstruments ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : isPlaying ? (
-                  <Square className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isPlaying ? 'Stop (Space)' : 'Play (Space)'}</TooltipContent>
-          </Tooltip>
-
-          {isFeatureEnabled('AUTO_LOOP') && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={toggleLoop}
-                  variant={isLooping ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  data-testid="button-auto-loop"
-                >
-                  <Repeat className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isLooping ? 'Loop On (L)' : 'Loop Off (L)'}</TooltipContent>
-            </Tooltip>
-          )}
-
+        {/* Loop */}
+        {isFeatureEnabled('AUTO_LOOP') && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                onClick={handleRandomHarmonize}
-                variant="outline"
+                onClick={toggleLoop}
+                variant={isLooping ? "default" : "outline"}
                 size="sm"
-                className="h-8 w-8 p-0"
-                data-testid="button-random-chords"
+                className="h-7 w-7 p-0"
               >
-                <Zap className="w-3.5 h-3.5" />
+                <Repeat className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Random Chords</TooltipContent>
+            <TooltipContent>{isLooping ? 'Loop On' : 'Loop Off'}</TooltipContent>
           </Tooltip>
-        </div>
+        )}
 
-        {/* Notes Section - Compact pill selector */}
-        <div className="bg-muted/30 rounded-lg p-2 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <span className="text-[8px] font-semibold text-muted-foreground uppercase">♪</span>
-              <div className="flex rounded-md overflow-hidden border border-border">
-                {[1, 2, 3, 4, 5].map((count) => (
-                  <button
-                    key={count}
-                    onClick={() => onNoteCountChange?.(count)}
-                    className={`w-5 h-5 text-[10px] font-bold transition-colors ${
-                      noteCount === count
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                    data-testid={`button-note-count-${count}`}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Metronome */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setWithMetronome(!withMetronome)}
+              className={`h-7 w-7 flex items-center justify-center rounded text-sm transition-colors ${
+                withMetronome
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              ♩
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Metronome</TooltipContent>
+        </Tooltip>
 
-            {/* Mode Toggle - Icon only */}
-            <div className="flex rounded-md overflow-hidden border border-border">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => handleModeToggle('random')}
-                    className={`w-6 h-5 flex items-center justify-center transition-colors ${
-                      inputMode === 'random'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <Dices className="w-3 h-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Random Mode</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => handleModeToggle('manual')}
-                    className={`w-6 h-5 flex items-center justify-center transition-colors ${
-                      inputMode === 'manual'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <Edit3 className="w-3 h-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Manual Mode</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* Manual Selection or Generate Button */}
-          {inputMode === 'manual' ? (
-            <div className={`grid gap-1 ${noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'}`}>
-              {Array.from({ length: noteCount }, (_, index) => (
-                <Select
-                  key={index}
-                  value={notes[index] || 'C'}
-                  onValueChange={(value) => handleManualNoteChange(index, value)}
-                >
-                  <SelectTrigger className="w-full h-6 text-[10px] font-bold px-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VALID_NOTES_FOR_SELECTION.map((note) => (
-                      <SelectItem key={note.value} value={note.value} className="font-mono text-xs">
-                        {note.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ))}
-            </div>
-          ) : (
+        {/* Shuffle/Generate */}
+        <Tooltip>
+          <TooltipTrigger asChild>
             <Button
               onClick={handleGenerate}
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="w-full h-6 text-[10px] bg-background/50 hover:bg-background"
-              data-testid="button-generate"
+              className="h-7 w-7 p-0"
             >
-              <Shuffle className="w-3 h-3 mr-1" />
-              Generate (R)
+              <Shuffle className="w-3 h-3" />
             </Button>
-          )}
-        </div>
+          </TooltipTrigger>
+          <TooltipContent>Generate Notes</TooltipContent>
+        </Tooltip>
 
-        {/* Sound & Tempo - Consolidated Row */}
-        <div className="space-y-2">
-          {/* Instrument Selector */}
-          <div className="flex items-center gap-1.5">
-            <Music className="w-3 h-3 text-muted-foreground" />
-            <Select value={selectedComboId} onValueChange={setSelectedComboId}>
-              <SelectTrigger className="flex-1 h-6 text-[10px]" data-testid="select-instrument-combo">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {INSTRUMENT_COMBOS.map((combo) => (
-                  <SelectItem key={combo.id} value={combo.id} className="text-xs">
-                    {combo.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Random Chords */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={handleRandomHarmonize}
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+            >
+              <Zap className="w-3 h-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Random Chords</TooltipContent>
+        </Tooltip>
 
-          {/* Volume Sliders - Side by side with icons */}
-          <div className="flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex-1 flex items-center gap-1">
-                  <span className="text-[9px] text-muted-foreground">🎹</span>
-                  <Slider
-                    value={[blockChordVolume * 100]}
-                    onValueChange={(value) => setBlockChordVolume(value[0] / 100)}
-                    min={0} max={100} step={10}
-                    className="flex-1"
-                    data-testid="slider-block-chord-volume"
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Chord Volume: {Math.round(blockChordVolume * 100)}%</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex-1 flex items-center gap-1">
-                  <span className="text-[9px] text-muted-foreground">🎶</span>
-                  <Slider
-                    value={[arpeggioVolume * 100]}
-                    onValueChange={(value) => setArpeggioVolume(value[0] / 100)}
-                    min={0} max={100} step={10}
-                    className="flex-1"
-                    data-testid="slider-arpeggio-volume"
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Arpeggio Volume: {Math.round(arpeggioVolume * 100)}%</TooltipContent>
-            </Tooltip>
-          </div>
+        {/* Tempo Display */}
+        <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+          {tempo}
+        </span>
 
-          {/* Tempo with LED-style display */}
-          <div className="flex items-center gap-2">
-            <Timer className="w-3 h-3 text-muted-foreground" />
-            <Slider
-              value={[tempo]}
-              onValueChange={(value) => setTempo(value[0])}
-              min={60} max={200} step={10}
-              className="flex-1"
-            />
-            <span className="text-[11px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded min-w-[32px] text-center">
-              {tempo}
-            </span>
-          </div>
-        </div>
+        {/* Note Count */}
+        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1 py-0.5 rounded">
+          {noteCount}♪
+        </span>
 
-        {/* Timing Controls - Single row with all options */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Metronome Toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setWithMetronome(!withMetronome)}
-                className={`h-6 w-6 flex items-center justify-center rounded transition-colors text-sm ${
-                  withMetronome
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                ♩
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Metronome (M)</TooltipContent>
-          </Tooltip>
-
-          {withMetronome && (
-            <div className="flex rounded-md overflow-hidden border border-border">
-              {[{ value: 1, label: '♩' }, { value: 2, label: '♫' }, { value: 3, label: '♬' }].map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setMetronomeMultiplier(value)}
-                  className={`w-5 h-5 text-[10px] transition-colors ${
-                    metronomeMultiplier === value
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="h-4 w-px bg-border" />
-
-          {/* Arpeggio Speed */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex rounded-md overflow-hidden border border-border">
-                <button
-                  onClick={() => setArpeggioSpeed(1)}
-                  className={`px-1.5 h-5 text-[9px] font-medium transition-colors ${
-                    arpeggioSpeed === 1
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:bg-muted'
-                  }`}
-                  data-testid="button-arpeggio-eighth"
-                >
-                  ♪
-                </button>
-                <button
-                  onClick={() => setArpeggioSpeed(2)}
-                  className={`px-1.5 h-5 text-[9px] font-medium transition-colors ${
-                    arpeggioSpeed === 2
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:bg-muted'
-                  }`}
-                  data-testid="button-arpeggio-sixteenth"
-                >
-                  ♬
-                </button>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Arpeggio: {arpeggioSpeed === 1 ? '8th notes' : '16th notes'}</TooltipContent>
-          </Tooltip>
-
-          <div className="h-4 w-px bg-border" />
-
-          {/* Cycles */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex rounded-md overflow-hidden border border-border">
-                {[1, 2, 4].map((cycles) => (
-                  <button
-                    key={cycles}
-                    onClick={() => setChordCycles(cycles)}
-                    className={`w-5 h-5 text-[9px] font-bold transition-colors ${
-                      chordCycles === cycles
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                    data-testid={`button-cycles-${cycles}`}
-                  >
-                    {cycles}×
-                  </button>
-                ))}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Cycles per chord: {chordCycles}×</TooltipContent>
-          </Tooltip>
-        </div>
-
-        {/* Keyboard shortcuts - Minimal */}
-        <div className="flex justify-center gap-2 pt-1 border-t border-border">
-          <span className="text-[8px] text-muted-foreground font-mono">␣ Play</span>
-          <span className="text-[8px] text-muted-foreground font-mono">M ♩</span>
-          <span className="text-[8px] text-muted-foreground font-mono">L ∞</span>
-          <span className="text-[8px] text-muted-foreground font-mono">R ⟳</span>
-        </div>
+        {/* Expand Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setIsCompact(false)}
+              className="p-1 rounded hover:bg-muted transition-colors ml-auto"
+            >
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Expand</TooltipContent>
+        </Tooltip>
       </div>
     </TooltipProvider>
   );

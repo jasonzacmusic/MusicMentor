@@ -1,4 +1,4 @@
-import { CHROMATIC_NOTES, MAJOR_CHORD_NOTES, MINOR_CHORD_NOTES, CHORD_INTERVALS, CHORD_NAMES } from './music-constants';
+import { CHROMATIC_NOTES, MAJOR_CHORD_NOTES, MINOR_CHORD_NOTES, CHORD_INTERVALS, CHORD_NAMES, CHORD_CATEGORIES } from './music-constants';
 
 export interface Chord {
   name: string;
@@ -9,6 +9,8 @@ export interface Chord {
   inversion?: number;
   category?: 'triad' | 'seventh' | 'extension';
   parentType?: string;
+  noteRole?: string;
+  roleIndex?: number;
 }
 
 export interface ChordTreeNode {
@@ -17,6 +19,114 @@ export interface ChordTreeNode {
   branches?: ChordTreeNode[];
   angleOffset?: number;
   distance?: number;
+}
+
+export interface ChordMembership {
+  chord: Chord;
+  role: string;
+  roleIndex: number;
+  chordType: string;
+  category: 'triad' | 'seventh' | 'extension';
+}
+
+const NOTE_ROLE_NAMES: Record<string, Record<number, string>> = {
+  'major': { 0: 'Root', 1: 'M3', 2: 'P5' },
+  'minor': { 0: 'Root', 1: 'm3', 2: 'P5' },
+  'diminished': { 0: 'Root', 1: 'm3', 2: 'b5' },
+  'augmented': { 0: 'Root', 1: 'M3', 2: '#5' },
+  'sus2': { 0: 'Root', 1: 'M2', 2: 'P5' },
+  'sus4': { 0: 'Root', 1: 'P4', 2: 'P5' },
+  'major7': { 0: 'Root', 1: 'M3', 2: 'P5', 3: 'M7' },
+  'minor7': { 0: 'Root', 1: 'm3', 2: 'P5', 3: 'b7' },
+  'dominant7': { 0: 'Root', 1: 'M3', 2: 'P5', 3: 'b7' },
+  'diminished7': { 0: 'Root', 1: 'm3', 2: 'b5', 3: 'bb7' },
+  '7sus4': { 0: 'Root', 1: 'P4', 2: 'P5', 3: 'b7' },
+  'minorMajor7': { 0: 'Root', 1: 'm3', 2: 'P5', 3: 'M7' },
+  'minor7b5': { 0: 'Root', 1: 'm3', 2: 'b5', 3: 'b7' },
+  'add9': { 0: 'Root', 1: 'M2', 2: 'M3', 3: 'P5' },
+  'minorAdd9': { 0: 'Root', 1: 'M2', 2: 'm3', 3: 'P5' }
+};
+
+function normalizeToPitchClass(note: string): number {
+  const normalizations: Record<string, string> = {
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+  };
+  const normalized = normalizations[note] || note;
+  const pitchClasses: Record<string, number> = {
+    'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5,
+    'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11
+  };
+  return pitchClasses[normalized] ?? 0;
+}
+
+function getChordCategory(chordType: string): 'triad' | 'seventh' | 'extension' {
+  if (CHORD_CATEGORIES.triads.includes(chordType)) return 'triad';
+  if (CHORD_CATEGORIES.sevenths.includes(chordType)) return 'seventh';
+  return 'extension';
+}
+
+export function getAllChordsContainingNote(targetNote: string, chordTypes?: string[]): ChordMembership[] {
+  const targetPitchClass = normalizeToPitchClass(targetNote);
+  const results: ChordMembership[] = [];
+  
+  const typesToCheck = chordTypes || Object.keys(CHORD_INTERVALS);
+  
+  for (const chordType of typesToCheck) {
+    const intervals = CHORD_INTERVALS[chordType];
+    if (!intervals) continue;
+    
+    for (let rootIndex = 0; rootIndex < 12; rootIndex++) {
+      const chordPitchClasses = intervals.map(interval => (rootIndex + interval) % 12);
+      
+      // Find ALL positions where the target note appears (not just first)
+      const matchingPositions: number[] = [];
+      chordPitchClasses.forEach((pc, idx) => {
+        if (pc === targetPitchClass) matchingPositions.push(idx);
+      });
+      
+      if (matchingPositions.length === 0) continue;
+      
+      const rootNote = CHROMATIC_NOTES[rootIndex];
+      const category = getChordCategory(chordType);
+      
+      // Create entries for each position where the note appears
+      for (const notePosition of matchingPositions) {
+        const role = NOTE_ROLE_NAMES[chordType]?.[notePosition] || `Position ${notePosition + 1}`;
+        
+        try {
+          const chord = getChordFromNote(rootNote, chordType, 0);
+          chord.noteRole = role;
+          chord.roleIndex = notePosition;
+          
+          results.push({
+            chord,
+            role,
+            roleIndex: notePosition,
+            chordType,
+            category
+          });
+        } catch (e) {
+          // Skip invalid combinations
+        }
+      }
+    }
+  }
+  
+  return results;
+}
+
+export function getChordsContainingNoteGrouped(targetNote: string): {
+  triads: ChordMembership[];
+  sevenths: ChordMembership[];
+  extensions: ChordMembership[];
+} {
+  const allChords = getAllChordsContainingNote(targetNote);
+  
+  return {
+    triads: allChords.filter(c => c.category === 'triad'),
+    sevenths: allChords.filter(c => c.category === 'seventh'),
+    extensions: allChords.filter(c => c.category === 'extension')
+  };
 }
 
 // Helper function to get proper note name based on chord type
@@ -304,107 +414,18 @@ export function getChordsForNoteBySkill(rootNote: string, skillLevel: SkillLevel
     });
     
   } else if (skillLevel === 'intermediate') {
-    // Intermediate: Tree structure - triads at center, extended chords as branches
-    // All share the root note for proper voice leading
+    // Intermediate: Find ALL chords that contain this note in any position
+    // This includes chords where the note is root, 3rd, 5th, 7th, etc.
+    const allMemberships = getAllChordsContainingNote(rootNote);
     
-    // CENTER: 1. Root Major (trunk)
-    const rootMajor = getChordFromNote(rootNote, 'major', 0);
-    chords.push({
-      ...rootMajor,
-      name: rootNote,
-      category: 'triad',
-      parentType: undefined
-    });
-    
-    // CENTER: 2. Root Minor (trunk)
-    const rootMinor = getChordFromNote(rootNote, 'minor', 0);
-    chords.push({
-      ...rootMinor,
-      name: `${rootNote}m`,
-      category: 'triad',
-      parentType: undefined
-    });
-    
-    // BRANCH from Major: 3. Major 7th
-    const rootMaj7 = getChordFromNote(rootNote, 'major7', 0);
-    chords.push({
-      ...rootMaj7,
-      name: `${rootNote}maj7`,
-      category: 'seventh',
-      parentType: 'major'
-    });
-    
-    // BRANCH from Major: 4. Dominant 7th
-    const rootDom7 = getChordFromNote(rootNote, 'dominant7', 0);
-    chords.push({
-      ...rootDom7,
-      name: `${rootNote}7`,
-      category: 'seventh',
-      parentType: 'major'
-    });
-    
-    // BRANCH from Major: 5. Add 9
-    const rootAdd9 = getChordFromNote(rootNote, 'add9', 0);
-    chords.push({
-      ...rootAdd9,
-      name: `${rootNote}add9`,
-      category: 'extension',
-      parentType: 'major'
-    });
-    
-    // BRANCH from Major: 6. 7sus4
-    const root7sus4 = getChordFromNote(rootNote, '7sus4', 0);
-    chords.push({
-      ...root7sus4,
-      name: `${rootNote}7sus4`,
-      category: 'seventh',
-      parentType: 'major'
-    });
-    
-    // BRANCH from Minor: 7. Minor 7th
-    const rootMin7 = getChordFromNote(rootNote, 'minor7', 0);
-    chords.push({
-      ...rootMin7,
-      name: `${rootNote}m7`,
-      category: 'seventh',
-      parentType: 'minor'
-    });
-    
-    // BRANCH from Minor: 8. Minor(Maj7)
-    const rootMinMaj7 = getChordFromNote(rootNote, 'minorMajor7', 0);
-    chords.push({
-      ...rootMinMaj7,
-      name: `${rootNote}m(maj7)`,
-      category: 'seventh',
-      parentType: 'minor'
-    });
-    
-    // BRANCH from Minor: 9. Minor Add 9
-    const rootMinAdd9 = getChordFromNote(rootNote, 'minorAdd9', 0);
-    chords.push({
-      ...rootMinAdd9,
-      name: `${rootNote}m(add9)`,
-      category: 'extension',
-      parentType: 'minor'
-    });
-    
-    // BRANCH from Minor: 10. Minor 7b5 (half-diminished)
-    const rootMin7b5 = getChordFromNote(rootNote, 'minor7b5', 0);
-    chords.push({
-      ...rootMin7b5,
-      name: `${rootNote}m7b5`,
-      category: 'seventh',
-      parentType: 'minor'
-    });
-    
-    // BRANCH from Minor: 11. Diminished 7
-    const rootDim7 = getChordFromNote(rootNote, 'diminished7', 0);
-    chords.push({
-      ...rootDim7,
-      name: `${rootNote}°7`,
-      category: 'seventh',
-      parentType: 'minor'
-    });
+    for (const membership of allMemberships) {
+      chords.push({
+        ...membership.chord,
+        noteRole: membership.role,
+        roleIndex: membership.roleIndex,
+        category: membership.category
+      });
+    }
     
   } else { // advanced
     // Advanced: 6 chords using same structure as beginner but with complex harmonies

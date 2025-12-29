@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel } from '@/lib/chord-theory';
+import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel, getAllChordsContainingNote, type ChordMembership } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
 import GuitarFretboard from './guitar-fretboard';
+import { Piano, Guitar, ChevronDown, ChevronUp } from 'lucide-react';
 
 function getChromaticPosition(note: string): number {
   const normalizations: Record<string, string> = {
@@ -594,211 +595,185 @@ export default function ChordSkillSelector({
     onChordSelect(null, noteIndex);
   };
 
+  const [showPiano, setShowPiano] = useState(false);
+  const [showGuitar, setShowGuitar] = useState(false);
+  // Show key categories expanded by default for usability
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+    'Major': true, 'Minor': true, 'Dominant 7th': true, 'Major 7th': true, 'Minor 7th': true,
+    'Diminished': true, 'Diminished 7th': true, 'Augmented': true, 'sus2': false, 'sus4': false,
+    '7sus4': false, 'Minor(Maj7)': false, 'Minor 7b5': false, 'Add 9': false, 'Minor Add 9': false
+  });
+
   const isIntermediateMode = skillLevel === 'intermediate';
   const triads = availableChords.filter(c => c.category === 'triad' || !c.parentType);
   const majorBranches = availableChords.filter(c => c.parentType === 'major');
   const minorBranches = availableChords.filter(c => c.parentType === 'minor');
 
+  const chordsByType = useMemo(() => {
+    if (!isIntermediateMode) return {};
+    const grouped: Record<string, Chord[]> = {};
+    const typeOrder = ['Major', 'Minor', 'Dominant 7th', 'Major 7th', 'Minor 7th', 'Diminished', 'Diminished 7th', 
+                       'Augmented', 'sus2', 'sus4', '7sus4', 'Minor(Maj7)', 'Minor 7b5', 'Add 9', 'Minor Add 9'];
+    const typeMap: Record<string, string> = {
+      'major': 'Major', 'minor': 'Minor', 'dominant7': 'Dominant 7th', 'major7': 'Major 7th', 
+      'minor7': 'Minor 7th', 'diminished': 'Diminished', 'diminished7': 'Diminished 7th',
+      'augmented': 'Augmented', 'sus2': 'sus2', 'sus4': 'sus4', '7sus4': '7sus4',
+      'minorMajor7': 'Minor(Maj7)', 'minor7b5': 'Minor 7b5', 'add9': 'Add 9', 'minorAdd9': 'Minor Add 9'
+    };
+    for (const chord of availableChords) {
+      const typeName = typeMap[chord.type] || chord.type;
+      if (!grouped[typeName]) grouped[typeName] = [];
+      grouped[typeName].push(chord);
+    }
+    const sorted: Record<string, Chord[]> = {};
+    for (const type of typeOrder) {
+      if (grouped[type]) sorted[type] = grouped[type];
+    }
+    return sorted;
+  }, [availableChords, isIntermediateMode]);
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+  };
+
   if (treeLayout) {
     if (isIntermediateMode && availableChords.length > 6) {
       return (
-        <div className="flex flex-col items-center">
-          <div className={`relative w-80 h-72 mx-auto flex items-center justify-center transition-all duration-300 ${
-            isPlaying ? 'scale-[1.02]' : ''
-          }`}>
-            <div className={`absolute w-72 h-64 rounded-3xl border transition-all duration-300 ${
-              isPlaying ? 'border-emerald-400/30 shadow-lg shadow-emerald-500/10' : 'border-slate-700/20'
-            }`} />
-            
+        <div className="flex flex-col h-full w-full max-w-xs overflow-hidden">
+          {/* Header with base note and instrument toggles */}
+          <div className="flex items-center justify-between mb-1 px-1">
             <button
               onClick={handleDeselectChord}
-              className={`absolute z-30 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 
+              className={`px-3 py-1 rounded-full flex items-center gap-1 transition-all duration-300 
                 ${isPlaying 
-                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-300 shadow-xl shadow-emerald-500/50 scale-110 animate-pulse'
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border border-emerald-300 shadow-md'
                   : selectedChord
-                    ? 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-slate-500/50 shadow-xl ring-2 ring-emerald-400/60'
-                    : 'bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600/50 shadow-xl hover:border-slate-500/70'
+                    ? 'bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-500/50 ring-1 ring-emerald-400/60'
+                    : 'bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50'
                 }`}
-              style={{ top: '10%', left: '50%', transform: 'translateX(-50%)' }}
               title={selectedChord ? 'Click to clear selection' : baseNote}
             >
-              <span className="text-xl font-bold text-white drop-shadow-md">{baseNote}</span>
+              <span className="text-sm font-bold text-white">{baseNote}</span>
+              {selectedChord && (
+                <span className="text-[10px] text-slate-300">• {selectedChord.name}</span>
+              )}
             </button>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setShowPiano(!showPiano)}
+                className={`p-1.5 rounded transition-all ${showPiano ? 'bg-emerald-600/80 text-white' : 'bg-slate-700/50 text-slate-400 hover:text-white'}`}
+                title="Toggle Piano"
+                data-testid="toggle-piano"
+              >
+                <Piano className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setShowGuitar(!showGuitar)}
+                className={`p-1.5 rounded transition-all ${showGuitar ? 'bg-emerald-600/80 text-white' : 'bg-slate-700/50 text-slate-400 hover:text-white'}`}
+                title="Toggle Guitar"
+                data-testid="toggle-guitar"
+              >
+                <Guitar className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
 
-            {triads.slice(0, 2).map((chord, idx) => {
-              const isLeft = idx === 0;
-              const xPos = isLeft ? '25%' : '75%';
-              const isSelected = selectedChord?.name === chord.name;
-              const colorScheme = getChordColorScheme(chord.type, colorPreset);
+          {/* Scrollable chord categories */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-1 pr-1 scrollbar-thin">
+            {Object.entries(chordsByType).map(([typeName, chords]) => {
+              const isExpanded = expandedCategories[typeName] ?? false;
+              const hasSelection = chords.some(c => c.name === selectedChord?.name);
               
               return (
-                <div key={chord.name}>
-                  <div className={`absolute h-0.5 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-50'}`}
-                    style={{
-                      top: '18%',
-                      left: isLeft ? '35%' : '50%',
-                      width: '15%',
-                      background: getBranchGradient(chord.type, isSelected)
-                    }}
-                  />
+                <div key={typeName} className="border border-slate-700/30 rounded-lg overflow-hidden">
                   <button
-                    className={`absolute w-16 h-16 rounded-full flex items-center justify-center cursor-pointer 
-                      transition-all duration-200 border-2 z-20 font-bold backdrop-blur-sm
-                      ${isSelected 
-                        ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/40` 
-                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md ${colorScheme.glow} opacity-85 hover:opacity-100 hover:scale-105`
-                      }
-                      ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
-                    style={{ top: '28%', left: xPos, transform: 'translate(-50%, -50%)' }}
-                    onClick={() => handleSelectChord(chord)}
-                    data-testid={`chord-triad-${chord.type}`}
+                    onClick={() => toggleCategory(typeName)}
+                    className={`w-full flex items-center justify-between px-2 py-1 text-left transition-all ${
+                      hasSelection ? 'bg-emerald-900/30' : 'bg-slate-800/40 hover:bg-slate-800/60'
+                    }`}
+                    data-testid={`category-${typeName.toLowerCase().replace(/\s+/g, '-')}`}
                   >
-                    <span className="text-sm font-bold text-center drop-shadow-md">{chord.name}</span>
-                  </button>
-                </div>
-              );
-            })}
-
-            {majorBranches.map((chord, idx) => {
-              const angles = [-60, -30, 0, 30];
-              const angle = angles[idx] || 0;
-              const radius = 70;
-              const centerX = -80;
-              const centerY = 30;
-              const x = centerX + Math.cos((angle - 90) * Math.PI / 180) * radius;
-              const y = centerY + Math.sin((angle - 90) * Math.PI / 180) * radius;
-              const isSelected = selectedChord?.name === chord.name;
-              const colorScheme = getChordColorScheme(chord.type, colorPreset);
-
-              return (
-                <div key={chord.name}>
-                  <div className={`absolute h-0.5 z-10 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-40'}`}
-                    style={{
-                      top: `calc(28% + ${y * 0.3}px)`,
-                      left: `calc(25% + ${x * 0.3}px)`,
-                      width: '35px',
-                      background: getBranchGradient(chord.type, isSelected),
-                      transform: `rotate(${angle + 180}deg)`,
-                      transformOrigin: 'right center'
-                    }}
-                  />
-                  <button
-                    className={`absolute w-11 h-11 rounded-full flex items-center justify-center cursor-pointer 
-                      transition-all duration-200 border z-20 font-medium backdrop-blur-sm
-                      ${isSelected 
-                        ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/30` 
-                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-sm ${colorScheme.glow} opacity-70 hover:opacity-100 hover:scale-110`
-                      }
-                      ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
-                    style={{ 
-                      top: `calc(28% + ${y}px)`,
-                      left: `calc(25% + ${x}px)`,
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                    onClick={() => handleSelectChord(chord)}
-                    data-testid={`chord-branch-${chord.type}`}
-                  >
-                    <span className="text-[8px] font-bold text-center leading-tight drop-shadow-sm">
-                      {chord.name.replace(baseNote, '').replace('(', '').replace(')', '') || chord.name}
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide ${hasSelection ? 'text-emerald-300' : 'text-slate-300'}`}>
+                      {typeName} <span className="text-slate-500">({chords.length})</span>
                     </span>
+                    {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
                   </button>
-                </div>
-              );
-            })}
-
-            {minorBranches.map((chord, idx) => {
-              const angles = [-30, 0, 30, 60, 90];
-              const angle = angles[idx] || 0;
-              const radius = 70;
-              const centerX = 80;
-              const centerY = 30;
-              const x = centerX + Math.cos((angle - 90) * Math.PI / 180) * radius;
-              const y = centerY + Math.sin((angle - 90) * Math.PI / 180) * radius;
-              const isSelected = selectedChord?.name === chord.name;
-              const colorScheme = getChordColorScheme(chord.type, colorPreset);
-
-              return (
-                <div key={chord.name}>
-                  <div className={`absolute h-0.5 z-10 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-40'}`}
-                    style={{
-                      top: `calc(28% + ${y * 0.3}px)`,
-                      left: `calc(75% + ${x * 0.3}px)`,
-                      width: '35px',
-                      background: getBranchGradient(chord.type, isSelected),
-                      transform: `rotate(${angle}deg)`,
-                      transformOrigin: 'left center'
-                    }}
-                  />
-                  <button
-                    className={`absolute w-11 h-11 rounded-full flex items-center justify-center cursor-pointer 
-                      transition-all duration-200 border z-20 font-medium backdrop-blur-sm
-                      ${isSelected 
-                        ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/30` 
-                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-sm ${colorScheme.glow} opacity-70 hover:opacity-100 hover:scale-110`
-                      }
-                      ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
-                    style={{ 
-                      top: `calc(28% + ${y}px)`,
-                      left: `calc(75% + ${x}px)`,
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                    onClick={() => handleSelectChord(chord)}
-                    data-testid={`chord-branch-${chord.type}`}
-                  >
-                    <span className="text-[8px] font-bold text-center leading-tight drop-shadow-sm">
-                      {chord.name.replace(baseNote, '').replace('(', '').replace(')', '') || chord.name}
-                    </span>
-                  </button>
+                  
+                  {isExpanded && (
+                    <div className="p-1 flex flex-wrap gap-0.5 bg-slate-900/30">
+                      {chords.map((chord) => {
+                        const isSelected = selectedChord?.name === chord.name;
+                        const colorScheme = getChordColorScheme(chord.type, colorPreset);
+                        const roleLabel = chord.noteRole || 'Root';
+                        
+                        return (
+                          <button
+                            key={`${chord.name}-${chord.noteRole}`}
+                            onClick={() => handleSelectChord(chord)}
+                            className={`group relative px-1.5 py-0.5 rounded text-[9px] font-medium transition-all border
+                              ${isSelected 
+                                ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-sm scale-105` 
+                                : `bg-slate-800/60 border-slate-600/40 text-slate-200 hover:bg-slate-700/60 hover:scale-102`
+                              }
+                              ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
+                            data-testid={`chord-chip-${chord.rootNote}-${chord.type}`}
+                          >
+                            <span className="font-bold">{chord.rootNote}</span>
+                            <span className={`ml-0.5 px-1 py-0 rounded text-[7px] ${
+                              isSelected ? 'bg-white/20' : 'bg-slate-600/50'
+                            }`}>
+                              {roleLabel}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-1 flex flex-col items-center">
-            {selectedChord ? (
-              <>
-                <div className={`mb-2 px-4 py-1.5 rounded-lg transition-all duration-300 ${
-                  isPlaying 
-                    ? 'bg-gradient-to-r from-emerald-600/80 to-teal-600/80 border border-emerald-400/50 shadow-lg shadow-emerald-500/30'
-                    : 'bg-gradient-to-r from-slate-800/80 to-slate-900/80 border border-slate-600/30 shadow-md'
-                }`}>
-                  <h4 className="text-sm font-semibold text-white text-center tracking-wide">
-                    {selectedChord.name}
-                    {selectedChord.category === 'seventh' && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200 text-[9px] font-bold">7th</span>
-                    )}
-                  </h4>
-                  <div className="text-xs text-slate-300 text-center font-medium">
-                    {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' • ')}
-                  </div>
+          {/* Selected chord info and instruments (optional) */}
+          {selectedChord && (
+            <div className="mt-1 pt-1 border-t border-slate-700/30">
+              <div className={`px-2 py-1 rounded text-center transition-all duration-300 ${
+                isPlaying 
+                  ? 'bg-gradient-to-r from-emerald-600/60 to-teal-600/60 border border-emerald-400/30'
+                  : 'bg-slate-800/60 border border-slate-600/20'
+              }`}>
+                <div className="text-xs font-semibold text-white">{selectedChord.name}</div>
+                <div className="text-[9px] text-slate-300">
+                  {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' • ')}
+                  {selectedChord.noteRole && (
+                    <span className="ml-1 px-1 py-0 rounded bg-amber-500/30 text-amber-200 text-[8px]">
+                      {baseNote} is {selectedChord.noteRole}
+                    </span>
+                  )}
                 </div>
-                <PianoKeyboard
-                  highlightedNotes={selectedChord.notes}
-                  compact={true}
-                  onKeyPress={(note) => {}}
-                />
-                <div className="mt-3">
+              </div>
+              
+              {showPiano && (
+                <div className="mt-1">
+                  <PianoKeyboard
+                    highlightedNotes={selectedChord.notes}
+                    compact={true}
+                    onKeyPress={(note) => {}}
+                  />
+                </div>
+              )}
+              
+              {showGuitar && (
+                <div className="mt-1">
                   <GuitarFretboard
                     root={selectedChord.rootNote}
                     quality={selectedChord.type}
                     compact={true}
                   />
                 </div>
-              </>
-            ) : (
-              <>
-                <div className="mb-2 px-4 py-1.5 rounded-lg bg-gradient-to-r from-slate-800/60 to-slate-900/60 border border-slate-700/30 shadow-md">
-                  <h4 className="text-sm font-semibold text-slate-300 text-center">{baseNote}</h4>
-                  <div className="text-xs text-slate-500 text-center">Select a chord from the tree</div>
-                </div>
-                <PianoKeyboard
-                  highlightedNotes={[baseNote]}
-                  compact={true}
-                  onKeyPress={(note) => {}}
-                />
-              </>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }
