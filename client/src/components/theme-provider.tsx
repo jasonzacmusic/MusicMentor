@@ -1,58 +1,58 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'dark' | 'light' | 'system'
+type ColorMode = 'earth' | 'ocean' | 'cosmic' | 'dark' | 'light'
 
 type ThemeProviderProps = {
   children: React.ReactNode
-  defaultTheme?: Theme
+  defaultColorMode?: ColorMode
   storageKey?: string
 }
 
 type ThemeProviderState = {
-  theme: Theme
-  setTheme: (theme: Theme) => void
+  colorMode: ColorMode
+  setColorMode: (colorMode: ColorMode) => void
 }
 
 const initialState: ThemeProviderState = {
-  theme: 'system',
-  setTheme: () => null,
+  colorMode: 'earth',
+  setColorMode: () => null,
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+export const COLOR_MODES: { id: ColorMode; name: string; icon: string }[] = [
+  { id: 'earth', name: 'Earth', icon: '🌍' },
+  { id: 'ocean', name: 'Ocean', icon: '🌊' },
+  { id: 'cosmic', name: 'Cosmic', icon: '🌌' },
+  { id: 'dark', name: 'Midnight', icon: '🌙' },
+  { id: 'light', name: 'Light', icon: '☀️' },
+]
+
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
-  storageKey = 'music-mentor-theme',
+  defaultColorMode = 'earth',
+  storageKey = 'music-mentor-color-mode',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  const [colorMode, setColorMode] = useState<ColorMode>(
+    () => (localStorage.getItem(storageKey) as ColorMode) || defaultColorMode
   )
 
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove('light', 'dark')
+    // Remove all theme classes
+    root.classList.remove('light', 'dark', 'earth', 'ocean', 'cosmic')
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
-
-      root.classList.add(systemTheme)
-      return
-    }
-
-    root.classList.add(theme)
-  }, [theme])
+    // Add the current color mode class
+    root.classList.add(colorMode)
+  }, [colorMode])
 
   const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+    colorMode,
+    setColorMode: (newColorMode: ColorMode) => {
+      localStorage.setItem(storageKey, newColorMode)
+      setColorMode(newColorMode)
     },
   }
 

@@ -68,40 +68,57 @@ export function getChordFromNote(rootNote: string, chordType: string, inversion:
   };
 }
 
-// Apply chord inversion for exactly 3 notes within tight octave range
-function applyInversion(notes: string[], inversion: number): { invertedNotes: string[], octaves: number[] } {
-  // Always work with exactly 3 notes (triad: root, 3rd, 5th)
-  const triadNotes = notes.slice(0, 3);
-  
-  if (inversion === 0) {
-    // Root position: root, 3rd, 5th - all in close voicing
-    return {
-      invertedNotes: [...triadNotes],
-      octaves: [0, 0, 0] // All notes within same octave range
-    };
-  }
-  
-  if (inversion === 1) {
-    // First inversion: 3rd, 5th, root - tight voicing
-    return {
-      invertedNotes: [triadNotes[1], triadNotes[2], triadNotes[0]],
-      octaves: [0, 0, 1] // Root moves up one octave to stay in range
-    };
-  }
-  
-  if (inversion === 2) {
-    // Second inversion: 5th, root, 3rd - tight voicing
-    return {
-      invertedNotes: [triadNotes[2], triadNotes[0], triadNotes[1]],
-      octaves: [-1, 0, 0] // 5th moves down to bass, others stay in middle
-    };
-  }
-  
-  // Default - root position with tight voicing
-  return {
-    invertedNotes: triadNotes,
-    octaves: [0, 0, 0]
+// Get chromatic position for a note (0-11)
+function getChromaticPosition(note: string): number {
+  const normalizations: Record<string, string> = {
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
   };
+  const normalized = normalizations[note] || note;
+  const positions: Record<string, number> = {
+    'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5,
+    'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11
+  };
+  return positions[normalized] ?? 0;
+}
+
+// Apply chord inversion for exactly 3 notes with proper pitch ordering
+function applyInversion(notes: string[], inversion: number): { invertedNotes: string[], octaves: number[] } {
+  const triadNotes = notes.slice(0, 3);
+  if (triadNotes.length < 3) {
+    return { invertedNotes: triadNotes, octaves: triadNotes.map(() => 0) };
+  }
+
+  const [root, third, fifth] = triadNotes;
+  const rootPos = getChromaticPosition(root);
+  const thirdPos = getChromaticPosition(third);
+  const fifthPos = getChromaticPosition(fifth);
+
+  if (inversion === 0) {
+    // Root position: root is bass, then 3rd, then 5th (ascending pitch)
+    // Adjust octaves so notes ascend: root < 3rd < 5th
+    const octaves = [0, 0, 0];
+    if (thirdPos <= rootPos) octaves[1] = 1;
+    if (fifthPos <= rootPos || (octaves[1] === 1 && fifthPos <= thirdPos)) octaves[2] = 1;
+    return { invertedNotes: [root, third, fifth], octaves };
+  }
+
+  if (inversion === 1) {
+    // First inversion: 3rd is bass, then 5th, then root (ascending pitch)
+    const octaves = [0, 0, 0];
+    if (fifthPos <= thirdPos) octaves[1] = 1;
+    if (rootPos <= thirdPos || (octaves[1] === 1 && rootPos <= fifthPos)) octaves[2] = 1;
+    return { invertedNotes: [third, fifth, root], octaves };
+  }
+
+  if (inversion === 2) {
+    // Second inversion: 5th is bass, then root, then 3rd (ascending pitch)
+    const octaves = [0, 0, 0];
+    if (rootPos <= fifthPos) octaves[1] = 1;
+    if (thirdPos <= fifthPos || (octaves[1] === 1 && thirdPos <= rootPos)) octaves[2] = 1;
+    return { invertedNotes: [fifth, root, third], octaves };
+  }
+
+  return { invertedNotes: triadNotes, octaves: [0, 0, 0] };
 }
 
 function getInversionName(inversion: number): string {

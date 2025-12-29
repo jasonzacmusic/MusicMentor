@@ -1,10 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel } from '@/lib/chord-theory';
 import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
 import GuitarFretboard from './guitar-fretboard';
+
+function getChromaticPosition(note: string): number {
+  const normalizations: Record<string, string> = {
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+  };
+  const normalized = normalizations[note] || note;
+  const positions: Record<string, number> = {
+    'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5,
+    'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11
+  };
+  return positions[normalized] ?? 0;
+}
+
+function sortNotesByPitch(notes: string[], octaves?: number[]): string[] {
+  const notesWithOctave = notes.map((note, i) => ({
+    note,
+    octave: octaves?.[i] ?? 0,
+    chromatic: getChromaticPosition(note)
+  }));
+  notesWithOctave.sort((a, b) => {
+    if (a.octave !== b.octave) return a.octave - b.octave;
+    return a.chromatic - b.chromatic;
+  });
+  return notesWithOctave.map(n => n.note);
+}
 
 export type ColorPreset = 'neon' | 'pastel' | 'earth';
 
@@ -365,7 +390,7 @@ export default function ChordSkillSelector({
                   )}
                 </h4>
                 <div className="text-xs text-slate-300 text-center font-medium">
-                  {selectedChord.notes.join(' \u2022 ')}
+                  {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' • ')}
                 </div>
               </div>
               <PianoKeyboard
