@@ -349,7 +349,7 @@ export function getBeginnerChordsForNote(rootNote: string): Chord[] {
 }
 
 // Define skill levels and their available chord types
-export type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'diatonic';
 
 
 

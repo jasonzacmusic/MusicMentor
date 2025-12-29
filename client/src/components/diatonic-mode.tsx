@@ -13,7 +13,8 @@ import {
   type ScaleType, 
   type DiatonicChord,
   type HarmonizedScale,
-  formatJazzSymbol 
+  formatJazzSymbol,
+  getNormalizedKey
 } from '@/lib/scale-theory';
 import { CHORD_SYMBOLS, CHORD_NAMES } from '@/lib/music-constants';
 import { useAudio } from '@/hooks/use-audio';
@@ -83,6 +84,10 @@ export default function DiatonicMode({ onChordSelect, isPlaying = false, onPlayS
   const [showGuitar, setShowGuitar] = useState(false);
   
   const { playChord } = useAudio();
+
+  const normalizedKey = useMemo(() => {
+    return getNormalizedKey(selectedKey, selectedScale);
+  }, [selectedKey, selectedScale]);
 
   const harmonizedScale = useMemo(() => {
     return harmonizeScale(selectedKey, selectedScale);
@@ -171,7 +176,10 @@ export default function DiatonicMode({ onChordSelect, isPlaying = false, onPlayS
             <div className="flex items-center gap-2 mb-2">
               <Music className="w-4 h-4 text-emerald-400" />
               <span className="text-sm font-medium text-slate-300">
-                {selectedKey} {harmonizedScale.scaleName}
+                {normalizedKey} {harmonizedScale.scaleName}
+                {normalizedKey !== selectedKey && (
+                  <span className="text-xs text-slate-500 ml-2">(enharmonic of {selectedKey})</span>
+                )}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">

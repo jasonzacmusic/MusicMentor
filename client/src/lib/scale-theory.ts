@@ -57,6 +57,55 @@ const SEMITONE_TO_NOTES: Record<number, string[]> = {
   8: ['G#', 'Ab'], 9: ['A'], 10: ['A#', 'Bb'], 11: ['B', 'Cb']
 };
 
+function normalizeKeyForScale(key: string, scaleType: ScaleType): string {
+  if (scaleType === 'major' || scaleType === 'lydian' || scaleType === 'mixolydian' || scaleType === 'phrygian' || scaleType === 'locrian') {
+    if (key === 'C#') return 'Db';
+    if (key === 'G#') return 'Ab';
+    if (key === 'D#') return 'Eb';
+    if (key === 'A#') return 'Bb';
+    if (key === 'Cb') return 'B';
+    if (key === 'Fb') return 'E';
+    if (key === 'F#') return 'Gb';
+  }
+  if (scaleType === 'naturalMinor' || scaleType === 'harmonicMinor' || scaleType === 'melodicMinor' || scaleType === 'dorian') {
+    if (key === 'A#') return 'Bb';
+    if (key === 'D#') return 'Eb';
+    if (key === 'G#') return 'Ab';
+  }
+  return key;
+}
+
+export function getNormalizedKey(key: string, scaleType: ScaleType): string {
+  return normalizeKeyForScale(key, scaleType);
+}
+
+function isSharpKey(key: string): boolean {
+  const sharpKeys = ['G', 'D', 'A', 'E', 'B', 'F#', 'C#'];
+  return sharpKeys.includes(key);
+}
+
+function preferredAccidental(key: string, semitone: number, letterRequired: string): string {
+  const options = SEMITONE_TO_NOTES[semitone];
+  if (!options || options.length === 1) {
+    return options?.[0] || letterRequired;
+  }
+  
+  const withCorrectLetter = options.find(n => n.charAt(0) === letterRequired);
+  if (withCorrectLetter && !['E#', 'Fb', 'B#', 'Cb'].includes(withCorrectLetter)) {
+    return withCorrectLetter;
+  }
+  
+  const useSharp = isSharpKey(key);
+  const sharp = options.find(n => n.includes('#') && !['E#', 'B#'].includes(n));
+  const flat = options.find(n => n.includes('b') && !['Fb', 'Cb'].includes(n));
+  const natural = options.find(n => n.length === 1);
+  
+  if (natural) return natural;
+  if (useSharp && sharp) return sharp;
+  if (!useSharp && flat) return flat;
+  return sharp || flat || options[0];
+}
+
 export const SCALE_DEFINITIONS: Record<ScaleType, ScaleDefinition> = {
   major: { name: 'Major (Ionian)', shortName: 'Major', intervals: [0, 2, 4, 5, 7, 9, 11] },
   naturalMinor: { name: 'Natural Minor (Aeolian)', shortName: 'Natural Minor', intervals: [0, 2, 3, 5, 7, 8, 10] },
@@ -102,15 +151,14 @@ function getSpelledNote(targetSemitone: number, targetLetter: string): string {
   return targetLetter;
 }
 
-function sanitizeNote(note: string): string {
-  if (note === 'E#') return 'F';
-  if (note === 'Fb') return 'E';
-  if (note === 'B#') return 'C';
-  if (note === 'Cb') return 'B';
+function sanitizeNote(note: string, key: string): string {
+  if (FORBIDDEN_NOTES.includes(note)) {
+    const semitone = getSemitone(note);
+    return preferredAccidental(key, semitone, note.charAt(0));
+  }
   if (note.includes('##') || note.includes('bb')) {
     const semitone = getSemitone(note);
-    const options = SEMITONE_TO_NOTES[semitone];
-    return options?.find(n => !FORBIDDEN_NOTES.includes(n)) || options?.[0] || note;
+    return preferredAccidental(key, semitone, note.charAt(0));
   }
   return note;
 }
@@ -119,9 +167,9 @@ export function buildScale(key: string, scaleType: ScaleType): string[] {
   const definition = SCALE_DEFINITIONS[scaleType];
   if (!definition) return [];
   
-  const keyLetter = key.charAt(0).toUpperCase();
-  const keyLetterIndex = getLetterIndex(key);
-  const keySemitone = getSemitone(key);
+  const normalizedKey = normalizeKeyForScale(key, scaleType);
+  const keyLetterIndex = getLetterIndex(normalizedKey);
+  const keySemitone = getSemitone(normalizedKey);
   
   const scaleNotes: string[] = [];
   
@@ -132,7 +180,7 @@ export function buildScale(key: string, scaleType: ScaleType): string[] {
     const targetLetter = LETTER_ORDER[targetLetterIndex];
     
     let note = getSpelledNote(targetSemitone, targetLetter);
-    note = sanitizeNote(note);
+    note = sanitizeNote(note, normalizedKey);
     scaleNotes.push(note);
   }
   
@@ -204,7 +252,7 @@ function getChordFunction(degree: number, quality: string): 'tonic' | 'subdomina
   return 'other';
 }
 
-function buildChordNotes(root: string, intervals: number[], scaleNotes: string[]): string[] {
+function buildChordNotes(root: string, intervals: number[], scaleNotes: string[], key: string): string[] {
   const rootSemitone = getSemitone(root);
   const notes: string[] = [root];
   
@@ -218,7 +266,7 @@ function buildChordNotes(root: string, intervals: number[], scaleNotes: string[]
       foundNote = options?.find(n => !FORBIDDEN_NOTES.includes(n)) || options?.[0] || '';
     }
     
-    notes.push(sanitizeNote(foundNote));
+    notes.push(sanitizeNote(foundNote, key));
   }
   
   return notes;
@@ -248,7 +296,7 @@ export function harmonizeTriads(key: string, scaleType: ScaleType): DiatonicChor
     
     const { type, quality } = getTriadQuality(intervals);
     const chordIntervals = CHORD_INTERVALS[type] || [0, 4, 7];
-    const notes = buildChordNotes(root, chordIntervals, scaleNotes);
+    const notes = buildChordNotes(root, chordIntervals, scaleNotes, key);
     
     triads.push({
       name: `${root} ${CHORD_NAMES[type] || type}`,
@@ -292,7 +340,7 @@ export function harmonizeSevenths(key: string, scaleType: ScaleType): DiatonicCh
     
     const { type, quality } = getSeventhQuality(intervals);
     const chordIntervals = CHORD_INTERVALS[type] || [0, 4, 7, 11];
-    const notes = buildChordNotes(root, chordIntervals, scaleNotes);
+    const notes = buildChordNotes(root, chordIntervals, scaleNotes, key);
     
     sevenths.push({
       name: `${root} ${CHORD_NAMES[type] || type}`,
