@@ -2,10 +2,11 @@ import { useState } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector, { type ColorPreset } from '@/components/chord-skill-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Music, HelpCircle, Palette } from 'lucide-react';
+import { HelpCircle, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Chord } from '@/lib/chord-theory';
+import nsmLogo from '@assets/NSM_LOGO_White_1767023126559.png';
 
 type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
 
@@ -60,12 +61,14 @@ export default function Home() {
         <div className="max-w-full mx-auto px-4 lg:px-6">
           <div className="flex justify-between items-center h-14">
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
-                <Music className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img 
+                src={nsmLogo} 
+                alt="Nathaniel School of Music" 
+                className="w-10 h-10 object-contain"
+              />
               <div>
-                <h1 className="text-xl font-bold text-foreground">
-                  Music Mentor
+                <h1 className="text-xl font-bold text-foreground tracking-tight">
+                  Harmony <span className="text-primary font-normal text-sm">by NSM</span>
                 </h1>
               </div>
             </div>

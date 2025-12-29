@@ -31,7 +31,7 @@ function sortNotesByPitch(notes: string[], octaves?: number[]): string[] {
   return notesWithOctave.map(n => n.note);
 }
 
-export type ColorPreset = 'neon' | 'pastel' | 'earth';
+export type ColorPreset = 'neon' | 'pastel' | 'earth' | 'sunset' | 'ocean';
 
 const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: string; text: string; glow: string }>> = {
   neon: {
@@ -219,10 +219,134 @@ const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: st
       text: 'text-white',
       glow: 'shadow-stone-600/40'
     }
+  },
+  sunset: {
+    'major': {
+      bg: 'bg-gradient-to-br from-amber-500/90 to-orange-600/90',
+      border: 'border-amber-300/60',
+      text: 'text-white',
+      glow: 'shadow-amber-500/50'
+    },
+    'minor': {
+      bg: 'bg-gradient-to-br from-fuchsia-500/90 to-pink-700/90',
+      border: 'border-fuchsia-400/60',
+      text: 'text-white',
+      glow: 'shadow-fuchsia-500/50'
+    },
+    'dominant7': {
+      bg: 'bg-gradient-to-br from-red-500/90 to-rose-600/90',
+      border: 'border-red-400/60',
+      text: 'text-white',
+      glow: 'shadow-red-500/50'
+    },
+    'major7': {
+      bg: 'bg-gradient-to-br from-yellow-500/90 to-amber-600/90',
+      border: 'border-yellow-400/60',
+      text: 'text-gray-900',
+      glow: 'shadow-yellow-500/50'
+    },
+    'minor7': {
+      bg: 'bg-gradient-to-br from-rose-500/90 to-pink-700/90',
+      border: 'border-rose-400/60',
+      text: 'text-white',
+      glow: 'shadow-rose-500/50'
+    },
+    'diminished': {
+      bg: 'bg-gradient-to-br from-stone-500/90 to-zinc-700/90',
+      border: 'border-stone-400/60',
+      text: 'text-white',
+      glow: 'shadow-stone-500/50'
+    },
+    'augmented': {
+      bg: 'bg-gradient-to-br from-lime-500/90 to-yellow-600/90',
+      border: 'border-lime-400/60',
+      text: 'text-gray-900',
+      glow: 'shadow-lime-500/50'
+    },
+    'sus4': {
+      bg: 'bg-gradient-to-br from-orange-400/90 to-amber-500/90',
+      border: 'border-orange-300/60',
+      text: 'text-white',
+      glow: 'shadow-orange-400/50'
+    },
+    'sus2': {
+      bg: 'bg-gradient-to-br from-coral-500/90 to-red-500/90',
+      border: 'border-red-300/60',
+      text: 'text-white',
+      glow: 'shadow-red-400/50'
+    },
+    'default': {
+      bg: 'bg-gradient-to-br from-orange-600/85 to-amber-700/85',
+      border: 'border-orange-400/50',
+      text: 'text-white',
+      glow: 'shadow-orange-600/40'
+    }
+  },
+  ocean: {
+    'major': {
+      bg: 'bg-gradient-to-br from-cyan-500/90 to-teal-600/90',
+      border: 'border-cyan-400/60',
+      text: 'text-white',
+      glow: 'shadow-cyan-500/50'
+    },
+    'minor': {
+      bg: 'bg-gradient-to-br from-slate-500/90 to-blue-800/90',
+      border: 'border-slate-400/60',
+      text: 'text-white',
+      glow: 'shadow-slate-500/50'
+    },
+    'dominant7': {
+      bg: 'bg-gradient-to-br from-sky-500/90 to-blue-600/90',
+      border: 'border-sky-400/60',
+      text: 'text-white',
+      glow: 'shadow-sky-500/50'
+    },
+    'major7': {
+      bg: 'bg-gradient-to-br from-teal-400/90 to-emerald-500/90',
+      border: 'border-teal-300/60',
+      text: 'text-white',
+      glow: 'shadow-teal-400/50'
+    },
+    'minor7': {
+      bg: 'bg-gradient-to-br from-indigo-500/90 to-blue-700/90',
+      border: 'border-indigo-400/60',
+      text: 'text-white',
+      glow: 'shadow-indigo-500/50'
+    },
+    'diminished': {
+      bg: 'bg-gradient-to-br from-gray-500/90 to-slate-700/90',
+      border: 'border-gray-400/60',
+      text: 'text-white',
+      glow: 'shadow-gray-500/50'
+    },
+    'augmented': {
+      bg: 'bg-gradient-to-br from-emerald-500/90 to-teal-600/90',
+      border: 'border-emerald-400/60',
+      text: 'text-white',
+      glow: 'shadow-emerald-500/50'
+    },
+    'sus4': {
+      bg: 'bg-gradient-to-br from-sky-400/90 to-cyan-500/90',
+      border: 'border-sky-300/60',
+      text: 'text-white',
+      glow: 'shadow-sky-400/50'
+    },
+    'sus2': {
+      bg: 'bg-gradient-to-br from-blue-400/90 to-indigo-500/90',
+      border: 'border-blue-300/60',
+      text: 'text-white',
+      glow: 'shadow-blue-400/50'
+    },
+    'default': {
+      bg: 'bg-gradient-to-br from-blue-600/85 to-slate-700/85',
+      border: 'border-blue-400/50',
+      text: 'text-white',
+      glow: 'shadow-blue-600/40'
+    }
   }
 };
 
-function getChordColorScheme(chordType: string, preset: ColorPreset = 'neon') {
+function getChordColorScheme(chordType: string, preset: ColorPreset = 'earth') {
   const presetColors = COLOR_PRESETS[preset];
   return presetColors[chordType] || presetColors['default'];
 }
@@ -270,7 +394,7 @@ export default function ChordSkillSelector({
   skillLevel = 'beginner', 
   treeLayout = false,
   isPlaying = false,
-  colorPreset = 'neon'
+  colorPreset = 'earth'
 }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const { playChord } = useAudio();
