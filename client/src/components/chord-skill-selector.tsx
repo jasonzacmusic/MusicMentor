@@ -40,74 +40,100 @@ export default function ChordSkillSelector({ baseNote, noteIndex, selectedChord:
   if (treeLayout) {
     // Tree layout with chords arranged in a circle around the central note
     return (
-      <div className="relative w-72 h-72 mx-auto flex items-center justify-center">
-        {/* Central Root Note */}
-        <div className="absolute z-20 flex items-center justify-center">
-          <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-2xl font-bold text-primary-foreground">{baseNote}</span>
+      <div className="flex flex-col items-center">
+        {/* Chord Tree */}
+        <div className="relative w-72 h-72 mx-auto flex items-center justify-center">
+          {/* Central Root Note */}
+          <div className="absolute z-20 flex items-center justify-center">
+            <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center shadow-lg">
+              <span className="text-2xl font-bold text-primary-foreground">{baseNote}</span>
+            </div>
           </div>
+
+          {/* Chord branches arranged in hexagonal pattern */}
+          {availableChords.map((chord, index) => {
+            const angles = [30, 90, 150, 210, 270, 330];
+            const angle = angles[index] || 0;
+
+            const radius = 100;
+            const x = Math.cos(angle * Math.PI / 180) * radius;
+            const y = Math.sin(angle * Math.PI / 180) * radius;
+
+            const isSelected = selectedChord?.name === chord.name;
+
+            return (
+              <div key={index} className="absolute">
+                {/* Branch line */}
+                <div
+                  className="absolute z-10"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                    width: `${radius - 45}px`,
+                    height: '2px',
+                    background: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                    transform: `translate(0, -50%) rotate(${angle}deg)`,
+                    transformOrigin: 'left center'
+                  }}
+                />
+
+                {/* Chord button */}
+                <button
+                  className={`absolute w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 border-2 z-30 ${
+                    isSelected
+                      ? 'bg-primary border-primary text-primary-foreground shadow-md'
+                      : 'bg-card border-border text-foreground hover:border-primary/50 hover:bg-muted/50'
+                  }`}
+                  style={{
+                    left: `calc(50% + ${x}px)`,
+                    top: `calc(50% + ${y}px)`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                  onClick={() => handleSelectChord(chord)}
+                >
+                  <span className="text-xs font-semibold text-center leading-tight px-1">
+                    {chord.name}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+
+          {/* Clear button */}
+          {selectedChord && (
+            <div className="absolute bottom-[-50px] left-1/2 transform -translate-x-1/2">
+              <Button
+                onClick={handleDeselectChord}
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10"
+              >
+                Clear
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Chord branches arranged in hexagonal pattern */}
-        {availableChords.map((chord, index) => {
-          const angles = [30, 90, 150, 210, 270, 330];
-          const angle = angles[index] || 0;
-
-          const radius = 100;
-          const x = Math.cos(angle * Math.PI / 180) * radius;
-          const y = Math.sin(angle * Math.PI / 180) * radius;
-
-          const isSelected = selectedChord?.name === chord.name;
-
-          return (
-            <div key={index} className="absolute">
-              {/* Branch line */}
-              <div
-                className="absolute z-10"
-                style={{
-                  left: '50%',
-                  top: '50%',
-                  width: `${radius - 45}px`,
-                  height: '2px',
-                  background: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                  transform: `translate(0, -50%) rotate(${angle}deg)`,
-                  transformOrigin: 'left center'
-                }}
-              />
-
-              {/* Chord button */}
-              <button
-                className={`absolute w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 border-2 z-30 ${
-                  isSelected
-                    ? 'bg-primary border-primary text-primary-foreground shadow-md'
-                    : 'bg-card border-border text-foreground hover:border-primary/50 hover:bg-muted/50'
-                }`}
-                style={{
-                  left: `calc(50% + ${x}px)`,
-                  top: `calc(50% + ${y}px)`,
-                  transform: 'translate(-50%, -50%)'
-                }}
-                onClick={() => handleSelectChord(chord)}
-              >
-                <span className="text-xs font-semibold text-center leading-tight px-1">
-                  {chord.name}
-                </span>
-              </button>
-            </div>
-          );
-        })}
-
-        {/* Clear button */}
+        {/* Piano Keyboard showing selected chord with proper voice leading inversion */}
         {selectedChord && (
-          <div className="absolute bottom-[-50px] left-1/2 transform -translate-x-1/2">
-            <Button
-              onClick={handleDeselectChord}
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:bg-destructive/10"
-            >
-              Clear
-            </Button>
+          <div className="mt-16 flex flex-col items-center">
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">
+              <span className="text-primary">{selectedChord.name}</span> - Voice Leading
+            </h4>
+            <div className="text-xs text-muted-foreground mb-2">
+              Notes: {selectedChord.notes.join(' - ')}
+              {selectedChord.inversion !== undefined && selectedChord.inversion > 0 && (
+                <span className="ml-2 text-primary">
+                  ({selectedChord.inversion === 1 ? '1st Inversion' : '2nd Inversion'})
+                </span>
+              )}
+            </div>
+            <PianoKeyboard
+              highlightedNotes={selectedChord.notes}
+              onKeyPress={(note) => {
+                // Could add individual note playback here
+              }}
+            />
           </div>
         )}
       </div>
