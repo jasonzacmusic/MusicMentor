@@ -64,6 +64,7 @@ export const CHORD_INTERVALS: Record<string, number[]> = {
   'minorAdd9': [0, 2, 3, 7]
 };
 
+// Full descriptive names (for tooltips, documentation)
 export const CHORD_NAMES: Record<string, string> = {
   'major': 'Major',
   'minor': 'Minor',
@@ -71,15 +72,34 @@ export const CHORD_NAMES: Record<string, string> = {
   'augmented': 'Augmented',
   'major7': 'Major 7th',
   'minor7': 'Minor 7th',
-  'dominant7': '7th',
+  'dominant7': 'Dominant 7th',
   'sus2': 'sus2',
   'sus4': 'sus4',
   'diminished7': 'Diminished 7th',
   '7sus4': '7sus4',
-  'minorMajor7': 'Minor(Maj7)',
-  'minor7b5': 'Minor 7b5',
+  'minorMajor7': 'Minor-Major 7th',
+  'minor7b5': 'Half-Diminished',
   'add9': 'Add 9',
   'minorAdd9': 'Minor Add 9'
+};
+
+// Jazz chord symbols (compact notation for display)
+export const CHORD_SYMBOLS: Record<string, string> = {
+  'major': '',           // C (no suffix for major)
+  'minor': 'm',          // Cm
+  'diminished': '°',     // C°
+  'augmented': '+',      // C+
+  'major7': 'Δ7',        // CΔ7
+  'minor7': 'm7',        // Cm7
+  'dominant7': '7',      // C7
+  'sus2': 'sus2',        // Csus2
+  'sus4': 'sus4',        // Csus4
+  'diminished7': '°7',   // C°7
+  '7sus4': '7sus4',      // C7sus4
+  'minorMajor7': 'mΔ7',  // CmΔ7
+  'minor7b5': 'ø7',      // Cø7 (half-diminished)
+  'add9': 'add9',        // Cadd9
+  'minorAdd9': 'm(add9)' // Cm(add9)
 };
 
 export const CHORD_CATEGORIES = {

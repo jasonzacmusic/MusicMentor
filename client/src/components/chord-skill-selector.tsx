@@ -6,6 +6,16 @@ import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
 import GuitarFretboard from './guitar-fretboard';
 import { Piano, Guitar, ChevronDown, ChevronUp } from 'lucide-react';
+import { CHORD_SYMBOLS, CHORD_NAMES } from '@/lib/music-constants';
+
+// Format chord with jazz symbols (e.g., "C°7" instead of "C Diminished 7th")
+function formatJazzChord(rootNote: string, chordType: string): string {
+  const symbol = CHORD_SYMBOLS[chordType] ?? '';
+  return `${rootNote}${symbol}`;
+}
+
+// Priority chord types for prominent display
+const PRIORITY_CHORD_TYPES = ['major', 'minor', 'diminished', 'dominant7', 'augmented'];
 
 function getChromaticPosition(note: string): number {
   const normalizations: Record<string, string> = {
@@ -700,27 +710,33 @@ export default function ChordSkillSelector({
                   </button>
                   
                   {isExpanded && (
-                    <div className="p-1 flex flex-wrap gap-0.5 bg-slate-900/30">
+                    <div className="p-1.5 flex flex-wrap gap-1 bg-slate-900/30">
                       {chords.map((chord) => {
                         const isSelected = selectedChord?.name === chord.name;
                         const colorScheme = getChordColorScheme(chord.type, colorPreset);
                         const roleLabel = chord.noteRole || 'Root';
+                        const isPriority = PRIORITY_CHORD_TYPES.includes(chord.type);
+                        const jazzName = formatJazzChord(chord.rootNote, chord.type);
                         
                         return (
                           <button
                             key={`${chord.name}-${chord.noteRole}`}
                             onClick={() => handleSelectChord(chord)}
-                            className={`group relative px-1.5 py-0.5 rounded text-[9px] font-medium transition-all border
+                            title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type} - ${baseNote} is ${roleLabel}`}
+                            className={`group relative rounded font-medium transition-all border
+                              ${isPriority ? 'px-2 py-1 text-[11px]' : 'px-1.5 py-0.5 text-[9px]'}
                               ${isSelected 
-                                ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-sm scale-105` 
-                                : `bg-slate-800/60 border-slate-600/40 text-slate-200 hover:bg-slate-700/60 hover:scale-102`
+                                ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md scale-105` 
+                                : isPriority
+                                  ? `bg-slate-700/80 border-slate-500/50 text-white hover:bg-slate-600/80 hover:scale-105`
+                                  : `bg-slate-800/60 border-slate-600/40 text-slate-300 hover:bg-slate-700/60 hover:scale-102`
                               }
                               ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
                             data-testid={`chord-chip-${chord.rootNote}-${chord.type}`}
                           >
-                            <span className="font-bold">{chord.rootNote}</span>
-                            <span className={`ml-0.5 px-1 py-0 rounded text-[7px] ${
-                              isSelected ? 'bg-white/20' : 'bg-slate-600/50'
+                            <span className="font-bold">{jazzName}</span>
+                            <span className={`ml-1 px-1 py-0 rounded text-[7px] ${
+                              isSelected ? 'bg-white/25' : 'bg-slate-600/60'
                             }`}>
                               {roleLabel}
                             </span>
@@ -737,13 +753,18 @@ export default function ChordSkillSelector({
           {/* Selected chord info and instruments (optional) */}
           {selectedChord && (
             <div className="mt-1 pt-1 border-t border-slate-700/30">
-              <div className={`px-2 py-1 rounded text-center transition-all duration-300 ${
+              <div className={`px-2 py-1.5 rounded text-center transition-all duration-300 ${
                 isPlaying 
                   ? 'bg-gradient-to-r from-emerald-600/60 to-teal-600/60 border border-emerald-400/30'
                   : 'bg-slate-800/60 border border-slate-600/20'
               }`}>
-                <div className="text-xs font-semibold text-white">{selectedChord.name}</div>
-                <div className="text-[9px] text-slate-300">
+                <div className="text-sm font-bold text-white">
+                  {formatJazzChord(selectedChord.rootNote, selectedChord.type)}
+                </div>
+                <div className="text-[8px] text-slate-400 uppercase tracking-wide">
+                  {CHORD_NAMES[selectedChord.type] || selectedChord.type}
+                </div>
+                <div className="text-[9px] text-slate-300 mt-0.5">
                   {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' • ')}
                   {selectedChord.noteRole && (
                     <span className="ml-1 px-1 py-0 rounded bg-amber-500/30 text-amber-200 text-[8px]">
@@ -836,7 +857,7 @@ export default function ChordSkillSelector({
                 />
 
                 <button
-                  className={`absolute w-14 h-14 rounded-full flex items-center justify-center cursor-pointer 
+                  className={`absolute w-14 h-14 rounded-full flex flex-col items-center justify-center cursor-pointer 
                     transition-all duration-200 border-2 z-30 font-semibold backdrop-blur-sm
                     ${isSelected 
                       ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-110 ring-2 ring-white/40` 
@@ -849,10 +870,11 @@ export default function ChordSkillSelector({
                     transform: 'translate(-50%, -50%)'
                   }}
                   onClick={() => handleSelectChord(chord)}
+                  title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type}`}
                   data-testid={`chord-button-${chord.type}-${index}`}
                 >
-                  <span className="text-[11px] font-bold text-center leading-tight px-1 drop-shadow-md">
-                    {chord.name.replace(` (${chord.inversion === 1 ? '1st Inv' : chord.inversion === 2 ? '2nd Inv' : ''})`, '')}
+                  <span className="text-[13px] font-bold text-center leading-tight drop-shadow-md">
+                    {formatJazzChord(chord.rootNote, chord.type)}
                   </span>
                 </button>
               </div>
@@ -863,20 +885,23 @@ export default function ChordSkillSelector({
         <div className="mt-2 flex flex-col items-center">
           {selectedChord ? (
             <>
-              <div className={`mb-2 px-4 py-1.5 rounded-lg transition-all duration-300 ${
+              <div className={`mb-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                 isPlaying 
                   ? 'bg-gradient-to-r from-emerald-600/80 to-teal-600/80 border border-emerald-400/50 shadow-lg shadow-emerald-500/30'
                   : 'bg-gradient-to-r from-slate-800/80 to-slate-900/80 border border-slate-600/30 shadow-md'
               }`}>
-                <h4 className="text-sm font-semibold text-white text-center tracking-wide">
-                  {selectedChord.name.replace(` (${selectedChord.inversion === 1 ? '1st Inv' : selectedChord.inversion === 2 ? '2nd Inv' : ''})`, '')}
+                <h4 className="text-base font-bold text-white text-center tracking-wide">
+                  {formatJazzChord(selectedChord.rootNote, selectedChord.type)}
                   {selectedChord.inversion !== undefined && selectedChord.inversion > 0 && (
                     <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 text-[10px] font-bold">
                       {selectedChord.inversion === 1 ? '1st' : '2nd'}
                     </span>
                   )}
                 </h4>
-                <div className="text-xs text-slate-300 text-center font-medium">
+                <div className="text-[9px] text-slate-400 text-center uppercase tracking-wide">
+                  {CHORD_NAMES[selectedChord.type] || selectedChord.type}
+                </div>
+                <div className="text-xs text-slate-300 text-center font-medium mt-0.5">
                   {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' • ')}
                 </div>
               </div>
@@ -960,11 +985,15 @@ export default function ChordSkillSelector({
                       ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-lg ${colorScheme.glow} scale-[1.02]`
                       : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md ${colorScheme.glow} opacity-80 hover:opacity-100 hover:scale-[1.02]`
                   }`}
+                  title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type}`}
                   data-testid={`chord-grid-${chord.type}-${index}`}
                 >
-                  <div className="space-y-2">
-                    <div className="font-bold text-base text-center drop-shadow-md">
-                      {chord.name.replace(` (${chord.inversion === 1 ? '1st Inv' : chord.inversion === 2 ? '2nd Inv' : ''})`, '')}
+                  <div className="space-y-1">
+                    <div className="font-bold text-lg text-center drop-shadow-md">
+                      {formatJazzChord(chord.rootNote, chord.type)}
+                    </div>
+                    <div className="text-[9px] text-center opacity-75 uppercase tracking-wide">
+                      {CHORD_NAMES[chord.type] || chord.type}
                     </div>
 
                     {selectedChord?.name === chord.name && onInversionChange && (
@@ -1005,9 +1034,10 @@ export default function ChordSkillSelector({
         <Card>
           <CardContent className="p-4">
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-foreground text-center">
-                <span className="text-primary">{selectedChord.name}</span> on Piano & Guitar
-              </h4>
+              <div className="text-center">
+                <span className="text-lg font-bold text-primary">{formatJazzChord(selectedChord.rootNote, selectedChord.type)}</span>
+                <span className="text-xs text-muted-foreground ml-2">{CHORD_NAMES[selectedChord.type] || selectedChord.type}</span>
+              </div>
               <div className="flex justify-center">
                 <PianoKeyboard
                   highlightedNotes={selectedChord.notes}
