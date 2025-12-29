@@ -52,6 +52,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [arpeggioSpeed, setArpeggioSpeed] = useState(1);
   const arpeggioSpeedRef = useRef(1);
 
+  // Chord cycles: how many times to repeat each chord's arpeggio pattern (1, 2, or 4)
+  const [chordCycles, setChordCycles] = useState(2); // Default to 2 cycles
+  const chordCyclesRef = useRef(2);
+
   // Instrument combo selection
   const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
@@ -86,6 +90,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     arpeggioSpeedRef.current = arpeggioSpeed;
     (window as any).__arpeggioSpeed = arpeggioSpeed;
   }, [arpeggioSpeed]);
+
+  useEffect(() => {
+    chordCyclesRef.current = chordCycles;
+  }, [chordCycles]);
 
   useEffect(() => {
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
@@ -311,8 +319,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // DAW-STYLE PRE-SCHEDULED SEQUENCE PLAYER - schedules all audio upfront
   const scheduleSequence = useCallback((startTime: number, chordsToUse: (Chord | null)[]): number => {
     const currentNoteCount = notes.length;
-    const chordDurations = BEAT_PATTERNS[currentNoteCount] || BEAT_PATTERNS[4];
-    const totalBeats = 8;
+    const baseChordDurations = BEAT_PATTERNS[currentNoteCount] || BEAT_PATTERNS[4];
+    const cycles = chordCyclesRef.current; // 1, 2, or 4 cycles per chord
+    const chordDurations = baseChordDurations.map(d => d * cycles);
+    const totalBeats = 8 * cycles;
     const currentTempo = tempoRef.current;
     const beatDuration = 60 / currentTempo;
 
@@ -367,7 +377,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     scheduleMetronomeClicks(startTime, totalBeats, currentTempo);
 
     const sequenceEndTime = startTime + (totalBeats * beatDuration);
-    console.log(`🎵 Scheduled sequence: ${currentNoteCount} positions, ${totalBeats} beats, ends at ${sequenceEndTime.toFixed(3)}`);
+    console.log(`🎵 Scheduled sequence: ${currentNoteCount} positions, ${totalBeats} beats (${cycles}x cycles), ends at ${sequenceEndTime.toFixed(3)}`);
 
     return sequenceEndTime;
   }, [notes, scheduleMetronomeClicks]);
@@ -1039,6 +1049,26 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
             >
               16th
             </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label className={`text-foreground ${isCompact ? 'text-[10px]' : 'text-xs'}`}>Cycles</label>
+          <div className="flex rounded-md overflow-hidden border border-border">
+            {[1, 2, 4].map((cycles) => (
+              <button
+                key={cycles}
+                onClick={() => setChordCycles(cycles)}
+                className={`${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} font-medium transition-colors ${
+                  chordCycles === cycles
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+                data-testid={`button-cycles-${cycles}`}
+              >
+                {cycles}x
+              </button>
+            ))}
           </div>
         </div>
       </div>
