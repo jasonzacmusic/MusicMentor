@@ -7,7 +7,7 @@ import PianoKeyboard from './piano-keyboard';
 import GuitarFretboard from './guitar-fretboard';
 import { Piano, Guitar, ChevronDown, ChevronUp } from 'lucide-react';
 import { CHORD_SYMBOLS, CHORD_NAMES } from '@/lib/music-constants';
-import type { ChordAnchor } from './animated-mascot';
+import { useMascot, EnvironmentLayer, type ChordAnchor } from './animated-mascot';
 
 // Format chord with jazz symbols (e.g., "C°7" instead of "C Diminished 7th")
 function formatJazzChord(rootNote: string, chordType: string): string {
@@ -823,6 +823,9 @@ export default function ChordSkillSelector({
     const treeRadius = expandedView ? 100 : 90;
     const centerSize = expandedView ? 'w-24 h-24' : 'w-20 h-20';
     const chordButtonSize = expandedView ? 'w-16 h-16' : 'w-14 h-14';
+    
+    const mascotContext = useMascot();
+    const currentAnimal = mascotContext.animal;
 
     return (
       <div className="flex flex-col items-center w-full">
@@ -832,50 +835,18 @@ export default function ChordSkillSelector({
             isPlaying ? 'scale-105' : ''
           }`}
         >
-          {/* Decorative vine circle */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-            <defs>
-              <linearGradient id={`vineCircleGradient-${noteIndex}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity="0.2" />
-                <stop offset="50%" stopColor="#4ade80" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity="0.2" />
-              </linearGradient>
-            </defs>
-            <circle 
-              cx="128" cy="128" r="110" 
-              fill="none" 
-              stroke={`url(#vineCircleGradient-${noteIndex})`}
-              strokeWidth="4"
-              strokeDasharray="8 4"
-              className="animate-spin"
-              style={{ animationDuration: '60s' }}
-            />
-            {[0, 60, 120, 180, 240, 300].map((angle, i) => {
-              const leafX = 128 + Math.cos((angle * Math.PI) / 180) * 115;
-              const leafY = 128 + Math.sin((angle * Math.PI) / 180) * 115;
-              return (
-                <text
-                  key={i}
-                  x={leafX}
-                  y={leafY}
-                  fontSize="12"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="animate-pulse"
-                  style={{ animationDelay: `${i * 0.2}s`, opacity: 0.6 }}
-                >
-                  🍃
-                </text>
-              );
-            })}
-          </svg>
+          <EnvironmentLayer 
+            animal={currentAnimal} 
+            noteIndex={noteIndex} 
+            isPlaying={isPlaying} 
+          />
 
           <div className={`absolute w-56 h-56 rounded-full border transition-all duration-300 ${
             isPlaying ? 'border-emerald-400/50 shadow-lg shadow-emerald-500/20' : 'border-slate-700/30'
-          }`} />
+          }`} style={{ zIndex: 2 }} />
           <div className={`absolute w-48 h-48 rounded-full border transition-all duration-300 ${
             isPlaying ? 'border-emerald-400/30' : 'border-slate-700/20'
-          }`} />
+          }`} style={{ zIndex: 2 }} />
           
           <div className="absolute z-20 flex items-center justify-center">
             <button

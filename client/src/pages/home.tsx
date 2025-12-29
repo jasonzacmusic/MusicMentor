@@ -263,11 +263,6 @@ function HomeContent() {
                   </Select>
                 </div>
 
-                {/* Mascot Controls in Settings Panel */}
-                {skillLevel === 'beginner' && (
-                  <MascotControls compact={panelMode === 'compact'} />
-                )}
-
                 <RandomNotesGenerator
                   onNotesChange={handleNotesChange}
                   onChordsChange={setSelectedChords}
@@ -279,6 +274,11 @@ function HomeContent() {
                   onPlayingIndexChange={handlePlayingIndexChange}
                   panelMode={panelMode}
                 />
+
+                {/* Mascot Controls at bottom of Settings Panel */}
+                {skillLevel === 'beginner' && (
+                  <MascotControls compact={panelMode === 'compact'} />
+                )}
               </div>
             )}
           </div>
