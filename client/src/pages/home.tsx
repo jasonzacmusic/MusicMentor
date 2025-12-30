@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector, { type ColorPreset } from '@/components/chord-skill-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { HelpCircle, Palette, PanelLeftClose, PanelLeft, Settings2, Piano, Guitar, GripVertical } from 'lucide-react';
+import { HelpGuide } from '@/components/help-guide';
+import { Palette, PanelLeftClose, PanelLeft, Settings2, Piano, Guitar, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -175,7 +176,7 @@ function HomeContent() {
       {/* Compact Header */}
       <header className="bg-card border-b border-border flex-shrink-0">
         <div className="max-w-full mx-auto px-3 lg:px-4">
-          <div className="flex justify-between items-center h-12 lg:h-11">
+          <div className="flex justify-between items-center h-16 lg:h-16 py-2">
             {/* Left Section - Logo */}
             <div className="flex items-center space-x-3 flex-1">
               <img
@@ -259,9 +260,7 @@ function HomeContent() {
                 </div>
               )}
               <ThemeToggle />
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-7 w-7 p-0" data-testid="button-help">
-                <HelpCircle className="w-4 h-4" />
-              </Button>
+              <HelpGuide />
             </div>
           </div>
         </div>
