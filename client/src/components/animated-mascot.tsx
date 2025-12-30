@@ -189,7 +189,7 @@ interface AnimalHabit {
 const ANIMAL_HABITS: Record<AnimalType, AnimalHabit> = {
   monkey: {
     travelEase: [0.34, 1.56, 0.64, 1],
-    arcHeight: 60,
+    arcHeight: 35,
     bobAmplitude: 12,
     speedMultiplier: 0.85,
     rotationRange: 20,
@@ -204,7 +204,7 @@ const ANIMAL_HABITS: Record<AnimalType, AnimalHabit> = {
   },
   bird: {
     travelEase: [0.25, 0.1, 0.25, 1],
-    arcHeight: 80,
+    arcHeight: 40,
     bobAmplitude: 15,
     speedMultiplier: 1.1,
     rotationRange: 12,
@@ -219,7 +219,7 @@ const ANIMAL_HABITS: Record<AnimalType, AnimalHabit> = {
   },
   frog: {
     travelEase: [0.34, 1.8, 0.64, 1],
-    arcHeight: 90,
+    arcHeight: 45,
     bobAmplitude: 0,
     speedMultiplier: 0.75,
     rotationRange: 8,
@@ -234,7 +234,7 @@ const ANIMAL_HABITS: Record<AnimalType, AnimalHabit> = {
   },
   squirrel: {
     travelEase: [0.5, 0, 0.2, 1],
-    arcHeight: 35,
+    arcHeight: 25,
     bobAmplitude: 6,
     speedMultiplier: 1.3,
     rotationRange: 25,
@@ -249,7 +249,7 @@ const ANIMAL_HABITS: Record<AnimalType, AnimalHabit> = {
   },
   cat: {
     travelEase: [0.4, 0, 0.2, 1],
-    arcHeight: 15,
+    arcHeight: 12,
     bobAmplitude: 4,
     speedMultiplier: 0.95,
     rotationRange: 6,

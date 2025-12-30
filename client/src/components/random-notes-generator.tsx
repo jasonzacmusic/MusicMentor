@@ -768,28 +768,56 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const prevTempoRef = useRef(tempo);
   const prevMetronomeRef = useRef(withMetronome);
 
-  // Monitor metronome changes and restart if playing
-  // Note: Tempo changes do NOT restart - they take effect on next play/loop
-  // Log tempo/metronome changes for debugging (no restart needed - dynamic polling handles it)
+  // Monitor metronome changes - schedule clicks immediately when toggled ON during playback
   useEffect(() => {
     const tempoChanged = prevTempoRef.current !== tempo;
     const metronomeChanged = prevMetronomeRef.current !== withMetronome;
+    const metronomeJustEnabled = metronomeChanged && withMetronome && !prevMetronomeRef.current;
     
     logger.log('🔄 Tempo/Metronome effect triggered:', {
       isPlaying,
       tempoChanged,
       metronomeChanged,
+      metronomeJustEnabled,
       prevTempo: prevTempoRef.current,
       newTempo: tempo,
       prevMetronome: prevMetronomeRef.current,
       newMetronome: withMetronome
     });
     
+    // If metronome was just enabled during playback, schedule clicks for remaining duration
+    if (metronomeJustEnabled && isPlaying && isSequenceActiveRef.current) {
+      const ctx = sampleEngine.audioContext || audioEngine.audioContext;
+      if (ctx && scheduledEndTimeRef.current > ctx.currentTime) {
+        const currentTime = ctx.currentTime;
+        const remainingDuration = scheduledEndTimeRef.current - currentTime;
+        const remainingBeats = remainingDuration / (60 / tempoRef.current);
+        
+        logger.log(`🥁 Metronome enabled mid-playback - scheduling ${remainingBeats.toFixed(1)} beats of clicks`);
+        
+        // Schedule clicks for the remaining time
+        const beatDuration = 60 / tempoRef.current;
+        const multiplier = metronomeMultiplierRef.current;
+        const clicksPerBeat = multiplier === 1 ? 1 : multiplier === 2 ? 2 : 4;
+        const clickInterval = beatDuration / clicksPerBeat;
+        const totalClicks = Math.floor(remainingBeats * clicksPerBeat);
+        
+        // Start from the next beat boundary
+        const timeSinceStart = currentTime % beatDuration;
+        const nextBeatStart = currentTime + (beatDuration - timeSinceStart);
+        
+        for (let i = 0; i < totalClicks; i++) {
+          const clickTime = nextBeatStart + (i * clickInterval);
+          if (clickTime < scheduledEndTimeRef.current) {
+            scheduleMetronomeClick(clickTime);
+          }
+        }
+      }
+    }
+    
     // Update refs for next comparison
     prevTempoRef.current = tempo;
     prevMetronomeRef.current = withMetronome;
-    
-    // Note: No restart needed! Dynamic polling system handles tempo/metronome changes seamlessly
   }, [tempo, withMetronome, isPlaying]);
 
   // Clean up on unmount

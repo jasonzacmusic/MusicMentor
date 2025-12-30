@@ -389,11 +389,12 @@ export class SampleEngine {
     const noteDurationSec = beatDuration / notesPerBeat;
     const noteDurationMs = noteDurationSec * 1000;
     
+    // Calculate how many arpeggio notes fit in the full duration (supports 1x, 2x, 4x cycles)
     const maxNotesForDuration = Math.floor(durationSec / noteDurationSec);
-    const notesToPlay = Math.min(arpeggioPattern.length, maxNotesForDuration);
     
-    for (let i = 0; i < notesToPlay; i++) {
-      const item = arpeggioPattern[i];
+    // Loop through the arpeggio pattern to fill the entire duration
+    for (let i = 0; i < maxNotesForDuration; i++) {
+      const item = arpeggioPattern[i % arpeggioPattern.length]; // Loop pattern
       const noteStartTime = baseStartTime + (i * noteDurationSec);
       await this.playArpeggioNote(item.note, noteDurationMs, item.octave, noteStartTime);
     }

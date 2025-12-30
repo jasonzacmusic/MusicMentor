@@ -862,7 +862,7 @@ export default function ChordSkillSelector({
                   {CHORD_NAMES[selectedChord.type] || selectedChord.type}
                 </div>
                 <div className="text-[9px] text-slate-300 mt-0.5">
-                  {selectedChord.notes.join(' → ')}
+                  {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' → ')}
                   {selectedChord.noteRole && (
                     <span className="ml-1 px-1 py-0 rounded bg-amber-500/30 text-amber-200 text-[8px]">
                       {baseNote} is {selectedChord.noteRole}
@@ -1091,7 +1091,7 @@ export default function ChordSkillSelector({
                   {CHORD_NAMES[selectedChord.type] || selectedChord.type}
                 </div>
                 <div className="text-xs text-slate-300 text-center font-medium mt-0.5">
-                  {selectedChord.notes.join(' → ')}
+                  {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' → ')}
                 </div>
               </div>
               <PianoKeyboard
