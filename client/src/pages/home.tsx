@@ -176,7 +176,8 @@ function HomeContent() {
       <header className="bg-card border-b border-border flex-shrink-0">
         <div className="max-w-full mx-auto px-3 lg:px-4">
           <div className="flex justify-between items-center h-12 lg:h-11">
-            <div className="flex items-center space-x-3">
+            {/* Left Section - Logo */}
+            <div className="flex items-center space-x-3 flex-1">
               <img
                 src={nsmLogo}
                 alt="Nathaniel School of Music"
@@ -191,7 +192,24 @@ function HomeContent() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-1.5">
+
+            {/* Center Section - Marketing Copy */}
+            <div className="hidden xl:flex flex-col items-center justify-center text-center px-6 flex-1">
+              <div className="text-xs font-bold text-foreground tracking-wide mb-0.5">
+                ✦ LEARN CHORDS VISUALLY ✦
+              </div>
+              <div className="text-[10px] text-muted-foreground leading-relaxed max-w-md">
+                See how notes connect to chords in beautiful, interactive trees
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-[9px] text-muted-foreground">
+                <span>▸ 3 Skill Levels</span>
+                <span>▸ Real Instruments</span>
+                <span>▸ Works on Any Device</span>
+              </div>
+            </div>
+
+            {/* Right Section - Controls */}
+            <div className="flex items-center space-x-1.5 flex-1 justify-end">
               {/* Panel toggle for desktop */}
               <Button
                 variant="ghost"
