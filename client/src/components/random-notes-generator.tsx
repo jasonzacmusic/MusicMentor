@@ -848,7 +848,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 onClick={handleGenerate}
                 variant="outline"
                 size="sm"
-                className="w-9 h-9 p-0"
+                className="w-9 h-9 p-0 bg-blue-500/20 hover:bg-blue-500/30 border-blue-500/50"
               >
                 <Shuffle className="w-4 h-4" />
               </Button>
@@ -863,7 +863,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                 onClick={handleRandomHarmonize}
                 variant="outline"
                 size="sm"
-                className="w-9 h-9 p-0"
+                className="w-9 h-9 p-0 bg-purple-500/20 hover:bg-purple-500/30 border-purple-500/50"
               >
                 <Dices className="w-4 h-4" />
               </Button>

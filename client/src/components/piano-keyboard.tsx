@@ -2,35 +2,57 @@ import { useMemo } from 'react';
 
 interface PianoKeyboardProps {
   highlightedNotes?: string[];
+  startNote?: string;
   onKeyPress?: (note: string) => void;
   className?: string;
   compact?: boolean;
 }
 
-const PIANO_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const CHROMATIC_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const BLACK_KEYS = ['C#', 'D#', 'F#', 'G#', 'A#'];
 
-export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, className = '', compact = false }: PianoKeyboardProps) {
+function normalizeNote(note: string): string {
+  const normalizations: Record<string, string> = {
+    'Db': 'C#',
+    'Eb': 'D#',
+    'Gb': 'F#',
+    'Ab': 'G#',
+    'Bb': 'A#'
+  };
+  return normalizations[note] || note;
+}
+
+export default function PianoKeyboard({ highlightedNotes = [], startNote, onKeyPress, className = '', compact = false }: PianoKeyboardProps) {
+  const pianoNotes = useMemo(() => {
+    if (!startNote) {
+      return CHROMATIC_NOTES;
+    }
+    const normalizedStart = normalizeNote(startNote);
+    const startIdx = CHROMATIC_NOTES.indexOf(normalizedStart);
+    if (startIdx === -1) {
+      return CHROMATIC_NOTES;
+    }
+    const rotated: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      rotated.push(CHROMATIC_NOTES[(startIdx + i) % 12]);
+    }
+    return rotated;
+  }, [startNote]);
+
   const normalizedHighlightedNotes = useMemo(() => {
-    return highlightedNotes.map(note => {
-      const normalizations: Record<string, string> = {
-        'Db': 'C#',
-        'Eb': 'D#',
-        'Gb': 'F#',
-        'Ab': 'G#',
-        'Bb': 'A#'
-      };
-      return normalizations[note] || note;
-    });
+    return highlightedNotes.map(note => normalizeNote(note));
   }, [highlightedNotes]);
 
   const isHighlighted = (note: string) => {
-    return normalizedHighlightedNotes.includes(note);
+    return normalizedHighlightedNotes.includes(normalizeNote(note));
   };
 
   const isBlackKey = (note: string) => {
-    return BLACK_KEYS.includes(note);
+    return BLACK_KEYS.includes(normalizeNote(note));
   };
+
+  const whiteNotes = pianoNotes.filter(note => !isBlackKey(note));
+  const blackNotes = pianoNotes.filter(note => isBlackKey(note));
 
   const whiteKeyWidth = compact ? 22 : 44;
   const blackKeyWidth = compact ? 14 : 28;
@@ -39,18 +61,15 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
   const containerHeight = compact ? 88 : 176;
   const containerPadding = compact ? 6 : 12;
 
-  const getKeyPosition = (note: string) => {
-    if (isBlackKey(note)) {
-      const positions: Record<string, number> = {
-        'C#': 1,
-        'D#': 2,
-        'F#': 4,
-        'G#': 5,
-        'A#': 6
-      };
-      return positions[note] * whiteKeyWidth - blackKeyWidth / 2;
+  const getBlackKeyPosition = (note: string) => {
+    const noteIndex = pianoNotes.indexOf(note);
+    let whiteKeysBefore = 0;
+    for (let i = 0; i < noteIndex; i++) {
+      if (!isBlackKey(pianoNotes[i])) {
+        whiteKeysBefore++;
+      }
     }
-    return 0;
+    return whiteKeysBefore * whiteKeyWidth - blackKeyWidth / 2;
   };
 
   return (
@@ -60,12 +79,12 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
         style={{ 
           height: `${containerHeight}px`, 
           padding: `${containerPadding}px`,
-          width: `${7 * whiteKeyWidth + containerPadding * 2}px`
+          width: `${whiteNotes.length * whiteKeyWidth + containerPadding * 2}px`
         }}
       >
-        {PIANO_NOTES.filter(note => !isBlackKey(note)).map((note, whiteIndex) => (
+        {whiteNotes.map((note, whiteIndex) => (
           <button
-            key={`white-${note}`}
+            key={`white-${note}-${whiteIndex}`}
             onClick={() => onKeyPress?.(note)}
             className={`absolute rounded-b-md transition-all duration-150 shadow-md ${
               isHighlighted(note)
@@ -89,9 +108,9 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
           </button>
         ))}
 
-        {PIANO_NOTES.filter(note => isBlackKey(note)).map((note) => (
+        {blackNotes.map((note, idx) => (
           <button
-            key={`black-${note}`}
+            key={`black-${note}-${idx}`}
             onClick={() => onKeyPress?.(note)}
             className={`absolute rounded-b-md transition-all duration-150 z-10 ${
               isHighlighted(note)
@@ -99,7 +118,7 @@ export default function PianoKeyboard({ highlightedNotes = [], onKeyPress, class
                 : 'bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900 border border-slate-600 hover:from-slate-600'
             }`}
             style={{
-              left: `${getKeyPosition(note) + containerPadding}px`,
+              left: `${getBlackKeyPosition(note) + containerPadding}px`,
               width: `${blackKeyWidth}px`,
               height: `${blackKeyHeight}px`,
               top: `${containerPadding}px`
