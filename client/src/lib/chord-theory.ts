@@ -11,6 +11,7 @@ export interface Chord {
   parentType?: string;
   noteRole?: string;
   roleIndex?: number;
+  romanNumeral?: string;
 }
 
 export interface ChordTreeNode {

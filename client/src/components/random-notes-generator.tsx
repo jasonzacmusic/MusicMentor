@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Shuffle, Play, Square, RotateCcw, Edit3, Dices, Music, Volume2, Timer, Repeat, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateRandomNotes, getChordFromNote, getChordsForNoteBySkill, type Chord, type SkillLevel, applyVoiceLeading } from '@/lib/chord-theory';
+import { getDiatonicChordsContainingNote, type ScaleType } from '@/lib/scale-theory';
 import { useAudio } from '@/hooks/use-audio';
 import { audioEngine } from '@/lib/audio-engine';
 import { sampleEngine, INSTRUMENT_COMBOS, type InstrumentCombo } from '@/lib/sample-engine';
@@ -25,6 +26,10 @@ interface RandomNotesGeneratorProps {
   onNoteCountChange?: (count: number) => void;
   onPlayingIndexChange?: (index: number | null) => void;
   panelMode?: PanelMode;
+  diatonicNotes?: string[]; // Optional array of notes to restrict selection to
+  diatonicKey?: string; // Key for diatonic mode
+  diatonicScale?: string; // Scale type for diatonic mode
+  diatonicMode?: number; // Mode number for diatonic mode
 }
 
 // Beat duration patterns for different note counts (total: 8 beats)
@@ -36,7 +41,12 @@ const BEAT_PATTERNS: Record<number, number[]> = {
   5: [1.5, 1.5, 1.5, 1.5, 2]
 };
 
-export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange, onPlayingIndexChange, panelMode = 'normal' }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange, onPlayingIndexChange, panelMode = 'normal', diatonicNotes, diatonicKey, diatonicScale, diatonicMode }: RandomNotesGeneratorProps) {
+  // Use diatonic notes if provided, otherwise use all valid notes
+  const availableNotesForSelection = diatonicNotes && diatonicNotes.length > 0
+    ? diatonicNotes.map(note => ({ value: note, label: note }))
+    : VALID_NOTES_FOR_SELECTION;
+
   const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G', 'F']); // Default to 4 notes
   const [inputMode, setInputMode] = useState<'random' | 'manual'>('random');
   const [tempo, setTempo] = useState(120);
@@ -134,23 +144,33 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // Helper function to generate unique notes
   const generateUniqueNotes = useCallback((count: number, baseNote?: string): string[] => {
-    const chromaticNotes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+    // Use diatonic notes if provided, otherwise use all chromatic notes
+    const availableNotes = diatonicNotes && diatonicNotes.length > 0
+      ? diatonicNotes
+      : ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
     // Musical intervals from base note (all unique intervals ensure unique notes)
     const intervals = [0, 4, -3, 7, 5, 2, -5, 1, 6, -1, 3, -4]; // Extended for safety
 
-    // Use provided base or pick random
-    const base = baseNote || chromaticNotes[Math.floor(Math.random() * chromaticNotes.length)];
-    const baseIndex = chromaticNotes.indexOf(base);
+    // Use provided base or pick random from available notes
+    const base = baseNote || availableNotes[Math.floor(Math.random() * availableNotes.length)];
+    const baseIndex = availableNotes.indexOf(base);
 
     const usedNotes = new Set<string>();
     const newNotes: string[] = [];
 
+    // If using diatonic notes, just pick randomly from available notes
+    if (diatonicNotes && diatonicNotes.length > 0) {
+      const shuffled = [...availableNotes].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, Math.min(count, shuffled.length));
+    }
+
+    // For chromatic notes, use the musical interval approach
     // First, try to use the musical intervals
     for (let i = 0; i < count && i < intervals.length; i++) {
       const interval = intervals[i];
       const noteIndex = (baseIndex + interval + 12) % 12;
-      const note = chromaticNotes[noteIndex];
+      const note = availableNotes[noteIndex];
 
       if (!usedNotes.has(note)) {
         usedNotes.add(note);
@@ -160,7 +180,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     // If we still need more unique notes, pick randomly from remaining
     if (newNotes.length < count) {
-      const remainingNotes = chromaticNotes.filter(n => !usedNotes.has(n));
+      const remainingNotes = availableNotes.filter(n => !usedNotes.has(n));
       while (newNotes.length < count && remainingNotes.length > 0) {
         const randomIndex = Math.floor(Math.random() * remainingNotes.length);
         const note = remainingNotes.splice(randomIndex, 1)[0];
@@ -169,7 +189,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     }
 
     return newNotes;
-  }, []);
+  }, [diatonicNotes]);
 
   // Regenerate notes when noteCount changes
   useEffect(() => {
@@ -614,14 +634,31 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // For each note position, get its available chords and pick one randomly
     for (let i = 0; i < notes.length; i++) {
       const noteForPosition = notes[i];
-      const availableChords = getChordsForNoteBySkill(noteForPosition, skillLevel);
+      let availableChords: Chord[];
+
+      // In diatonic mode, get only diatonic triads
+      if (skillLevel === 'diatonic' && diatonicKey && diatonicScale) {
+        const mode = diatonicMode || 1;
+        const diatonicChords = getDiatonicChordsContainingNote(noteForPosition, diatonicKey, diatonicScale as ScaleType, mode);
+        // Convert DiatonicChord[] to Chord[] - ONLY include triads
+        availableChords = diatonicChords.triads.map(dc => ({
+          name: dc.name,
+          notes: dc.notes,
+          type: dc.type,
+          rootNote: dc.rootNote,
+          category: 'triad' as const,
+          romanNumeral: dc.romanNumeral
+        }));
+      } else {
+        availableChords = getChordsForNoteBySkill(noteForPosition, skillLevel);
+      }
 
       if (availableChords.length > 0) {
         // Filter out already used chords (unless 5+ notes or no unique options left)
-        let candidateChords = allowDuplicates 
-          ? availableChords 
+        let candidateChords = allowDuplicates
+          ? availableChords
           : availableChords.filter(c => !usedChordNames.has(c.name));
-        
+
         // Fallback to all chords if no unique options available
         if (candidateChords.length === 0) {
           candidateChords = availableChords;
@@ -850,7 +887,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {VALID_NOTES_FOR_SELECTION.map((note) => (
+                      {availableNotesForSelection.map((note) => (
                         <SelectItem key={note.value} value={note.value} className="font-mono text-xs">
                           {note.label}
                         </SelectItem>
@@ -1219,7 +1256,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {VALID_NOTES_FOR_SELECTION.map((note) => (
+                  {availableNotesForSelection.map((note) => (
                     <SelectItem key={note.value} value={note.value} className="font-mono text-xs">
                       {note.label}
                     </SelectItem>

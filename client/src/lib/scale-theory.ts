@@ -215,33 +215,69 @@ function getSeventhQuality(intervals: number[]): { type: string; quality: string
   return { type: 'major7', quality: 'major7' };
 }
 
-function getRomanNumeral(degree: number, quality: string, is7th: boolean = false): string {
+function getRomanNumeral(degree: number, quality: string, root: string, key: string): string {
   const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-  let numeral = numerals[degree];
-  
-  if (quality === 'minor' || quality === 'minor7' || quality === 'minorMajor7' || quality === 'half-diminished') {
-    numeral = numeral.toLowerCase();
+  let baseNumeral = numerals[degree];
+
+  // Calculate Nashville notation accidental by comparing to major scale
+  // Build the major scale for the key to get the expected note at this degree
+  const majorScale = buildScale(key, 'major');
+  const expectedNote = majorScale[degree];
+  const expectedSemitone = getSemitone(expectedNote);
+  const actualSemitone = getSemitone(root);
+
+  // Calculate the difference to determine accidental
+  let accidental = '';
+  const diff = (actualSemitone - expectedSemitone + 12) % 12;
+  if (diff === 11) {
+    accidental = 'b'; // One semitone lower
+  } else if (diff === 1) {
+    accidental = '#'; // One semitone higher
+  } else if (diff === 10) {
+    accidental = 'bb'; // Two semitones lower
+  } else if (diff === 2) {
+    accidental = '##'; // Two semitones higher
   }
-  if (quality === 'diminished' || quality === 'diminished7') {
-    numeral = numeral.toLowerCase() + '°';
+
+  // Determine case based on chord quality
+  // Nashville: Major and Augmented = uppercase, Minor and Diminished = lowercase
+  let numeral = '';
+  if (quality === 'major' || quality === 'augmented') {
+    numeral = accidental + baseNumeral; // Uppercase
+  } else if (quality === 'minor' || quality === 'diminished') {
+    numeral = accidental + baseNumeral.toLowerCase(); // Lowercase
+  } else {
+    // Default based on quality
+    numeral = accidental + baseNumeral;
   }
-  if (quality === 'half-diminished') {
-    numeral = numeral + 'ø';
-  }
-  if (quality === 'augmented' || quality === 'augmented-major7') {
+
+  // Add quality symbols
+  if (quality === 'diminished') {
+    numeral = numeral + '°';
+  } else if (quality === 'augmented') {
     numeral = numeral + '+';
+  } else if (quality === 'sus2') {
+    numeral = numeral + 'sus2';
+  } else if (quality === 'sus4') {
+    numeral = numeral + 'sus4';
+  } else if (quality === '7sus4') {
+    numeral = numeral + '7sus4';
+  } else if (quality === 'major7') {
+    numeral = numeral + 'Δ7';
+  } else if (quality === 'minor7') {
+    numeral = numeral + '7';
+  } else if (quality === 'dominant7') {
+    numeral = numeral + '7';
+  } else if (quality === 'half-diminished' || quality === 'minor7b5') {
+    numeral = numeral + 'ø7';
+  } else if (quality === 'diminished7') {
+    numeral = numeral + '°7';
+  } else if (quality === 'minorMajor7') {
+    numeral = numeral + 'Δ7';
+  } else if (quality === 'augmented-major7') {
+    numeral = numeral + 'Δ7';
   }
-  
-  if (is7th && !quality.includes('diminished')) {
-    if (quality === 'major7') numeral += 'Δ7';
-    else if (quality === 'minor7') numeral += '7';
-    else if (quality === 'dominant7') numeral += '7';
-    else if (quality === 'half-diminished') numeral += '7';
-    else if (quality === 'minorMajor7') numeral += 'Δ7';
-    else if (quality === 'augmented-major7') numeral += 'Δ7';
-  }
-  if (quality === 'diminished7') numeral += '7';
-  
+
   return numeral;
 }
 
@@ -304,7 +340,7 @@ export function harmonizeTriads(key: string, scaleType: ScaleType): DiatonicChor
       type,
       rootNote: root,
       scaleDegree: degree + 1,
-      romanNumeral: getRomanNumeral(degree, quality),
+      romanNumeral: getRomanNumeral(degree, quality, root, key),
       function: getChordFunction(degree, quality),
       category: 'triad'
     });
@@ -348,7 +384,7 @@ export function harmonizeSevenths(key: string, scaleType: ScaleType): DiatonicCh
       type,
       rootNote: root,
       scaleDegree: degree + 1,
-      romanNumeral: getRomanNumeral(degree, quality, true),
+      romanNumeral: getRomanNumeral(degree, quality, root, key),
       function: getChordFunction(degree, quality),
       category: 'seventh'
     });
@@ -390,11 +426,11 @@ export function findDiatonicSuspended(key: string, scaleType: ScaleType): Diaton
           type: 'sus4',
           rootNote: root,
           scaleDegree: degree + 1,
-          romanNumeral: `${getRomanNumeral(degree, 'major')}sus4`,
+          romanNumeral: getRomanNumeral(degree, 'sus4', root, key),
           function: getChordFunction(degree, 'major'),
           category: 'triad'
         });
-        
+
         if (seventhInterval === 10) {
           suspended.push({
             name: `${root}7sus4`,
@@ -402,13 +438,13 @@ export function findDiatonicSuspended(key: string, scaleType: ScaleType): Diaton
             type: '7sus4',
             rootNote: root,
             scaleDegree: degree + 1,
-            romanNumeral: `${getRomanNumeral(degree, 'major')}7sus4`,
+            romanNumeral: getRomanNumeral(degree, '7sus4', root, key),
             function: getChordFunction(degree, 'major'),
             category: 'seventh'
           });
         }
       }
-      
+
       if (secondInterval === 2) {
         suspended.push({
           name: `${root}sus2`,
@@ -416,7 +452,7 @@ export function findDiatonicSuspended(key: string, scaleType: ScaleType): Diaton
           type: 'sus2',
           rootNote: root,
           scaleDegree: degree + 1,
-          romanNumeral: `${getRomanNumeral(degree, 'major')}sus2`,
+          romanNumeral: getRomanNumeral(degree, 'sus2', root, key),
           function: getChordFunction(degree, 'major'),
           category: 'triad'
         });
@@ -463,22 +499,33 @@ export const AVAILABLE_KEYS = [
 ];
 
 export const AVAILABLE_SCALES: { value: ScaleType; label: string; category: string }[] = [
-  { value: 'major', label: 'Major (Ionian)', category: 'Major Modes' },
-  { value: 'dorian', label: 'Dorian', category: 'Major Modes' },
-  { value: 'phrygian', label: 'Phrygian', category: 'Major Modes' },
-  { value: 'lydian', label: 'Lydian', category: 'Major Modes' },
-  { value: 'mixolydian', label: 'Mixolydian', category: 'Major Modes' },
-  { value: 'naturalMinor', label: 'Natural Minor (Aeolian)', category: 'Major Modes' },
-  { value: 'locrian', label: 'Locrian', category: 'Major Modes' },
-  { value: 'harmonicMinor', label: 'Harmonic Minor', category: 'Minor Scales' },
-  { value: 'melodicMinor', label: 'Melodic Minor', category: 'Minor Scales' },
-  { value: 'dorianB2', label: 'Dorian ♭2', category: 'Melodic Minor Modes' },
-  { value: 'lydianAugmented', label: 'Lydian Augmented', category: 'Melodic Minor Modes' },
-  { value: 'lydianDominant', label: 'Lydian Dominant', category: 'Melodic Minor Modes' },
-  { value: 'mixolydianB6', label: 'Mixolydian ♭6', category: 'Melodic Minor Modes' },
-  { value: 'locrianNat2', label: 'Locrian ♮2', category: 'Melodic Minor Modes' },
-  { value: 'alteredScale', label: 'Altered Scale', category: 'Melodic Minor Modes' },
+  { value: 'major', label: 'Major', category: 'Parent Scales' },
+  { value: 'naturalMinor', label: 'Natural Minor', category: 'Parent Scales' },
+  { value: 'harmonicMinor', label: 'Harmonic Minor', category: 'Parent Scales' },
+  { value: 'melodicMinor', label: 'Melodic Minor', category: 'Parent Scales' },
 ];
+
+/**
+ * Mode names for each parent scale
+ */
+export const MODE_NAMES: Record<ScaleType, string[]> = {
+  major: ['Ionian', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Aeolian', 'Locrian'],
+  naturalMinor: ['Aeolian', 'Locrian', 'Ionian', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian'],
+  harmonicMinor: ['Harmonic Minor', 'Locrian ♮6', 'Ionian ♯5', 'Dorian ♯4', 'Phrygian Dominant', 'Lydian ♯2', 'Altered Dominant bb7'],
+  melodicMinor: ['Melodic Minor', 'Dorian ♭2', 'Lydian Augmented', 'Lydian Dominant', 'Mixolydian ♭6', 'Locrian ♮2', 'Altered'],
+  // For completeness, add the other scale types (though they won't be selectable as parent scales)
+  dorian: ['Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Aeolian', 'Locrian', 'Ionian'],
+  phrygian: ['Phrygian', 'Lydian', 'Mixolydian', 'Aeolian', 'Locrian', 'Ionian', 'Dorian'],
+  lydian: ['Lydian', 'Mixolydian', 'Aeolian', 'Locrian', 'Ionian', 'Dorian', 'Phrygian'],
+  mixolydian: ['Mixolydian', 'Aeolian', 'Locrian', 'Ionian', 'Dorian', 'Phrygian', 'Lydian'],
+  locrian: ['Locrian', 'Ionian', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Aeolian'],
+  dorianB2: ['Dorian ♭2', 'Lydian Augmented', 'Lydian Dominant', 'Mixolydian ♭6', 'Locrian ♮2', 'Altered', 'Melodic Minor'],
+  lydianAugmented: ['Lydian Augmented', 'Lydian Dominant', 'Mixolydian ♭6', 'Locrian ♮2', 'Altered', 'Melodic Minor', 'Dorian ♭2'],
+  lydianDominant: ['Lydian Dominant', 'Mixolydian ♭6', 'Locrian ♮2', 'Altered', 'Melodic Minor', 'Dorian ♭2', 'Lydian Augmented'],
+  mixolydianB6: ['Mixolydian ♭6', 'Locrian ♮2', 'Altered', 'Melodic Minor', 'Dorian ♭2', 'Lydian Augmented', 'Lydian Dominant'],
+  locrianNat2: ['Locrian ♮2', 'Altered', 'Melodic Minor', 'Dorian ♭2', 'Lydian Augmented', 'Lydian Dominant', 'Mixolydian ♭6'],
+  alteredScale: ['Altered', 'Melodic Minor', 'Dorian ♭2', 'Lydian Augmented', 'Lydian Dominant', 'Mixolydian ♭6', 'Locrian ♮2'],
+};
 
 /**
  * Get all diatonic chord types that contain the target note in a given key and scale
@@ -530,12 +577,13 @@ export interface DiatonicChordsForNote {
 }
 
 export function getDiatonicChordsContainingNote(
-  targetNote: string, 
-  key: string, 
-  scaleType: ScaleType
+  targetNote: string,
+  key: string,
+  scaleType: ScaleType,
+  mode: number = 1
 ): DiatonicChordsForNote {
-  const harmonized = harmonizeScale(key, scaleType);
-  
+  const harmonized = harmonizeScaleWithMode(key, scaleType, mode);
+
   const normalizeNote = (note: string): number => {
     const noteMap: Record<string, number> = {
       'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
@@ -546,14 +594,202 @@ export function getDiatonicChordsContainingNote(
   };
 
   const targetPitchClass = normalizeNote(targetNote);
-  
+
   const triads = harmonized.triads.filter(chord =>
     chord.notes.some(note => normalizeNote(note) === targetPitchClass)
   );
-  
+
   const seventhChords = harmonized.seventhChords.filter(chord =>
     chord.notes.some(note => normalizeNote(note) === targetPitchClass)
   );
 
   return { triads, seventhChords, targetNote };
+}
+
+/**
+ * Harmonize a scale with a specific mode rotation
+ * @param key The root key
+ * @param scaleType The base scale type
+ * @param mode The mode (1-7), where 1 is the base scale
+ */
+export function harmonizeScaleWithMode(key: string, scaleType: ScaleType, mode: number = 1): HarmonizedScale {
+  if (mode < 1 || mode > 7) mode = 1;
+
+  // Get the base scale notes
+  const baseScale = buildScale(key, scaleType);
+
+  // Rotate the scale based on mode (mode 1 = no rotation, mode 2 = start from 2nd note, etc.)
+  const modeIndex = mode - 1;
+  const rotatedNotes = [...baseScale.slice(modeIndex), ...baseScale.slice(0, modeIndex)];
+
+  // The new key is the first note of the rotated scale
+  const newKey = rotatedNotes[0];
+
+  // Build a new scale from this key with the rotated intervals
+  const definition = SCALE_DEFINITIONS[scaleType];
+  const baseIntervals = definition?.intervals || [0, 2, 4, 5, 7, 9, 11];
+
+  // Rotate intervals
+  const rotatedIntervals = baseIntervals.map(interval => (interval - baseIntervals[modeIndex] + 12) % 12);
+  const sortedIntervals = [...rotatedIntervals].sort((a, b) => a - b);
+
+  // Get the mode name from MODE_NAMES
+  const modeName = MODE_NAMES[scaleType]?.[modeIndex] || `Mode ${mode}`;
+
+  // Harmonize using the rotated notes
+  return {
+    key: newKey,
+    scaleType,
+    scaleName: modeName,
+    notes: rotatedNotes,
+    triads: harmonizeTriadsFromNotes(rotatedNotes, newKey),
+    seventhChords: harmonizeSeventhsFromNotes(rotatedNotes, newKey),
+    suspendedChords: findSuspendedFromNotes(rotatedNotes, newKey)
+  };
+}
+
+// Helper to harmonize triads from given notes
+function harmonizeTriadsFromNotes(scaleNotes: string[], key: string): DiatonicChord[] {
+  const triads: DiatonicChord[] = [];
+
+  for (let degree = 0; degree < 7; degree++) {
+    const root = scaleNotes[degree];
+    const thirdDegree = (degree + 2) % 7;
+    const fifthDegree = (degree + 4) % 7;
+
+    const rootSemitone = getSemitone(root);
+    const thirdSemitone = getSemitone(scaleNotes[thirdDegree]);
+    const fifthSemitone = getSemitone(scaleNotes[fifthDegree]);
+
+    const intervals = [
+      0,
+      (thirdSemitone - rootSemitone + 12) % 12,
+      (fifthSemitone - rootSemitone + 12) % 12
+    ];
+
+    const { type, quality } = getTriadQuality(intervals);
+    const chordIntervals = CHORD_INTERVALS[type] || [0, 4, 7];
+    const notes = buildChordNotes(root, chordIntervals, scaleNotes, key);
+
+    triads.push({
+      name: `${root} ${CHORD_NAMES[type] || type}`,
+      notes,
+      type,
+      rootNote: root,
+      scaleDegree: degree + 1,
+      romanNumeral: getRomanNumeral(degree, quality, root, key),
+      function: getChordFunction(degree, quality),
+      category: 'triad'
+    });
+  }
+
+  return triads;
+}
+
+// Helper to harmonize sevenths from given notes
+function harmonizeSeventhsFromNotes(scaleNotes: string[], key: string): DiatonicChord[] {
+  const sevenths: DiatonicChord[] = [];
+
+  for (let degree = 0; degree < 7; degree++) {
+    const root = scaleNotes[degree];
+    const thirdDegree = (degree + 2) % 7;
+    const fifthDegree = (degree + 4) % 7;
+    const seventhDegree = (degree + 6) % 7;
+
+    const rootSemitone = getSemitone(root);
+    const thirdSemitone = getSemitone(scaleNotes[thirdDegree]);
+    const fifthSemitone = getSemitone(scaleNotes[fifthDegree]);
+    const seventhSemitone = getSemitone(scaleNotes[seventhDegree]);
+
+    const intervals = [
+      0,
+      (thirdSemitone - rootSemitone + 12) % 12,
+      (fifthSemitone - rootSemitone + 12) % 12,
+      (seventhSemitone - rootSemitone + 12) % 12
+    ];
+
+    const { type, quality } = getSeventhQuality(intervals);
+    const chordIntervals = CHORD_INTERVALS[type] || [0, 4, 7, 11];
+    const notes = buildChordNotes(root, chordIntervals, scaleNotes, key);
+
+    sevenths.push({
+      name: `${root} ${CHORD_NAMES[type] || type}`,
+      notes,
+      type,
+      rootNote: root,
+      scaleDegree: degree + 1,
+      romanNumeral: getRomanNumeral(degree, quality, root, key),
+      function: getChordFunction(degree, quality),
+      category: 'seventh'
+    });
+  }
+
+  return sevenths;
+}
+
+// Helper to find suspended chords from given notes
+function findSuspendedFromNotes(scaleNotes: string[], key: string): DiatonicChord[] {
+  const suspended: DiatonicChord[] = [];
+
+  for (let degree = 0; degree < 7; degree++) {
+    const root = scaleNotes[degree];
+    const secondDegree = (degree + 1) % 7;
+    const fourthDegree = (degree + 3) % 7;
+    const fifthDegree = (degree + 4) % 7;
+    const seventhDegree = (degree + 6) % 7;
+
+    const rootSemitone = getSemitone(root);
+    const secondSemitone = getSemitone(scaleNotes[secondDegree]);
+    const fourthSemitone = getSemitone(scaleNotes[fourthDegree]);
+    const fifthSemitone = getSemitone(scaleNotes[fifthDegree]);
+    const seventhSemitone = getSemitone(scaleNotes[seventhDegree]);
+
+    const secondInterval = (secondSemitone - rootSemitone + 12) % 12;
+    const fourthInterval = (fourthSemitone - rootSemitone + 12) % 12;
+    const fifthInterval = (fifthSemitone - rootSemitone + 12) % 12;
+    const seventhInterval = (seventhSemitone - rootSemitone + 12) % 12;
+
+    if (fifthInterval === 7) {
+      if (fourthInterval === 5) {
+        suspended.push({
+          name: `${root}sus4`,
+          notes: [root, scaleNotes[fourthDegree], scaleNotes[fifthDegree]],
+          type: 'sus4',
+          rootNote: root,
+          scaleDegree: degree + 1,
+          romanNumeral: getRomanNumeral(degree, 'sus4', root, key),
+          function: getChordFunction(degree, 'major'),
+          category: 'triad'
+        });
+
+        if (seventhInterval === 10) {
+          suspended.push({
+            name: `${root}7sus4`,
+            notes: [root, scaleNotes[fourthDegree], scaleNotes[fifthDegree], scaleNotes[seventhDegree]],
+            type: '7sus4',
+            rootNote: root,
+            scaleDegree: degree + 1,
+            romanNumeral: getRomanNumeral(degree, '7sus4', root, key),
+            function: getChordFunction(degree, 'major'),
+            category: 'seventh'
+          });
+        }
+      }
+
+      if (secondInterval === 2) {
+        suspended.push({
+          name: `${root}sus2`,
+          notes: [root, scaleNotes[secondDegree], scaleNotes[fifthDegree]],
+          type: 'sus2',
+          rootNote: root,
+          scaleDegree: degree + 1,
+          romanNumeral: getRomanNumeral(degree, 'sus2', root, key),
+          function: getChordFunction(degree, 'major'),
+          category: 'triad'
+        });
+      }
+    }
+  }
+
+  return suspended;
 }

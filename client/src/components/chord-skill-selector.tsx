@@ -581,6 +581,7 @@ interface ChordSkillSelectorProps {
   onAnchorUpdate?: (anchor: ChordAnchor) => void;
   diatonicKey?: string;
   diatonicScale?: ScaleType;
+  diatonicMode?: number;
 }
 
 export default function ChordSkillSelector({
@@ -599,7 +600,8 @@ export default function ChordSkillSelector({
   showGuitar = false,
   onAnchorUpdate,
   diatonicKey,
-  diatonicScale
+  diatonicScale,
+  diatonicMode
 }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const [diatonicSeventhChords, setDiatonicSeventhChords] = useState<DiatonicChord[]>([]);
@@ -612,14 +614,34 @@ export default function ChordSkillSelector({
 
   useEffect(() => {
     if (skillLevel === 'diatonic' && diatonicKey && diatonicScale) {
-      const diatonicChords = getDiatonicChordsContainingNote(baseNote, diatonicKey, diatonicScale);
+      const mode = diatonicMode || 1;
+      const diatonicChords = getDiatonicChordsContainingNote(baseNote, diatonicKey, diatonicScale, mode);
       const triadsAsChords: Chord[] = diatonicChords.triads.map(dc => ({
         name: dc.name,
         notes: dc.notes,
         type: dc.type,
         rootNote: dc.rootNote,
-        category: 'triad' as const
+        category: 'triad' as const,
+        romanNumeral: dc.romanNumeral
       }));
+
+      // If a seventh chord is selected, add it to the tree display
+      if (selectedChord && selectedChord.category === 'seventh') {
+        // Check if this seventh chord is in the diatonic seventh chords
+        const matchingSeventh = diatonicChords.seventhChords.find(sc => sc.name === selectedChord.name);
+        if (matchingSeventh && !triadsAsChords.find(tc => tc.name === matchingSeventh.name)) {
+          // Add the selected seventh chord to the display
+          triadsAsChords.push({
+            name: matchingSeventh.name,
+            notes: matchingSeventh.notes,
+            type: matchingSeventh.type,
+            rootNote: matchingSeventh.rootNote,
+            category: 'seventh' as const,
+            romanNumeral: matchingSeventh.romanNumeral
+          });
+        }
+      }
+
       setAvailableChords(triadsAsChords);
       setDiatonicSeventhChords(diatonicChords.seventhChords);
     } else {
@@ -627,7 +649,7 @@ export default function ChordSkillSelector({
       setAvailableChords(chords);
       setDiatonicSeventhChords([]);
     }
-  }, [baseNote, skillLevel, diatonicKey, diatonicScale]);
+  }, [baseNote, skillLevel, diatonicKey, diatonicScale, diatonicMode, selectedChord]);
 
   const handleSelectChord = useCallback((chord: Chord, buttonElement?: HTMLButtonElement) => {
     onChordSelect(chord, noteIndex);
@@ -917,8 +939,28 @@ export default function ChordSkillSelector({
           </div>
 
           {availableChords.map((chord, index) => {
-            const angles = [270, 330, 30, 90, 150, 210];
-            const angle = angles[index] || 0;
+            // Calculate angles based on number of chords for better spacing
+            let angle: number;
+            const numChords = availableChords.length;
+
+            if (numChords <= 3) {
+              // For 3 or fewer chords, space them at 120-degree intervals starting from top
+              const angleStep = 120;
+              angle = 270 + (index * angleStep);
+            } else if (numChords === 4) {
+              // For 4 chords, space at 90-degree intervals
+              const angles = [270, 0, 90, 180];
+              angle = angles[index] || 0;
+            } else if (numChords === 5) {
+              // For 5 chords, space at 72-degree intervals
+              const angleStep = 72;
+              angle = 270 + (index * angleStep);
+            } else {
+              // For 6 chords, use the original layout
+              const angles = [270, 330, 30, 90, 150, 210];
+              angle = angles[index] || 0;
+            }
+
             const x = Math.cos(angle * Math.PI / 180) * treeRadius;
             const y = Math.sin(angle * Math.PI / 180) * treeRadius;
 
@@ -973,10 +1015,14 @@ export default function ChordSkillSelector({
                     ref={(el) => {
                       if (el) chordButtonRefs.current.set(chord.name, el);
                     }}
-                    className={`relative ${chordButtonSize} rounded-full flex flex-col items-center justify-center cursor-pointer 
-                      transition-all duration-200 border-2 font-semibold backdrop-blur-sm
-                      ${isSelected 
-                        ? `${colorScheme.bg} border-emerald-300 ${colorScheme.text} shadow-xl shadow-emerald-500/50 scale-115 ring-4 ring-emerald-400/60 ring-offset-2 ring-offset-slate-900` 
+                    className={`relative ${chordButtonSize} rounded-full flex flex-col items-center justify-center cursor-pointer
+                      transition-all duration-200 font-semibold backdrop-blur-sm
+                      ${chord.category === 'seventh'
+                        ? 'border-[3px] border-double'
+                        : 'border-2'
+                      }
+                      ${isSelected
+                        ? `${colorScheme.bg} border-emerald-300 ${colorScheme.text} shadow-xl shadow-emerald-500/50 scale-115 ring-4 ring-emerald-400/60 ring-offset-2 ring-offset-slate-900`
                         : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md ${colorScheme.glow} opacity-50 hover:opacity-90 hover:scale-105 grayscale-[30%] hover:grayscale-0`
                       }
                       ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
@@ -984,9 +1030,25 @@ export default function ChordSkillSelector({
                     title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type}`}
                     data-testid={`chord-button-${chord.type}-${index}`}
                   >
-                    <span className={`${expandedView ? 'text-[14px]' : 'text-[13px]'} font-bold text-center leading-tight drop-shadow-md`}>
-                      {formatJazzChord(chord.rootNote, chord.type)}
-                    </span>
+                    {chord.romanNumeral ? (
+                      <div className="flex flex-col items-center gap-0">
+                        <span className={`${expandedView ? 'text-[11px]' : 'text-[10px]'} font-bold text-center leading-tight drop-shadow-md opacity-80`}>
+                          {chord.romanNumeral}
+                        </span>
+                        <span className={`${expandedView ? 'text-[13px]' : 'text-[12px]'} font-bold text-center leading-tight drop-shadow-md`}>
+                          {formatJazzChord(chord.rootNote, chord.type)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className={`${expandedView ? 'text-[14px]' : 'text-[13px]'} font-bold text-center leading-tight drop-shadow-md`}>
+                        {formatJazzChord(chord.rootNote, chord.type)}
+                      </span>
+                    )}
+                    {chord.category === 'seventh' && !isSelected && (
+                      <span className="absolute -top-1 -left-1 w-4 h-4 bg-purple-500/90 rounded-full border-2 border-purple-300 shadow-lg flex items-center justify-center">
+                        <span className="text-[8px] text-white font-bold">7</span>
+                      </span>
+                    )}
                     {isSelected && (
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
                         <span className="text-[6px] text-emerald-900 font-bold">✓</span>
@@ -1027,13 +1089,6 @@ export default function ChordSkillSelector({
                 compact={true}
                 onKeyPress={(note) => {}}
               />
-              <div className="mt-4">
-                <GuitarFretboard
-                  root={selectedChord.rootNote}
-                  quality={selectedChord.type}
-                  compact={true}
-                />
-              </div>
             </>
           ) : (
             <>
@@ -1072,9 +1127,10 @@ export default function ChordSkillSelector({
                   notes: chord.notes,
                   type: chord.type,
                   rootNote: chord.rootNote,
-                  category: 'seventh' as const
+                  category: 'seventh' as const,
+                  romanNumeral: chord.romanNumeral
                 };
-                
+
                 return (
                   <button
                     key={index}
@@ -1083,8 +1139,8 @@ export default function ChordSkillSelector({
                     }}
                     onClick={() => handleSelectChord(chordAsRegular)}
                     className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border
-                      ${isSelected 
-                        ? `${colorScheme.bg} border-emerald-300 ${colorScheme.text} shadow-md scale-105` 
+                      ${isSelected
+                        ? `${colorScheme.bg} border-emerald-300 ${colorScheme.text} shadow-md scale-105`
                         : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} opacity-60 hover:opacity-90 hover:scale-105`
                       }`}
                     title={chord.romanNumeral ? `${chord.romanNumeral} - ${chord.function}` : chord.name}
@@ -1098,6 +1154,16 @@ export default function ChordSkillSelector({
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {selectedChord && (
+          <div className="mt-4">
+            <GuitarFretboard
+              root={selectedChord.rootNote}
+              quality={selectedChord.type}
+              compact={true}
+            />
           </div>
         )}
       </div>

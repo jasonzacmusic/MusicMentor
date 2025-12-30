@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import RandomNotesGenerator from '@/components/random-notes-generator';
 import ChordSkillSelector, { type ColorPreset } from '@/components/chord-skill-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import type { Chord } from '@/lib/chord-theory';
-import { AVAILABLE_KEYS, AVAILABLE_SCALES, type ScaleType } from '@/lib/scale-theory';
+import { AVAILABLE_KEYS, AVAILABLE_SCALES, MODE_NAMES, type ScaleType, harmonizeScaleWithMode } from '@/lib/scale-theory';
 import nsmLogo from '@assets/NSM_LOGO_White_1767023126559.png';
 import { MascotProvider, GlobalMascot, MascotControls, useMascot, type ChordAnchor } from '@/components/animated-mascot';
 
@@ -39,8 +39,9 @@ function HomeContent() {
   const [showGuitar, setShowGuitar] = useState(false);
 
   // Diatonic mode settings
-  const [diatonicKey, setDiatonicKey] = useState<string>('C');
+  const [diatonicKey, setDiatonicKey] = useState<string>('A');
   const [diatonicScale, setDiatonicScale] = useState<ScaleType>('major');
+  const [diatonicMode, setDiatonicMode] = useState<number>(1); // 1-7 for modes
 
   // Panel width state for resizable sidebar
   const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_WIDTH);
@@ -49,6 +50,41 @@ function HomeContent() {
 
   const chordGridRef = useRef<HTMLDivElement>(null);
   const mascotContext = useMascot();
+
+  // Compute scale notes for diatonic mode
+  const diatonicScaleInfo = useMemo(() => {
+    if (skillLevel === 'diatonic') {
+      return harmonizeScaleWithMode(diatonicKey, diatonicScale, diatonicMode);
+    }
+    return null;
+  }, [skillLevel, diatonicKey, diatonicScale, diatonicMode]);
+
+  // Reset notes when switching between modes to ensure independence
+  useEffect(() => {
+    if (skillLevel === 'diatonic' && diatonicScaleInfo) {
+      // When in diatonic mode, use notes from the diatonic scale
+      const diatonicNotes = diatonicScaleInfo.notes.slice(0, noteCount);
+      // Pad with additional scale notes if needed
+      while (diatonicNotes.length < noteCount) {
+        diatonicNotes.push(diatonicScaleInfo.notes[diatonicNotes.length % diatonicScaleInfo.notes.length]);
+      }
+      setActiveNotes(diatonicNotes);
+      setSelectedNote(diatonicNotes[0]);
+      setSelectedChords(Array(noteCount).fill(null));
+      setInversionModes(Array(noteCount).fill('auto'));
+    } else {
+      // When in other modes, use default notes
+      const defaultNotes = ['C', 'E', 'A', 'G'];
+      const paddedNotes = [...defaultNotes];
+      while (paddedNotes.length < noteCount) {
+        paddedNotes.push(defaultNotes[paddedNotes.length % defaultNotes.length]);
+      }
+      setActiveNotes(paddedNotes.slice(0, noteCount));
+      setSelectedNote(paddedNotes[0]);
+      setSelectedChords(Array(noteCount).fill(null));
+      setInversionModes(Array(noteCount).fill('auto'));
+    }
+  }, [skillLevel, diatonicScaleInfo, noteCount]);
 
   // Derive panel mode from width
   const panelMode = getPanelMode(panelWidth);
@@ -266,8 +302,8 @@ function HomeContent() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="beginner" data-testid="option-beginner">Beginner</SelectItem>
-                      <SelectItem value="intermediate" data-testid="option-intermediate">Intermediate</SelectItem>
                       <SelectItem value="diatonic" data-testid="option-diatonic">Diatonic</SelectItem>
+                      <SelectItem value="intermediate" data-testid="option-intermediate">Intermediate</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -304,6 +340,23 @@ function HomeContent() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="flex items-center gap-2">
+                      {panelMode === 'normal' && (
+                        <Label className="text-[10px] font-semibold text-foreground uppercase tracking-wide min-w-[32px]">Mode:</Label>
+                      )}
+                      <Select value={diatonicMode.toString()} onValueChange={(v) => setDiatonicMode(parseInt(v))}>
+                        <SelectTrigger className={`h-6 text-xs ${panelMode === 'compact' ? 'w-full' : 'flex-1'}`} data-testid="select-diatonic-mode">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MODE_NAMES[diatonicScale]?.map((modeName, index) => (
+                            <SelectItem key={index + 1} value={(index + 1).toString()}>
+                              {index + 1}{['st', 'nd', 'rd', 'th', 'th', 'th', 'th'][index]} ({modeName})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
 
@@ -317,6 +370,10 @@ function HomeContent() {
                   onNoteCountChange={handleNoteCountChange}
                   onPlayingIndexChange={handlePlayingIndexChange}
                   panelMode={panelMode}
+                  diatonicNotes={skillLevel === 'diatonic' && diatonicScaleInfo ? diatonicScaleInfo.notes : undefined}
+                  diatonicKey={skillLevel === 'diatonic' ? diatonicKey : undefined}
+                  diatonicScale={skillLevel === 'diatonic' ? diatonicScale : undefined}
+                  diatonicMode={skillLevel === 'diatonic' ? diatonicMode : undefined}
                 />
 
                 {skillLevel === 'beginner' && (
@@ -352,6 +409,10 @@ function HomeContent() {
               onNoteCountChange={handleNoteCountChange}
               onPlayingIndexChange={handlePlayingIndexChange}
               panelMode="normal"
+              diatonicNotes={skillLevel === 'diatonic' && diatonicScaleInfo ? diatonicScaleInfo.notes : undefined}
+              diatonicKey={skillLevel === 'diatonic' ? diatonicKey : undefined}
+              diatonicScale={skillLevel === 'diatonic' ? diatonicScale : undefined}
+              diatonicMode={skillLevel === 'diatonic' ? diatonicMode : undefined}
             />
           </div>
         </div>
@@ -368,6 +429,40 @@ function HomeContent() {
                 }
               </p>
             </div>
+
+            {/* Scale Notes Display for Diatonic Mode */}
+            {skillLevel === 'diatonic' && diatonicScaleInfo && (
+              <div className="mb-3 bg-slate-900/50 rounded-lg border border-slate-700/50 p-3">
+                <div className="flex items-center justify-center mb-2">
+                  <span className="text-sm font-semibold text-emerald-400">
+                    {diatonicScaleInfo.scaleName}
+                  </span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {diatonicScaleInfo.notes.map((note, index) => {
+                    const triad = diatonicScaleInfo.triads[index];
+                    const isRoot = index === 0;
+                    return (
+                      <div
+                        key={index}
+                        className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg transition-all ${
+                          isRoot
+                            ? 'bg-gradient-to-br from-emerald-600/90 to-teal-700/90 border-2 border-emerald-400/60 scale-110'
+                            : 'bg-gradient-to-br from-slate-700/80 to-slate-800/80 border border-slate-600/40'
+                        }`}
+                      >
+                        <span className={`text-base font-bold ${isRoot ? 'text-white' : 'text-slate-200'}`}>
+                          {note}
+                        </span>
+                        <span className={`text-[10px] mt-0.5 ${isRoot ? 'text-emerald-200' : 'text-slate-400'}`}>
+                          {triad?.romanNumeral || ''}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Chord Grid - Responsive, no scroll on desktop, dynamic sizing based on panel state */}
             <div
@@ -412,6 +507,7 @@ function HomeContent() {
                         showGuitar={showGuitar}
                         diatonicKey={skillLevel === 'diatonic' ? diatonicKey : undefined}
                         diatonicScale={skillLevel === 'diatonic' ? diatonicScale : undefined}
+                        diatonicMode={skillLevel === 'diatonic' ? diatonicMode : undefined}
                       />
                     </div>
                   </div>
