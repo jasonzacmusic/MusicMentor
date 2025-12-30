@@ -64,6 +64,8 @@ export class SampleEngine {
   private arpeggioGainNode: GainNode | null = null;
   private isInitialized = false;
   private comboLoaded = false;
+  private comboLoadingPromise: Promise<void> | null = null;
+  private loadVersion = 0;
   
   private grandPiano: SplendidGrandPiano | null = null;
   private loadedInstruments: Map<string, SoundfontInstrument> = new Map();
@@ -85,6 +87,36 @@ export class SampleEngine {
 
   get loadedComboId(): string {
     return this.currentComboId;
+  }
+  
+  get isLoading(): boolean {
+    return this.comboLoadingPromise !== null;
+  }
+  
+  get version(): number {
+    return this.loadVersion;
+  }
+  
+  async ensureLoaded(comboId: string): Promise<void> {
+    if (this.comboLoaded && this.currentComboId === comboId) {
+      return;
+    }
+    
+    if (this.comboLoadingPromise && this.currentComboId === comboId) {
+      return this.comboLoadingPromise;
+    }
+    
+    this.comboLoadingPromise = (async () => {
+      try {
+        await this.initialize();
+        await this.loadCombo(comboId);
+      } finally {
+        this.comboLoadingPromise = null;
+        this.loadVersion++;
+      }
+    })();
+    
+    return this.comboLoadingPromise;
   }
 
   async initialize(): Promise<void> {

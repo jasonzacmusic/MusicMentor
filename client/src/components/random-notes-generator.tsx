@@ -75,11 +75,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
-  const [isLoadingInstruments, setIsLoadingInstruments] = useState(() => {
-    const loaded = sampleEngine.loaded && sampleEngine.loadedComboId === 'orchestral-piano';
-    return !loaded;
-  });
-  const comboLoadedRef = useRef(sampleEngine.loaded && sampleEngine.loadedComboId === 'orchestral-piano');
+  
+  // Track engine version to re-render when loading completes
+  const [engineVersion, setEngineVersion] = useState(sampleEngine.version);
+  
+  // Derive loading state from engine - no component state needed
+  const isLoadingInstruments = !sampleEngine.loaded || sampleEngine.loadedComboId !== selectedComboId || sampleEngine.isLoading;
+  const comboLoadedRef = useRef(sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId);
 
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
@@ -117,45 +119,19 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
   }, [onPlayingIndexChange]);
 
-  // Sync loading state with engine on mount and when engine state might change
-  useEffect(() => {
-    const syncLoadingState = () => {
-      const engineLoaded = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
-      if (engineLoaded && isLoadingInstruments) {
-        logger.log('🔄 Syncing loading state: engine already loaded');
-        setIsLoadingInstruments(false);
-        comboLoadedRef.current = true;
-      }
-    };
-    
-    syncLoadingState();
-    
-    // Also check after a short delay in case engine is still initializing
-    const timeoutId = setTimeout(syncLoadingState, 100);
-    return () => clearTimeout(timeoutId);
-  }, [selectedComboId, isLoadingInstruments]);
-
-  // Load instrument combo when selection changes or on initial mount
+  // Load instrument combo using shared promise
   useEffect(() => {
     const loadCombo = async () => {
-      // Check if already loaded with same combo
-      if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
-        setIsLoadingInstruments(false);
-        comboLoadedRef.current = true;
-        return;
-      }
-      setIsLoadingInstruments(true);
       try {
-        await sampleEngine.initialize();
-        await sampleEngine.loadCombo(selectedComboId);
+        await sampleEngine.ensureLoaded(selectedComboId);
         sampleEngine.setBlockChordVolume(blockChordVolume);
         sampleEngine.setArpeggioVolume(arpeggioVolume);
         comboLoadedRef.current = true;
+        setEngineVersion(sampleEngine.version);
         logger.log(`✅ Loaded instrument combo: ${selectedComboId}`);
       } catch (error) {
         console.error('Failed to load instrument combo:', error);
-      } finally {
-        setIsLoadingInstruments(false);
+        setEngineVersion(sampleEngine.version);
       }
     };
     loadCombo();
@@ -299,15 +275,19 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       // Reset playing index
       onPlayingIndexChangeRef.current?.(null);
       
-      // Sync loading state with actual engine state
-      const engineLoaded = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
-      setIsLoadingInstruments(!engineLoaded);
-      comboLoadedRef.current = engineLoaded;
+      // Clear all chord refs to prevent stale data
+      prevChordsRef.current = Array(noteCount).fill(null);
+      randomChordsRef.current = Array(noteCount).fill(null);
+      currentChordsRef.current = Array(noteCount).fill(null);
+      
+      // Update engine version to trigger re-render with correct loading state
+      comboLoadedRef.current = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
+      setEngineVersion(sampleEngine.version);
       
       prevSkillLevelRef.current = skillLevel;
     }
     skillLevelRef.current = skillLevel;
-  }, [skillLevel, selectedComboId]);
+  }, [skillLevel, selectedComboId, noteCount]);
 
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
