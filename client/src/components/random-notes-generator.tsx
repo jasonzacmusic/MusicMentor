@@ -75,12 +75,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
-  
-  // Track engine version to re-render when loading completes
-  const [engineVersion, setEngineVersion] = useState(sampleEngine.version);
-  
-  // Derive loading state from engine - no component state needed
-  const isLoadingInstruments = !sampleEngine.loaded || sampleEngine.loadedComboId !== selectedComboId || sampleEngine.isLoading;
+
+  // Track loading state in component state for reliable re-renders
+  const [isLoadingInstruments, setIsLoadingInstruments] = useState(
+    !(sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId)
+  );
   const comboLoadedRef = useRef(sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId);
 
   // Scheduled loop tracking for seamless looping
@@ -119,22 +118,36 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
   }, [onPlayingIndexChange]);
 
-  // Load instrument combo using shared promise
+  // Load instrument combo using shared promise - only depends on comboId
   useEffect(() => {
+    let cancelled = false;
+    
     const loadCombo = async () => {
+      // Check if already loaded with this combo
+      if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
+        setIsLoadingInstruments(false);
+        comboLoadedRef.current = true;
+        return;
+      }
+      
+      setIsLoadingInstruments(true);
       try {
         await sampleEngine.ensureLoaded(selectedComboId);
-        sampleEngine.setBlockChordVolume(blockChordVolume);
-        sampleEngine.setArpeggioVolume(arpeggioVolume);
-        comboLoadedRef.current = true;
-        setEngineVersion(sampleEngine.version);
-        logger.log(`✅ Loaded instrument combo: ${selectedComboId}`);
+        if (!cancelled) {
+          comboLoadedRef.current = true;
+          setIsLoadingInstruments(false);
+          logger.log(`✅ Loaded instrument combo: ${selectedComboId}`);
+        }
       } catch (error) {
         console.error('Failed to load instrument combo:', error);
-        setEngineVersion(sampleEngine.version);
+        if (!cancelled) {
+          setIsLoadingInstruments(false);
+        }
       }
     };
     loadCombo();
+    
+    return () => { cancelled = true; };
   }, [selectedComboId]);
 
   // Update volumes when sliders change
@@ -286,11 +299,10 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       onNotesChange?.(newNotes);
       onChordsChange?.(Array(noteCount).fill(null));
       logger.log(`🎲 Auto-regenerated notes for ${skillLevel} mode:`, newNotes);
-      
-      // Update engine version to trigger re-render with correct loading state
+
+      // Update loaded ref
       comboLoadedRef.current = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
-      setEngineVersion(sampleEngine.version);
-      
+
       prevSkillLevelRef.current = skillLevel;
     }
     skillLevelRef.current = skillLevel;
