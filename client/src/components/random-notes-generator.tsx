@@ -75,8 +75,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
-  const [isLoadingInstruments, setIsLoadingInstruments] = useState(() => !sampleEngine.loaded);
-  const comboLoadedRef = useRef(sampleEngine.loaded);
+  const [isLoadingInstruments, setIsLoadingInstruments] = useState(() => {
+    const loaded = sampleEngine.loaded && sampleEngine.loadedComboId === 'orchestral-piano';
+    return !loaded;
+  });
+  const comboLoadedRef = useRef(sampleEngine.loaded && sampleEngine.loadedComboId === 'orchestral-piano');
 
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
@@ -114,9 +117,28 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
   }, [onPlayingIndexChange]);
 
-  // Load instrument combo when selection changes
+  // Sync loading state with engine on mount and when engine state might change
+  useEffect(() => {
+    const syncLoadingState = () => {
+      const engineLoaded = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
+      if (engineLoaded && isLoadingInstruments) {
+        logger.log('🔄 Syncing loading state: engine already loaded');
+        setIsLoadingInstruments(false);
+        comboLoadedRef.current = true;
+      }
+    };
+    
+    syncLoadingState();
+    
+    // Also check after a short delay in case engine is still initializing
+    const timeoutId = setTimeout(syncLoadingState, 100);
+    return () => clearTimeout(timeoutId);
+  }, [selectedComboId, isLoadingInstruments]);
+
+  // Load instrument combo when selection changes or on initial mount
   useEffect(() => {
     const loadCombo = async () => {
+      // Check if already loaded with same combo
       if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
         setIsLoadingInstruments(false);
         comboLoadedRef.current = true;
@@ -244,6 +266,48 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     currentChordsRef.current = selectedChords;
     logger.log('🔄 Updated currentChordsRef:', selectedChords.map(c => c?.name || 'Note'));
   }, [selectedChords]);
+
+  // Store skillLevel in a ref for access in callbacks
+  const skillLevelRef = useRef(skillLevel);
+  const prevSkillLevelRef = useRef(skillLevel);
+
+  // Stop playback and reset when skill level changes
+  useEffect(() => {
+    if (prevSkillLevelRef.current !== skillLevel) {
+      logger.log(`🔄 Skill level changed from ${prevSkillLevelRef.current} to ${skillLevel}, resetting playback`);
+      
+      // Stop any ongoing playback
+      isSequenceActiveRef.current = false;
+      setIsPlaying(false);
+      
+      // Clear all scheduled timeouts
+      if (loopSchedulerRef.current) {
+        cancelAnimationFrame(loopSchedulerRef.current);
+        loopSchedulerRef.current = null;
+      }
+      playingIndexTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      playingIndexTimeoutsRef.current.clear();
+      activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      activeTimeoutsRef.current.clear();
+      scheduledTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      scheduledTimeoutsRef.current.clear();
+      
+      // Stop all audio
+      sampleEngine.stopAll();
+      audioEngine.stopAll();
+      
+      // Reset playing index
+      onPlayingIndexChangeRef.current?.(null);
+      
+      // Sync loading state with actual engine state
+      const engineLoaded = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
+      setIsLoadingInstruments(!engineLoaded);
+      comboLoadedRef.current = engineLoaded;
+      
+      prevSkillLevelRef.current = skillLevel;
+    }
+    skillLevelRef.current = skillLevel;
+  }, [skillLevel, selectedComboId]);
 
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
