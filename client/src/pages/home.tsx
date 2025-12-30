@@ -6,7 +6,9 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { HelpCircle, Palette, PanelLeftClose, PanelLeft, Settings2, Piano, Guitar, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import type { Chord } from '@/lib/chord-theory';
+import { AVAILABLE_KEYS, AVAILABLE_SCALES, type ScaleType } from '@/lib/scale-theory';
 import nsmLogo from '@assets/NSM_LOGO_White_1767023126559.png';
 import { MascotProvider, GlobalMascot, MascotControls, useMascot, type ChordAnchor } from '@/components/animated-mascot';
 
@@ -36,6 +38,10 @@ function HomeContent() {
   const [colorPreset, setColorPreset] = useState<ColorPreset>('earth');
   const [showPiano, setShowPiano] = useState(false);
   const [showGuitar, setShowGuitar] = useState(false);
+
+  // Diatonic mode settings
+  const [diatonicKey, setDiatonicKey] = useState<string>('C');
+  const [diatonicScale, setDiatonicScale] = useState<ScaleType>('major');
 
   // Panel width state for resizable sidebar
   const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_WIDTH);
@@ -243,8 +249,10 @@ function HomeContent() {
                   {noteCount}
                 </div>
 
-                {/* Compact mascot toggle */}
-                <MascotControls compact={true} />
+                {/* Compact mascot toggle - only for beginner mode */}
+                {skillLevel === 'beginner' && (
+                  <MascotControls compact={true} />
+                )}
               </div>
             ) : (
               /* Compact or Normal state - full controls with density adaptation */
@@ -265,25 +273,52 @@ function HomeContent() {
                   </Select>
                 </div>
 
-                {skillLevel !== 'diatonic' && (
-                  <RandomNotesGenerator
-                    onNotesChange={handleNotesChange}
-                    onChordsChange={setSelectedChords}
-                    selectedChords={selectedChords}
-                    inversionModes={inversionModes}
-                    skillLevel={skillLevel}
-                    noteCount={noteCount}
-                    onNoteCountChange={handleNoteCountChange}
-                    onPlayingIndexChange={handlePlayingIndexChange}
-                    panelMode={panelMode}
-                  />
-                )}
-
                 {skillLevel === 'diatonic' && (
-                  <div className="text-xs text-muted-foreground p-2 bg-slate-800/30 rounded-lg">
-                    Use the key and scale selectors in the main panel to explore diatonic harmony.
+                  <div className={`pb-2 border-b border-border ${panelMode === 'compact' ? 'space-y-1' : 'space-y-1.5'}`}>
+                    <div className="flex items-center gap-2">
+                      {panelMode === 'normal' && (
+                        <Label className="text-[10px] font-semibold text-foreground uppercase tracking-wide min-w-[32px]">Key:</Label>
+                      )}
+                      <Select value={diatonicKey} onValueChange={setDiatonicKey}>
+                        <SelectTrigger className={`h-6 text-xs ${panelMode === 'compact' ? 'w-full' : 'flex-1'}`} data-testid="select-diatonic-key">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AVAILABLE_KEYS.map(key => (
+                            <SelectItem key={key.value} value={key.value}>{key.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {panelMode === 'normal' && (
+                        <Label className="text-[10px] font-semibold text-foreground uppercase tracking-wide min-w-[32px]">Scale:</Label>
+                      )}
+                      <Select value={diatonicScale} onValueChange={(v) => setDiatonicScale(v as ScaleType)}>
+                        <SelectTrigger className={`h-6 text-xs ${panelMode === 'compact' ? 'w-full' : 'flex-1'}`} data-testid="select-diatonic-scale">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {AVAILABLE_SCALES.map(scale => (
+                            <SelectItem key={scale.value} value={scale.value}>{scale.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
+
+                <RandomNotesGenerator
+                  onNotesChange={handleNotesChange}
+                  onChordsChange={setSelectedChords}
+                  selectedChords={selectedChords}
+                  inversionModes={inversionModes}
+                  skillLevel={skillLevel}
+                  noteCount={noteCount}
+                  onNoteCountChange={handleNoteCountChange}
+                  onPlayingIndexChange={handlePlayingIndexChange}
+                  panelMode={panelMode}
+                />
 
                 {skillLevel === 'beginner' && (
                   <MascotControls compact={panelMode === 'compact'} />
@@ -306,87 +341,84 @@ function HomeContent() {
         </div>
 
         {/* Mobile settings panel */}
-        {skillLevel !== 'diatonic' && (
-          <div className="lg:hidden mb-2">
-            <div className="bg-card rounded-lg border border-border p-2.5">
-              <RandomNotesGenerator
-                onNotesChange={handleNotesChange}
-                onChordsChange={setSelectedChords}
-                selectedChords={selectedChords}
-                inversionModes={inversionModes}
-                skillLevel={skillLevel}
-                noteCount={noteCount}
-                onNoteCountChange={handleNoteCountChange}
-                onPlayingIndexChange={handlePlayingIndexChange}
-                panelMode="normal"
-              />
-            </div>
+        <div className="lg:hidden mb-2">
+          <div className="bg-card rounded-lg border border-border p-2.5">
+            <RandomNotesGenerator
+              onNotesChange={handleNotesChange}
+              onChordsChange={setSelectedChords}
+              selectedChords={selectedChords}
+              inversionModes={inversionModes}
+              skillLevel={skillLevel}
+              noteCount={noteCount}
+              onNoteCountChange={handleNoteCountChange}
+              onPlayingIndexChange={handlePlayingIndexChange}
+              panelMode="normal"
+            />
           </div>
-        )}
+        </div>
 
         {/* Chord Visualization Area - Expands when sidebar shrinks */}
         <div className="flex-1 min-h-0 min-w-0">
           <div className="bg-card rounded-lg border border-border h-full flex flex-col p-2 lg:p-3 relative overflow-y-auto">
-            {skillLevel === 'diatonic' ? (
-              <DiatonicMode />
-            ) : (
-              <>
-                {/* Minimal instruction - hidden on smaller screens */}
-                <div className="text-center mb-1.5 hidden xl:block">
-                  <p className="text-[11px] text-muted-foreground">
-                    Select a chord to add it to your progression • Click the root note again to deselect
-                  </p>
-                </div>
+            {/* Minimal instruction - hidden on smaller screens */}
+            <div className="text-center mb-1.5 hidden xl:block">
+              <p className="text-[11px] text-muted-foreground">
+                {skillLevel === 'diatonic'
+                  ? `Diatonic chords in ${diatonicKey} ${AVAILABLE_SCALES.find(s => s.value === diatonicScale)?.label || diatonicScale}`
+                  : 'Select a chord to add it to your progression • Click the root note again to deselect'
+                }
+              </p>
+            </div>
 
-                {/* Chord Grid - Responsive, no scroll on desktop, dynamic sizing based on panel state */}
-                <div 
-                  ref={chordGridRef}
-                  className={`flex-1 grid gap-1 min-h-0 auto-rows-fr relative ${
-                    noteCount === 1 ? 'grid-cols-1' :
-                    noteCount === 2 ? 'grid-cols-2' :
-                    noteCount === 3 ? 'grid-cols-3' :
-                    noteCount === 4 ? 'grid-cols-2 lg:grid-cols-4' :
-                    'grid-cols-3 lg:grid-cols-5'
-                  } ${isPanelCollapsed ? 'lg:gap-3' : 'lg:gap-2'}`}
-                >
-                  {/* Global Mascot Overlay */}
-                  {skillLevel === 'beginner' && chordGridRef.current && (
-                    <GlobalMascot containerRef={chordGridRef as React.RefObject<HTMLDivElement>} />
-                  )}
+            {/* Chord Grid - Responsive, no scroll on desktop, dynamic sizing based on panel state */}
+            <div
+              ref={chordGridRef}
+              className={`flex-1 grid gap-1 min-h-0 auto-rows-fr relative ${
+                noteCount === 1 ? 'grid-cols-1' :
+                noteCount === 2 ? 'grid-cols-2' :
+                noteCount === 3 ? 'grid-cols-3' :
+                noteCount === 4 ? 'grid-cols-2 lg:grid-cols-4' :
+                'grid-cols-3 lg:grid-cols-5'
+              } ${isPanelCollapsed ? 'lg:gap-3' : 'lg:gap-2'}`}
+            >
+              {/* Global Mascot Overlay */}
+              {skillLevel === 'beginner' && chordGridRef.current && (
+                <GlobalMascot containerRef={chordGridRef as React.RefObject<HTMLDivElement>} />
+              )}
 
-                  {activeNotes.map((note, index) => {
-                    const isPlaying = currentPlayingIndex === index;
-                    return (
-                      <div 
-                        key={`${note}-${index}`} 
-                        className="flex justify-center items-start min-h-0 overflow-visible"
-                      >
-                        <div className={`flex flex-col items-center justify-start transition-all duration-300 h-full w-full ${
-                          isPlaying ? 'scale-[1.02]' : ''
-                        }`}>
-                          <ChordSkillSelector
-                            baseNote={note}
-                            noteIndex={index}
-                            selectedChord={selectedChords[index]}
-                            onChordSelect={handleChordSelect}
-                            inversionMode={inversionModes[index]}
-                            onInversionChange={(mode) => handleInversionChange(mode, index)}
-                            skillLevel={skillLevel}
-                            treeLayout={true}
-                            isPlaying={isPlaying}
-                            colorPreset={colorPreset}
-                            expandedView={isPanelCollapsed}
-                            onAnchorUpdate={handleAnchorUpdate}
-                            showPiano={showPiano}
-                            showGuitar={showGuitar}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+              {activeNotes.map((note, index) => {
+                const isPlaying = currentPlayingIndex === index;
+                return (
+                  <div
+                    key={`${note}-${index}`}
+                    className="flex justify-center items-start min-h-0 overflow-visible"
+                  >
+                    <div className={`flex flex-col items-center justify-start transition-all duration-300 h-full w-full ${
+                      isPlaying ? 'scale-[1.02]' : ''
+                    }`}>
+                      <ChordSkillSelector
+                        baseNote={note}
+                        noteIndex={index}
+                        selectedChord={selectedChords[index]}
+                        onChordSelect={handleChordSelect}
+                        inversionMode={inversionModes[index]}
+                        onInversionChange={(mode) => handleInversionChange(mode, index)}
+                        skillLevel={skillLevel}
+                        treeLayout={true}
+                        isPlaying={isPlaying}
+                        colorPreset={colorPreset}
+                        expandedView={isPanelCollapsed}
+                        onAnchorUpdate={handleAnchorUpdate}
+                        showPiano={showPiano}
+                        showGuitar={showGuitar}
+                        diatonicKey={skillLevel === 'diatonic' ? diatonicKey : undefined}
+                        diatonicScale={skillLevel === 'diatonic' ? diatonicScale : undefined}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </main>

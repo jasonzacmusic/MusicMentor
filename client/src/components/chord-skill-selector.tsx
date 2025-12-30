@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel, getAllChordsContainingNote, type ChordMembership } from '@/lib/chord-theory';
+import { getDiatonicChordsContainingNote, type ScaleType, type DiatonicChord } from '@/lib/scale-theory';
 import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
 import GuitarFretboard from './guitar-fretboard';
@@ -578,6 +579,8 @@ interface ChordSkillSelectorProps {
   showPiano?: boolean;
   showGuitar?: boolean;
   onAnchorUpdate?: (anchor: ChordAnchor) => void;
+  diatonicKey?: string;
+  diatonicScale?: ScaleType;
 }
 
 export default function ChordSkillSelector({
@@ -594,9 +597,12 @@ export default function ChordSkillSelector({
   expandedView = false,
   showPiano = false,
   showGuitar = false,
-  onAnchorUpdate
+  onAnchorUpdate,
+  diatonicKey,
+  diatonicScale
 }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
+  const [diatonicSeventhChords, setDiatonicSeventhChords] = useState<DiatonicChord[]>([]);
   const { playChord } = useAudio();
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const centerButtonRef = useRef<HTMLButtonElement>(null);
@@ -605,9 +611,23 @@ export default function ChordSkillSelector({
   const selectedChord = parentSelectedChord;
 
   useEffect(() => {
-    const chords = getChordsForNoteBySkill(baseNote, skillLevel);
-    setAvailableChords(chords);
-  }, [baseNote, skillLevel]);
+    if (skillLevel === 'diatonic' && diatonicKey && diatonicScale) {
+      const diatonicChords = getDiatonicChordsContainingNote(baseNote, diatonicKey, diatonicScale);
+      const triadsAsChords: Chord[] = diatonicChords.triads.map(dc => ({
+        name: dc.name,
+        notes: dc.notes,
+        type: dc.type,
+        rootNote: dc.rootNote,
+        category: 'triad' as const
+      }));
+      setAvailableChords(triadsAsChords);
+      setDiatonicSeventhChords(diatonicChords.seventhChords);
+    } else {
+      const chords = getChordsForNoteBySkill(baseNote, skillLevel);
+      setAvailableChords(chords);
+      setDiatonicSeventhChords([]);
+    }
+  }, [baseNote, skillLevel, diatonicKey, diatonicScale]);
 
   const handleSelectChord = useCallback((chord: Chord, buttonElement?: HTMLButtonElement) => {
     onChordSelect(chord, noteIndex);
@@ -861,12 +881,14 @@ export default function ChordSkillSelector({
             isPlaying ? 'scale-105' : ''
           }`}
         >
-          <EnvironmentLayer 
-            animal={currentAnimal} 
-            noteIndex={noteIndex} 
-            isPlaying={isPlaying}
-            enabled={mascotContext.enabled}
-          />
+          {skillLevel !== 'diatonic' && (
+            <EnvironmentLayer 
+              animal={currentAnimal} 
+              noteIndex={noteIndex} 
+              isPlaying={isPlaying}
+              enabled={mascotContext.enabled}
+            />
+          )}
 
           <div className={`absolute w-56 h-56 rounded-full border transition-all duration-300 ${
             isPlaying ? 'border-emerald-400/50 shadow-lg shadow-emerald-500/20' : 'border-slate-700/30'
@@ -1035,6 +1057,49 @@ export default function ChordSkillSelector({
             </>
           )}
         </div>
+
+        {skillLevel === 'diatonic' && diatonicSeventhChords.length > 0 && (
+          <div className="mt-3 w-full">
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider text-center mb-2 font-semibold">
+              Seventh Chords
+            </div>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {diatonicSeventhChords.map((chord, index) => {
+                const colorScheme = getChordColorScheme(chord.type, colorPreset);
+                const isSelected = selectedChord?.name === chord.name;
+                const chordAsRegular: Chord = {
+                  name: chord.name,
+                  notes: chord.notes,
+                  type: chord.type,
+                  rootNote: chord.rootNote,
+                  category: 'seventh' as const
+                };
+                
+                return (
+                  <button
+                    key={index}
+                    ref={(el) => {
+                      if (el) chordButtonRefs.current.set(chord.name, el);
+                    }}
+                    onClick={() => handleSelectChord(chordAsRegular)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border
+                      ${isSelected 
+                        ? `${colorScheme.bg} border-emerald-300 ${colorScheme.text} shadow-md scale-105` 
+                        : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} opacity-60 hover:opacity-90 hover:scale-105`
+                      }`}
+                    title={chord.romanNumeral ? `${chord.romanNumeral} - ${chord.function}` : chord.name}
+                    data-testid={`seventh-chord-${chord.rootNote}-${chord.type}`}
+                  >
+                    {formatJazzChord(chord.rootNote, chord.type)}
+                    {chord.romanNumeral && (
+                      <span className="ml-1 text-[9px] opacity-70">({chord.romanNumeral})</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -479,3 +479,81 @@ export const AVAILABLE_SCALES: { value: ScaleType; label: string; category: stri
   { value: 'locrianNat2', label: 'Locrian ♮2', category: 'Melodic Minor Modes' },
   { value: 'alteredScale', label: 'Altered Scale', category: 'Melodic Minor Modes' },
 ];
+
+/**
+ * Get all diatonic chord types that contain the target note in a given key and scale
+ * Returns array of chord type strings (e.g., ['major', 'minor', 'dominant7'])
+ */
+export function getDiatonicChordTypesForNote(targetNote: string, key: string, scaleType: ScaleType): string[] {
+  const harmonized = harmonizeScale(key, scaleType);
+  const allDiatonicChords = [
+    ...harmonized.triads,
+    ...harmonized.seventhChords,
+    ...harmonized.suspendedChords
+  ];
+
+  // Normalize the target note for comparison
+  const normalizeNote = (note: string): number => {
+    const noteMap: Record<string, number> = {
+      'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
+      'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
+      'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+    };
+    return noteMap[note] ?? 0;
+  };
+
+  const targetPitchClass = normalizeNote(targetNote);
+  const chordTypes = new Set<string>();
+
+  for (const diatonicChord of allDiatonicChords) {
+    // Check if any note in the chord matches the target note (pitch class)
+    const containsNote = diatonicChord.notes.some(note =>
+      normalizeNote(note) === targetPitchClass
+    );
+
+    if (containsNote) {
+      chordTypes.add(diatonicChord.type);
+    }
+  }
+
+  return Array.from(chordTypes);
+}
+
+/**
+ * Get all diatonic chords (with full info) that contain the target note
+ * Returns separate arrays for triads and seventh chords
+ */
+export interface DiatonicChordsForNote {
+  triads: DiatonicChord[];
+  seventhChords: DiatonicChord[];
+  targetNote: string;
+}
+
+export function getDiatonicChordsContainingNote(
+  targetNote: string, 
+  key: string, 
+  scaleType: ScaleType
+): DiatonicChordsForNote {
+  const harmonized = harmonizeScale(key, scaleType);
+  
+  const normalizeNote = (note: string): number => {
+    const noteMap: Record<string, number> = {
+      'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
+      'E': 4, 'Fb': 4, 'E#': 5, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
+      'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11, 'Cb': 11, 'B#': 0
+    };
+    return noteMap[note] ?? 0;
+  };
+
+  const targetPitchClass = normalizeNote(targetNote);
+  
+  const triads = harmonized.triads.filter(chord =>
+    chord.notes.some(note => normalizeNote(note) === targetPitchClass)
+  );
+  
+  const seventhChords = harmonized.seventhChords.filter(chord =>
+    chord.notes.some(note => normalizeNote(note) === targetPitchClass)
+  );
+
+  return { triads, seventhChords, targetNote };
+}
