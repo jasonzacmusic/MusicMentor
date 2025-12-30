@@ -44,6 +44,15 @@ function sortNotesByPitch(notes: string[], octaves?: number[]): string[] {
   return notesWithOctave.map(n => n.note);
 }
 
+function getPianoStartNote(bassNote: string): string {
+  const lowNotes = ['C', 'C#', 'Db', 'D#', 'Eb'];
+  const normalizedBass = bassNote.replace('♯', '#').replace('♭', 'b');
+  if (lowNotes.includes(normalizedBass)) {
+    return bassNote;
+  }
+  return 'C';
+}
+
 export type ColorPreset = 'neon' | 'pastel' | 'earth' | 'sunset' | 'ocean';
 
 const COLOR_PRESETS: Record<ColorPreset, Record<string, { bg: string; border: string; text: string; glow: string }>> = {
@@ -866,7 +875,7 @@ export default function ChordSkillSelector({
                 <div className="mt-1">
                   <PianoKeyboard
                     highlightedNotes={selectedChord.notes}
-                    startNote={selectedChord.notes[0]}
+                    startNote={getPianoStartNote(selectedChord.notes[0])}
                     compact={true}
                     onKeyPress={(note) => {}}
                   />
@@ -1087,7 +1096,7 @@ export default function ChordSkillSelector({
               </div>
               <PianoKeyboard
                 highlightedNotes={selectedChord.notes}
-                startNote={selectedChord.notes[0]}
+                startNote={getPianoStartNote(selectedChord.notes[0])}
                 compact={true}
                 onKeyPress={(note) => {}}
               />
@@ -1108,7 +1117,7 @@ export default function ChordSkillSelector({
               </div>
               <PianoKeyboard
                 highlightedNotes={[baseNote]}
-                startNote={baseNote}
+                startNote={getPianoStartNote(baseNote)}
                 compact={true}
                 onKeyPress={(note) => {}}
               />
@@ -1270,7 +1279,7 @@ export default function ChordSkillSelector({
               <div className="flex justify-center">
                 <PianoKeyboard
                   highlightedNotes={selectedChord.notes}
-                  startNote={selectedChord.notes[0]}
+                  startNote={getPianoStartNote(selectedChord.notes[0])}
                   compact={true}
                   onKeyPress={(note) => {}}
                 />
