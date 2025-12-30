@@ -291,20 +291,34 @@ function HomeContent() {
                   <Settings2 className="w-4 h-4" />
                 </Button>
 
-                {/* Quick level indicator */}
-                <div className="text-[9px] font-bold text-center uppercase tracking-wide text-muted-foreground px-1">
-                  {skillLevel.charAt(0).toUpperCase()}
-                </div>
+                {/* Mode Selector */}
+                <Select value={skillLevel} onValueChange={(value: SkillLevel) => setSkillLevel(value)}>
+                  <SelectTrigger className="h-8 w-9 px-0 text-[10px] font-bold" data-testid="select-skill-level-icon">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="diatonic">Diatonic</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                {/* Note count indicator */}
-                <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                  {noteCount}
-                </div>
-
-                {/* Compact mascot toggle - only for beginner mode */}
-                {skillLevel === 'beginner' && (
-                  <MascotControls compact={true} />
-                )}
+                {/* Essential Controls */}
+                <RandomNotesGenerator
+                  onNotesChange={handleNotesChange}
+                  onChordsChange={setSelectedChords}
+                  selectedChords={selectedChords}
+                  inversionModes={inversionModes}
+                  skillLevel={skillLevel}
+                  noteCount={noteCount}
+                  onNoteCountChange={handleNoteCountChange}
+                  onPlayingIndexChange={handlePlayingIndexChange}
+                  panelMode="icon"
+                  diatonicNotes={skillLevel === 'diatonic' && diatonicScaleInfo ? diatonicScaleInfo.notes : undefined}
+                  diatonicKey={skillLevel === 'diatonic' ? diatonicKey : undefined}
+                  diatonicScale={skillLevel === 'diatonic' ? diatonicScale : undefined}
+                  diatonicMode={skillLevel === 'diatonic' ? diatonicMode : undefined}
+                />
               </div>
             ) : (
               /* Compact or Normal state - full controls with density adaptation */

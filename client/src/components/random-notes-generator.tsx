@@ -811,6 +811,70 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Derive compact mode from panelMode prop
   const isCompact = panelMode === 'compact';
 
+  // Icon mode - minimal essential controls
+  if (panelMode === 'icon') {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <div className="flex flex-col items-center gap-1.5">
+          {/* Play Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handlePlay}
+                size="sm"
+                disabled={isLoadingInstruments}
+                className={`w-9 h-9 p-0 ${
+                  isPlaying
+                    ? 'bg-destructive hover:bg-destructive/90'
+                    : 'bg-primary hover:bg-primary/90'
+                }`}
+              >
+                {isLoadingInstruments ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : isPlaying ? (
+                  <Square className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{isPlaying ? 'Stop' : 'Play'}</TooltipContent>
+          </Tooltip>
+
+          {/* Random Notes Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleGenerate}
+                variant="outline"
+                size="sm"
+                className="w-9 h-9 p-0"
+              >
+                <Shuffle className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Random Notes</TooltipContent>
+          </Tooltip>
+
+          {/* Random Chords Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleRandomHarmonize}
+                variant="outline"
+                size="sm"
+                className="w-9 h-9 p-0"
+              >
+                <Dices className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Random Chords</TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
   // Normal (expanded) view
   if (panelMode === 'normal') {
     return (
