@@ -748,22 +748,21 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
     logger.log('🎯 Random chords selected:', randomChords.map(c => c?.name || 'None'));
 
-    // Update the chord selections
-    onChordsChange?.(randomChords);
+    // Stop any current playback first to avoid mismatch between display and audio
+    if (isPlaying) {
+      emergencyReset();
+      setIsPlaying(false);
+      logger.log('⏹️ Stopped playback before applying random chords');
+    }
 
     // Store the random chords in the ref to avoid prop timing issues
     randomChordsRef.current = randomChords;
-
-    // Always start playing after selecting random chords
-    setTimeout(() => {
-      emergencyReset(); // Always reset first to clear any existing audio
-      setTimeout(() => {
-        // Use the stored random chords directly instead of relying on prop updates
-        logger.log('🎯 Playing with stored random chords:', randomChordsRef.current.map(c => c?.name || 'None'));
-        handlePlayWithChords(randomChordsRef.current);
-      }, 100);
-    }, 50);
-  }, [notes, onChordsChange, isPlaying, handlePlay, emergencyReset, skillLevel]);
+    
+    // Update the chord selections - user can press Play when ready
+    onChordsChange?.(randomChords);
+    
+    logger.log('✅ Random chords applied - press Play to hear them');
+  }, [notes, onChordsChange, isPlaying, emergencyReset, skillLevel, diatonicKey, diatonicScale, diatonicMode]);
 
   // Use refs to track previous values for tempo restart detection
   const prevTempoRef = useRef(tempo);
