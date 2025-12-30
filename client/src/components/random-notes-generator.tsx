@@ -75,8 +75,8 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
-  const [isLoadingInstruments, setIsLoadingInstruments] = useState(false);
-  const comboLoadedRef = useRef(false);
+  const [isLoadingInstruments, setIsLoadingInstruments] = useState(() => !sampleEngine.loaded);
+  const comboLoadedRef = useRef(sampleEngine.loaded);
 
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
@@ -117,6 +117,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Load instrument combo when selection changes
   useEffect(() => {
     const loadCombo = async () => {
+      if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
+        setIsLoadingInstruments(false);
+        comboLoadedRef.current = true;
+        return;
+      }
       setIsLoadingInstruments(true);
       try {
         await sampleEngine.initialize();

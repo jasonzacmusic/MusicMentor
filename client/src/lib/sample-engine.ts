@@ -63,6 +63,7 @@ export class SampleEngine {
   private blockChordGainNode: GainNode | null = null;
   private arpeggioGainNode: GainNode | null = null;
   private isInitialized = false;
+  private comboLoaded = false;
   
   private grandPiano: SplendidGrandPiano | null = null;
   private loadedInstruments: Map<string, SoundfontInstrument> = new Map();
@@ -73,6 +74,18 @@ export class SampleEngine {
   private arpeggioVolume: number = 0.7;
   
   public activeNodes: Set<any> = new Set();
+
+  get initialized(): boolean {
+    return this.isInitialized;
+  }
+
+  get loaded(): boolean {
+    return this.comboLoaded;
+  }
+
+  get loadedComboId(): string {
+    return this.currentComboId;
+  }
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -119,6 +132,10 @@ export class SampleEngine {
       return;
     }
     
+    if (this.comboLoaded && this.currentComboId === comboId) {
+      return;
+    }
+    
     this.currentComboId = comboId;
     logger.log(`🎼 Loading combo: ${combo.name}`);
     
@@ -127,6 +144,7 @@ export class SampleEngine {
       this.loadInstrument(combo.arpeggioInstrument)
     ]);
     
+    this.comboLoaded = true;
     logger.log(`✅ Combo loaded: ${combo.name}`);
   }
 
@@ -412,6 +430,7 @@ export class SampleEngine {
     this.loadedInstruments.clear();
     this.loadingPromises.clear();
     this.grandPiano = null;
+    this.comboLoaded = false;
     
     if (this.audioContext) {
       this.audioContext.close();
