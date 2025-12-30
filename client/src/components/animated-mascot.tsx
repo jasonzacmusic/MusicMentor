@@ -402,6 +402,466 @@ export function EnvironmentLayer({ animal, noteIndex, isPlaying, enabled = true 
   );
 }
 
+// Artistic path segment for travel animations
+interface PathSegment {
+  id: number;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  controlX: number;
+  controlY: number;
+  duration: number;
+  animal: AnimalType;
+}
+
+// Monkey Vine Path Component
+function MonkeyVinePath({ segment }: { segment: PathSegment }) {
+  const { startX, startY, endX, endY, controlX, controlY, duration } = segment;
+  
+  return (
+    <motion.g
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Main vine */}
+      <motion.path
+        d={`M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`}
+        fill="none"
+        stroke="#22c55e"
+        strokeWidth="4"
+        strokeLinecap="round"
+        initial={{ pathLength: 0, opacity: 0.8 }}
+        animate={{ pathLength: 1, opacity: [0.8, 0.6, 0] }}
+        transition={{ duration: duration * 1.5, ease: "easeOut" }}
+      />
+      {/* Vine spiral detail */}
+      <motion.path
+        d={`M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`}
+        fill="none"
+        stroke="#4ade80"
+        strokeWidth="2"
+        strokeDasharray="8 12"
+        strokeLinecap="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1, opacity: [0.6, 0.4, 0] }}
+        transition={{ duration: duration * 1.5, delay: 0.1, ease: "easeOut" }}
+      />
+      {/* Leaves along the vine */}
+      {[0.2, 0.5, 0.8].map((t, i) => {
+        const px = startX + (endX - startX) * t + (controlX - (startX + endX) / 2) * 4 * t * (1 - t);
+        const py = startY + (endY - startY) * t + (controlY - (startY + endY) / 2) * 4 * t * (1 - t);
+        return (
+          <motion.g key={i} style={{ transformOrigin: `${px}px ${py}px` }}>
+            <motion.text
+              x={px}
+              y={py}
+              fontSize="16"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              initial={{ opacity: 0, scale: 0, rotate: -30 }}
+              animate={{ 
+                opacity: [0, 1, 1, 0], 
+                scale: [0.3, 1.2, 1, 0.5],
+                rotate: [-30, 10, -5, 20],
+              }}
+              transition={{ 
+                duration: duration * 1.2, 
+                delay: t * duration * 0.3,
+                ease: "easeOut" 
+              }}
+            >
+              {i % 2 === 0 ? '🍃' : '🌿'}
+            </motion.text>
+          </motion.g>
+        );
+      })}
+    </motion.g>
+  );
+}
+
+// Bird Cloud Path Component
+function BirdCloudPath({ segment }: { segment: PathSegment }) {
+  const { startX, startY, endX, endY, controlX, controlY, duration } = segment;
+  
+  return (
+    <motion.g
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Swooping flight trail */}
+      <motion.path
+        d={`M ${startX} ${startY} Q ${controlX} ${controlY - 40} ${endX} ${endY}`}
+        fill="none"
+        stroke="url(#skyGradient)"
+        strokeWidth="12"
+        strokeLinecap="round"
+        opacity="0.3"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1, opacity: [0.4, 0.2, 0] }}
+        transition={{ duration: duration * 1.3, ease: "easeOut" }}
+      />
+      <defs>
+        <linearGradient id="skyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.6" />
+          <stop offset="50%" stopColor="#7dd3fc" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.4" />
+        </linearGradient>
+      </defs>
+      {/* Cloud puffs along path */}
+      {[0.15, 0.4, 0.65, 0.9].map((t, i) => {
+        const px = startX + (endX - startX) * t + (controlX - (startX + endX) / 2) * 4 * t * (1 - t);
+        const py = startY + (endY - startY) * t + (controlY - 40 - (startY + endY) / 2) * 4 * t * (1 - t);
+        return (
+          <motion.text
+            key={i}
+            x={px}
+            y={py + i * 3}
+            fontSize={14 + i * 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            initial={{ opacity: 0, scale: 0.5, y: 0 }}
+            animate={{ 
+              opacity: [0, 0.8, 0.6, 0], 
+              scale: [0.5, 1.3, 1.1, 0.8],
+              y: [0, -8, -15, -25],
+            }}
+            transition={{ 
+              duration: duration * 1.5, 
+              delay: t * duration * 0.2,
+              ease: "easeOut" 
+            }}
+          >
+            {i % 2 === 0 ? '☁️' : '🪶'}
+          </motion.text>
+        );
+      })}
+      {/* Wind whoosh effect */}
+      <motion.text
+        x={startX + (endX - startX) * 0.5}
+        y={controlY - 60}
+        fontSize="18"
+        textAnchor="middle"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: [0, 0.7, 0], x: [0, 30, 60] }}
+        transition={{ duration: duration * 0.8, ease: "easeOut" }}
+      >
+        💨
+      </motion.text>
+    </motion.g>
+  );
+}
+
+// Frog Lily Pad Path Component
+function FrogLilyPadPath({ segment }: { segment: PathSegment }) {
+  const { startX, startY, endX, endY, controlX, controlY, duration } = segment;
+  
+  return (
+    <motion.g
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Water ripple arc */}
+      <motion.ellipse
+        cx={(startX + endX) / 2}
+        cy={Math.max(startY, endY) + 10}
+        rx={Math.abs(endX - startX) / 2 + 20}
+        ry={15}
+        fill="none"
+        stroke="#a3e635"
+        strokeWidth="2"
+        strokeDasharray="6 4"
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: [0.5, 1.2, 1.5], opacity: [0, 0.5, 0] }}
+        transition={{ duration: duration * 1.2, ease: "easeOut" }}
+      />
+      {/* Lily pads as stepping stones */}
+      {[0.15, 0.5, 0.85].map((t, i) => {
+        const hopHeight = Math.sin(t * Math.PI) * 50;
+        const px = startX + (endX - startX) * t;
+        const py = Math.max(startY, endY) + 15 - hopHeight * 0.2;
+        return (
+          <motion.g key={i}>
+            {/* Lily pad */}
+            <motion.text
+              x={px}
+              y={py}
+              fontSize="22"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              initial={{ opacity: 0, scale: 0, rotate: -20 }}
+              animate={{ 
+                opacity: [0, 1, 0.8, 0], 
+                scale: [0.3, 1.1, 1, 0.6],
+                rotate: [-20, 5, 0, 10],
+              }}
+              transition={{ 
+                duration: duration * 1.3, 
+                delay: t * duration * 0.4,
+                ease: "easeOut" 
+              }}
+            >
+              🪷
+            </motion.text>
+            {/* Water splash */}
+            <motion.text
+              x={px}
+              y={py + 15}
+              fontSize="14"
+              textAnchor="middle"
+              initial={{ opacity: 0, scale: 0.3 }}
+              animate={{ 
+                opacity: [0, 0.9, 0], 
+                scale: [0.3, 1.5, 2],
+                y: [0, 5, 15],
+              }}
+              transition={{ 
+                duration: duration * 0.6, 
+                delay: t * duration * 0.4 + 0.15,
+                ease: "easeOut" 
+              }}
+            >
+              💧
+            </motion.text>
+          </motion.g>
+        );
+      })}
+      {/* Bubble trail */}
+      {[0.3, 0.6].map((t, i) => {
+        const px = startX + (endX - startX) * t + (Math.random() - 0.5) * 30;
+        const py = startY + (endY - startY) * t;
+        return (
+          <motion.text
+            key={`bubble-${i}`}
+            x={px}
+            y={py}
+            fontSize="12"
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: [0, 0.7, 0], y: [0, -30, -50] }}
+            transition={{ 
+              duration: duration * 1.2, 
+              delay: t * duration * 0.3,
+              ease: "easeOut" 
+            }}
+          >
+            🫧
+          </motion.text>
+        );
+      })}
+    </motion.g>
+  );
+}
+
+// Squirrel Branch Path Component
+function SquirrelBranchPath({ segment }: { segment: PathSegment }) {
+  const { startX, startY, endX, endY, controlX, controlY, duration } = segment;
+  
+  return (
+    <motion.g
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Main branch */}
+      <motion.path
+        d={`M ${startX} ${startY} Q ${controlX} ${controlY + 15} ${endX} ${endY}`}
+        fill="none"
+        stroke="#92400e"
+        strokeWidth="6"
+        strokeLinecap="round"
+        initial={{ pathLength: 0, opacity: 0.7 }}
+        animate={{ pathLength: 1, opacity: [0.7, 0.5, 0] }}
+        transition={{ duration: duration * 1.2, ease: "easeOut" }}
+      />
+      {/* Branch texture */}
+      <motion.path
+        d={`M ${startX} ${startY} Q ${controlX} ${controlY + 15} ${endX} ${endY}`}
+        fill="none"
+        stroke="#78350f"
+        strokeWidth="2"
+        strokeDasharray="4 8"
+        strokeLinecap="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1, opacity: [0.5, 0.3, 0] }}
+        transition={{ duration: duration * 1.2, delay: 0.05, ease: "easeOut" }}
+      />
+      {/* Leaves and acorns along branch */}
+      {[0.2, 0.45, 0.7, 0.95].map((t, i) => {
+        const px = startX + (endX - startX) * t + (controlX - (startX + endX) / 2) * 4 * t * (1 - t);
+        const py = startY + (endY - startY) * t + (controlY + 15 - (startY + endY) / 2) * 4 * t * (1 - t);
+        const isAcorn = i % 2 === 1;
+        return (
+          <motion.text
+            key={i}
+            x={px + (isAcorn ? 0 : (i % 2 === 0 ? -8 : 8))}
+            y={py + (isAcorn ? 12 : -8)}
+            fontSize={isAcorn ? "14" : "16"}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            initial={{ opacity: 0, scale: 0, rotate: 0 }}
+            animate={{ 
+              opacity: [0, 1, 0.8, 0], 
+              scale: [0.3, 1.2, 1, 0.5],
+              rotate: isAcorn ? [0, 0, 0] : [-10, 15, -5, 25],
+            }}
+            transition={{ 
+              duration: duration * 1.1, 
+              delay: t * duration * 0.25,
+              ease: "easeOut" 
+            }}
+          >
+            {isAcorn ? '🌰' : (i === 0 ? '🍂' : '🍁')}
+          </motion.text>
+        );
+      })}
+      {/* Quick scamper dust */}
+      <motion.text
+        x={startX + 15}
+        y={startY + 10}
+        fontSize="14"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.6, 0], x: [-10, 0, 10], scale: [0.5, 1, 1.5] }}
+        transition={{ duration: duration * 0.4, ease: "easeOut" }}
+      >
+        ✨
+      </motion.text>
+    </motion.g>
+  );
+}
+
+// Cat Yarn Path Component
+function CatYarnPath({ segment }: { segment: PathSegment }) {
+  const { startX, startY, endX, endY, controlX, controlY, duration } = segment;
+  
+  return (
+    <motion.g
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Yarn trail - wavy line */}
+      <motion.path
+        d={`M ${startX} ${startY} 
+            C ${startX + 20} ${startY - 10}, ${startX + 40} ${startY + 10}, ${(startX + endX) / 2 - 20} ${(startY + endY) / 2}
+            S ${endX - 30} ${endY + 8}, ${endX} ${endY}`}
+        fill="none"
+        stroke="#a855f7"
+        strokeWidth="4"
+        strokeLinecap="round"
+        initial={{ pathLength: 0, opacity: 0.8 }}
+        animate={{ pathLength: 1, opacity: [0.8, 0.6, 0] }}
+        transition={{ duration: duration * 1.4, ease: "easeInOut" }}
+      />
+      {/* Yarn texture (dashed overlay) */}
+      <motion.path
+        d={`M ${startX} ${startY} 
+            C ${startX + 20} ${startY - 10}, ${startX + 40} ${startY + 10}, ${(startX + endX) / 2 - 20} ${(startY + endY) / 2}
+            S ${endX - 30} ${endY + 8}, ${endX} ${endY}`}
+        fill="none"
+        stroke="#c084fc"
+        strokeWidth="2"
+        strokeDasharray="3 6"
+        strokeLinecap="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1, opacity: [0.6, 0.4, 0] }}
+        transition={{ duration: duration * 1.4, delay: 0.1, ease: "easeInOut" }}
+      />
+      {/* Yarn ball at start */}
+      <motion.text
+        x={startX}
+        y={startY}
+        fontSize="18"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        initial={{ opacity: 0.8, scale: 1, rotate: 0 }}
+        animate={{ 
+          opacity: [0.8, 0.6, 0], 
+          scale: [1, 0.8, 0.5],
+          rotate: [0, 180, 360],
+        }}
+        transition={{ duration: duration * 1.2, ease: "easeOut" }}
+      >
+        🧶
+      </motion.text>
+      {/* Paw prints along path */}
+      {[0.25, 0.5, 0.75].map((t, i) => {
+        const px = startX + (endX - startX) * t;
+        const py = startY + (endY - startY) * t + (i % 2 === 0 ? -5 : 5);
+        return (
+          <motion.text
+            key={i}
+            x={px}
+            y={py + 20}
+            fontSize="14"
+            textAnchor="middle"
+            style={{ transform: `rotate(${(endX > startX ? 1 : -1) * 15}deg)` }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ 
+              opacity: [0, 0.9, 0.7, 0], 
+              scale: [0.3, 1.1, 1, 0.6],
+            }}
+            transition={{ 
+              duration: duration * 1.3, 
+              delay: t * duration * 0.35,
+              ease: "easeOut" 
+            }}
+          >
+            🐾
+          </motion.text>
+        );
+      })}
+      {/* Sparkle effect */}
+      {[0.3, 0.7].map((t, i) => {
+        const px = startX + (endX - startX) * t + (i === 0 ? -15 : 15);
+        const py = startY + (endY - startY) * t - 10;
+        return (
+          <motion.text
+            key={`star-${i}`}
+            x={px}
+            y={py}
+            fontSize="12"
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ 
+              opacity: [0, 1, 0], 
+              scale: [0.3, 1.2, 0.5],
+              rotate: [0, 180],
+            }}
+            transition={{ 
+              duration: duration * 0.8, 
+              delay: t * duration * 0.3,
+              ease: "easeOut" 
+            }}
+          >
+            {i === 0 ? '⭐' : '💜'}
+          </motion.text>
+        );
+      })}
+    </motion.g>
+  );
+}
+
+// Route to correct animal path renderer
+function ArtisticPath({ segment }: { segment: PathSegment }) {
+  switch (segment.animal) {
+    case 'monkey':
+      return <MonkeyVinePath segment={segment} />;
+    case 'bird':
+      return <BirdCloudPath segment={segment} />;
+    case 'frog':
+      return <FrogLilyPadPath segment={segment} />;
+    case 'squirrel':
+      return <SquirrelBranchPath segment={segment} />;
+    case 'cat':
+      return <CatYarnPath segment={segment} />;
+    default:
+      return null;
+  }
+}
+
 interface GlobalMascotProps {
   containerRef: React.RefObject<HTMLDivElement>;
 }
@@ -410,7 +870,9 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
   const { enabled, animal, currentAnchor, isPlaying, tempo, anchors } = useMascot();
   const [facingRight, setFacingRight] = useState(true);
   const [trail, setTrail] = useState<{ x: number; y: number; id: number }[]>([]);
+  const [pathSegments, setPathSegments] = useState<PathSegment[]>([]);
   const trailIdRef = useRef(0);
+  const pathIdRef = useRef(0);
   const lastAnchorRef = useRef<string | null>(null);
   const lastUpdateTimeRef = useRef(0);
   const idlePatrolIndexRef = useRef(0);
@@ -425,17 +887,44 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
   const env = ANIMAL_ENVIRONMENTS[animal];
   const beatDuration = 60 / tempo;
 
-  // Move mascot to a specific position with animation
+  // Move mascot to a specific position with animation and artistic path
   const moveToPosition = useCallback((newX: number, newY: number, duration: number) => {
-    const dx = newX - x.get();
+    const currentX = x.get();
+    const currentY = y.get();
+    const dx = newX - currentX;
+    
     if (Math.abs(dx) > 15) {
       setFacingRight(dx > 0);
     }
 
+    // Create artistic path segment
+    pathIdRef.current++;
+    const controlX = (currentX + newX) / 2;
+    const controlY = Math.min(currentY, newY) - habit.arcHeight;
+    
+    const newPath: PathSegment = {
+      id: pathIdRef.current,
+      startX: currentX,
+      startY: currentY,
+      endX: newX,
+      endY: newY,
+      controlX,
+      controlY,
+      duration,
+      animal,
+    };
+    
+    setPathSegments(prev => [...prev.slice(-2), newPath]);
+    
+    // Clean up old paths after animation
+    setTimeout(() => {
+      setPathSegments(prev => prev.filter(p => p.id !== newPath.id));
+    }, duration * 1500 + 500);
+
     trailIdRef.current++;
     setTrail(prev => [...prev.slice(-4), { 
-      x: x.get(), 
-      y: y.get(), 
+      x: currentX, 
+      y: currentY, 
       id: trailIdRef.current 
     }]);
     
@@ -444,13 +933,13 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
       ease: habit.travelEase as any,
     });
     
-    const midY = Math.min(y.get(), newY) - habit.arcHeight;
-    animate(y, [y.get(), midY, newY], {
+    const midY = Math.min(currentY, newY) - habit.arcHeight;
+    animate(y, [currentY, midY, newY], {
       duration,
       ease: habit.travelEase as any,
       times: [0, 0.4, 1],
     });
-  }, [x, y, habit.travelEase, habit.arcHeight]);
+  }, [x, y, habit.travelEase, habit.arcHeight, animal]);
 
   // Active playback movement - follows current anchor
   useEffect(() => {
@@ -521,6 +1010,19 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 100 }}>
+      {/* Artistic Path SVG Layer */}
+      <svg 
+        className="absolute inset-0 w-full h-full overflow-visible" 
+        style={{ zIndex: 99 }}
+      >
+        <AnimatePresence>
+          {pathSegments.map((segment) => (
+            <ArtisticPath key={segment.id} segment={segment} />
+          ))}
+        </AnimatePresence>
+      </svg>
+
+      {/* Particle Trail */}
       <AnimatePresence>
         {trail.map((point, i) => (
           <motion.div
