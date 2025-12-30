@@ -407,12 +407,14 @@ interface GlobalMascotProps {
 }
 
 export function GlobalMascot({ containerRef }: GlobalMascotProps) {
-  const { enabled, animal, currentAnchor, isPlaying, tempo } = useMascot();
+  const { enabled, animal, currentAnchor, isPlaying, tempo, anchors } = useMascot();
   const [facingRight, setFacingRight] = useState(true);
   const [trail, setTrail] = useState<{ x: number; y: number; id: number }[]>([]);
   const trailIdRef = useRef(0);
   const lastAnchorRef = useRef<string | null>(null);
   const lastUpdateTimeRef = useRef(0);
+  const idlePatrolIndexRef = useRef(0);
+  const idlePatrolIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const x = useMotionValue(200);
   const y = useMotionValue(200);
@@ -423,6 +425,34 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
   const env = ANIMAL_ENVIRONMENTS[animal];
   const beatDuration = 60 / tempo;
 
+  // Move mascot to a specific position with animation
+  const moveToPosition = useCallback((newX: number, newY: number, duration: number) => {
+    const dx = newX - x.get();
+    if (Math.abs(dx) > 15) {
+      setFacingRight(dx > 0);
+    }
+
+    trailIdRef.current++;
+    setTrail(prev => [...prev.slice(-4), { 
+      x: x.get(), 
+      y: y.get(), 
+      id: trailIdRef.current 
+    }]);
+    
+    animate(x, newX, {
+      duration,
+      ease: habit.travelEase as any,
+    });
+    
+    const midY = Math.min(y.get(), newY) - habit.arcHeight;
+    animate(y, [y.get(), midY, newY], {
+      duration,
+      ease: habit.travelEase as any,
+      times: [0, 0.4, 1],
+    });
+  }, [x, y, habit.travelEase, habit.arcHeight]);
+
+  // Active playback movement - follows current anchor
   useEffect(() => {
     if (!currentAnchor || !containerRef.current || !isPlaying) return;
     if (lastAnchorRef.current === currentAnchor.id) return;
@@ -437,33 +467,53 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
     const newX = Math.round(currentAnchor.x - containerRect.left);
     const newY = Math.round(currentAnchor.y - containerRect.top - 30);
 
-    const dx = newX - x.get();
-    if (Math.abs(dx) > 15) {
-      setFacingRight(dx > 0);
+    const duration = beatDuration * habit.speedMultiplier;
+    moveToPosition(newX, newY, duration);
+
+  }, [currentAnchor, containerRef, isPlaying, beatDuration, habit, moveToPosition]);
+
+  // Idle patrol movement - mascot wanders between anchors when not playing
+  useEffect(() => {
+    if (isPlaying || !enabled || !containerRef.current) {
+      // Clear patrol when playing starts
+      if (idlePatrolIntervalRef.current) {
+        clearInterval(idlePatrolIntervalRef.current);
+        idlePatrolIntervalRef.current = null;
+      }
+      return;
     }
 
-    trailIdRef.current++;
-    setTrail(prev => [...prev.slice(-4), { 
-      x: x.get(), 
-      y: y.get(), 
-      id: trailIdRef.current 
-    }]);
+    const patrolToNextAnchor = () => {
+      const anchorArray = Array.from(anchors.values());
+      if (anchorArray.length === 0 || !containerRef.current) return;
 
-    const duration = beatDuration * habit.speedMultiplier;
-    
-    animate(x, newX, {
-      duration,
-      ease: habit.travelEase as any,
-    });
-    
-    const midY = Math.min(y.get(), newY) - habit.arcHeight;
-    animate(y, [y.get(), midY, newY], {
-      duration,
-      ease: habit.travelEase as any,
-      times: [0, 0.4, 1],
-    });
+      idlePatrolIndexRef.current = (idlePatrolIndexRef.current + 1) % anchorArray.length;
+      const targetAnchor = anchorArray[idlePatrolIndexRef.current];
+      
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newX = Math.round(targetAnchor.x - containerRect.left);
+      const newY = Math.round(targetAnchor.y - containerRect.top - 30);
 
-  }, [currentAnchor, containerRef, isPlaying, beatDuration, habit, x, y]);
+      // Slower, more leisurely movement when idle
+      const duration = 1.5 * habit.speedMultiplier;
+      moveToPosition(newX, newY, duration);
+    };
+
+    // Start patrol after a short delay
+    const startDelay = setTimeout(() => {
+      patrolToNextAnchor(); // Initial move
+      // Then patrol every 3-4 seconds
+      idlePatrolIntervalRef.current = setInterval(patrolToNextAnchor, 3000 + Math.random() * 1000);
+    }, 500);
+
+    return () => {
+      clearTimeout(startDelay);
+      if (idlePatrolIntervalRef.current) {
+        clearInterval(idlePatrolIntervalRef.current);
+        idlePatrolIntervalRef.current = null;
+      }
+    };
+  }, [isPlaying, enabled, anchors, containerRef, habit.speedMultiplier, moveToPosition]);
 
   if (!enabled) return null;
 
@@ -550,13 +600,14 @@ export function GlobalMascot({ containerRef }: GlobalMascotProps) {
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ 
-                opacity: [0.4, 0.8, 0.4], 
-                y: [-6, -12, -6],
+                opacity: [0.6, 1, 0.6], 
+                y: [-4, -8, -4],
+                x: [-3, 3, -3],
               }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute -top-5 left-1/2 -translate-x-1/2"
             >
-              <span className="text-sm">💤</span>
+              <span className="text-sm">👀</span>
             </motion.div>
           )}
         </motion.div>

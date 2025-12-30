@@ -250,7 +250,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Stop playback and reset when skill level changes
   useEffect(() => {
     if (prevSkillLevelRef.current !== skillLevel) {
-      logger.log(`🔄 Skill level changed from ${prevSkillLevelRef.current} to ${skillLevel}, resetting playback`);
+      logger.log(`🔄 Skill level changed from ${prevSkillLevelRef.current} to ${skillLevel}, resetting playback and regenerating notes`);
       
       // Stop any ongoing playback
       isSequenceActiveRef.current = false;
@@ -280,6 +280,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       randomChordsRef.current = Array(noteCount).fill(null);
       currentChordsRef.current = Array(noteCount).fill(null);
       
+      // Auto-regenerate new notes for the new skill level
+      const newNotes = generateUniqueNotes(noteCount);
+      setNotes(newNotes);
+      onNotesChange?.(newNotes);
+      onChordsChange?.(Array(noteCount).fill(null));
+      logger.log(`🎲 Auto-regenerated notes for ${skillLevel} mode:`, newNotes);
+      
       // Update engine version to trigger re-render with correct loading state
       comboLoadedRef.current = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
       setEngineVersion(sampleEngine.version);
@@ -287,7 +294,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       prevSkillLevelRef.current = skillLevel;
     }
     skillLevelRef.current = skillLevel;
-  }, [skillLevel, selectedComboId, noteCount]);
+  }, [skillLevel, selectedComboId, noteCount, generateUniqueNotes, onNotesChange, onChordsChange]);
 
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
