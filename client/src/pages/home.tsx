@@ -60,8 +60,10 @@ function HomeContent() {
     return null;
   }, [skillLevel, diatonicKey, diatonicScale, diatonicMode]);
 
-  // Reset notes when switching between modes to ensure independence
+  // Reset notes ONLY when switching TO diatonic mode - let RandomNotesGenerator handle other modes
+  const prevSkillLevelRef = useRef(skillLevel);
   useEffect(() => {
+    // Only apply diatonic note reset when switching INTO diatonic mode
     if (skillLevel === 'diatonic' && diatonicScaleInfo) {
       // When in diatonic mode, use notes from the diatonic scale
       const diatonicNotes = diatonicScaleInfo.notes.slice(0, noteCount);
@@ -73,18 +75,13 @@ function HomeContent() {
       setSelectedNote(diatonicNotes[0]);
       setSelectedChords(Array(noteCount).fill(null));
       setInversionModes(Array(noteCount).fill('auto'));
-    } else {
-      // When in other modes, use default notes
-      const defaultNotes = ['C', 'E', 'A', 'G'];
-      const paddedNotes = [...defaultNotes];
-      while (paddedNotes.length < noteCount) {
-        paddedNotes.push(defaultNotes[paddedNotes.length % defaultNotes.length]);
-      }
-      setActiveNotes(paddedNotes.slice(0, noteCount));
-      setSelectedNote(paddedNotes[0]);
+    } else if (prevSkillLevelRef.current === 'diatonic' && skillLevel !== 'diatonic') {
+      // Only reset chords when LEAVING diatonic mode, let RandomNotesGenerator handle notes
       setSelectedChords(Array(noteCount).fill(null));
       setInversionModes(Array(noteCount).fill('auto'));
     }
+    // Note: For non-diatonic modes, RandomNotesGenerator is the source of truth for notes
+    prevSkillLevelRef.current = skillLevel;
   }, [skillLevel, diatonicScaleInfo, noteCount]);
 
   // Derive panel mode from width
