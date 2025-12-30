@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -123,7 +124,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         sampleEngine.setBlockChordVolume(blockChordVolume);
         sampleEngine.setArpeggioVolume(arpeggioVolume);
         comboLoadedRef.current = true;
-        console.log(`✅ Loaded instrument combo: ${selectedComboId}`);
+        logger.log(`✅ Loaded instrument combo: ${selectedComboId}`);
       } catch (error) {
         console.error('Failed to load instrument combo:', error);
       } finally {
@@ -201,7 +202,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       setNotes(newNotes);
       onNotesChange?.(newNotes);
       onChordsChange?.(Array(noteCount).fill(null));
-      console.log(`🔄 Note count changed to ${noteCount}, regenerated unique notes:`, newNotes);
+      logger.log(`🔄 Note count changed to ${noteCount}, regenerated unique notes:`, newNotes);
     }
   }, [noteCount]); // Only depend on noteCount
 
@@ -214,7 +215,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Clear all chord selections when generating new notes
     const clearedChords: (Chord | null)[] = Array(noteCount).fill(null);
     onChordsChange?.(clearedChords);
-    console.log(`🧹 Generated ${noteCount} unique notes:`, newNotes);
+    logger.log(`🧹 Generated ${noteCount} unique notes:`, newNotes);
   }, [onNotesChange, onChordsChange, noteCount, generateUniqueNotes]);
 
   // Single loop control ref 
@@ -236,7 +237,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Update the current chords ref whenever selectedChords changes
   useEffect(() => {
     currentChordsRef.current = selectedChords;
-    console.log('🔄 Updated currentChordsRef:', selectedChords.map(c => c?.name || 'Note'));
+    logger.log('🔄 Updated currentChordsRef:', selectedChords.map(c => c?.name || 'Note'));
   }, [selectedChords]);
 
   // Function to apply chord inversions with proper pitch ordering
@@ -283,7 +284,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // EMERGENCY RESET FUNCTION - Completely stop all audio
   const emergencyReset = useCallback(() => {
-    console.log('🚨 EMERGENCY RESET - Clearing all audio');
+    logger.log('🚨 EMERGENCY RESET - Clearing all audio');
 
     // Set flags to prevent new sequences
     isSequenceActiveRef.current = false;
@@ -298,14 +299,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     if (loopSchedulerRef.current) {
       cancelAnimationFrame(loopSchedulerRef.current);
       loopSchedulerRef.current = null;
-      console.log('🔄 Cancelled seamless loop scheduler');
+      logger.log('🔄 Cancelled seamless loop scheduler');
     }
 
     // Clear all intervals/timeouts
     if (loopIntervalRef.current) {
       clearInterval(loopIntervalRef.current);
       loopIntervalRef.current = null;
-      console.log('🔄 Cleared loop interval');
+      logger.log('🔄 Cleared loop interval');
     }
 
     // Cancel all scheduled timeouts immediately
@@ -313,13 +314,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       clearTimeout(timeout);
     });
     activeTimeoutsRef.current.clear();
-    console.log('🔄 Cancelled all scheduled audio');
+    logger.log('🔄 Cancelled all scheduled audio');
 
     // Stop all oscillators and samples immediately
     audioEngine.stopAll();
     sampleEngine.stopAll();
 
-    console.log('✅ Emergency reset complete');
+    logger.log('✅ Emergency reset complete');
   }, []);
 
   // PRE-SCHEDULE METRONOME CLICKS - DAW-style precise timing
@@ -337,7 +338,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       scheduleMetronomeClick(clickTime);
     }
 
-    console.log(`🥁 Scheduled ${totalClicks} metronome clicks over ${totalBeats} beats`);
+    logger.log(`🥁 Scheduled ${totalClicks} metronome clicks over ${totalBeats} beats`);
   }, []);
 
   // DAW-STYLE PRE-SCHEDULED SEQUENCE PLAYER - schedules all audio upfront
@@ -401,7 +402,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     scheduleMetronomeClicks(startTime, totalBeats, currentTempo);
 
     const sequenceEndTime = startTime + (totalBeats * beatDuration);
-    console.log(`🎵 Scheduled sequence: ${currentNoteCount} positions, ${totalBeats} beats (${cycles}x cycles), ends at ${sequenceEndTime.toFixed(3)}`);
+    logger.log(`🎵 Scheduled sequence: ${currentNoteCount} positions, ${totalBeats} beats (${cycles}x cycles), ends at ${sequenceEndTime.toFixed(3)}`);
 
     return sequenceEndTime;
   }, [notes, scheduleMetronomeClicks]);
@@ -435,7 +436,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     // Continuous scheduling loop
     const scheduleAhead = () => {
       if (!isSequenceActiveRef.current) {
-        console.log('🛑 Loop scheduler stopped');
+        logger.log('🛑 Loop scheduler stopped');
         return;
       }
 
@@ -447,7 +448,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         nextStartTime = scheduledEndTimeRef.current;
         endTime = scheduleSequence(nextStartTime, currentChordsRef.current);
         scheduledEndTimeRef.current = endTime;
-        console.log(`🔄 Seamless loop: scheduled next at ${nextStartTime.toFixed(3)}`);
+        logger.log(`🔄 Seamless loop: scheduled next at ${nextStartTime.toFixed(3)}`);
       }
 
       // Check if we should stop (non-looping mode and sequence ended)
@@ -457,7 +458,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         onPlayingIndexChangeRef.current?.(null);
         playingIndexTimeoutsRef.current.forEach(t => clearTimeout(t));
         playingIndexTimeoutsRef.current.clear();
-        console.log('✅ Sequence complete (non-looping)');
+        logger.log('✅ Sequence complete (non-looping)');
         return;
       }
 
@@ -471,7 +472,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // PLAY FUNCTION WITH SPECIFIC CHORDS - Uses DAW-style seamless pre-scheduling
   const handlePlayWithChords = useCallback(async (chordsToUse: (Chord | null)[]) => {
-    console.log('▶️ PLAY WITH CHORDS - Using provided chords:', chordsToUse.map(c => c?.name || 'Note'));
+    logger.log('▶️ PLAY WITH CHORDS - Using provided chords:', chordsToUse.map(c => c?.name || 'Note'));
 
     if (isPlaying) {
       emergencyReset();
@@ -491,7 +492,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // SIMPLIFIED PLAY FUNCTION - Uses DAW-style seamless pre-scheduling
   const handlePlay = useCallback(async () => {
-    console.log('▶️ PLAY PRESSED - Starting seamless sequence');
+    logger.log('▶️ PLAY PRESSED - Starting seamless sequence');
 
     // Track play sequence event
     if (typeof window !== 'undefined' && (window as any).gtag) {
@@ -562,7 +563,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           audioEngine.activeOscillators.delete(oscillator);
         });
         
-        console.log(`🥁 Metronome click scheduled at ${time.toFixed(3)}`);
+        logger.log(`🥁 Metronome click scheduled at ${time.toFixed(3)}`);
       }
     } catch (error) {
       console.error('Metronome scheduling error:', error);
@@ -571,7 +572,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
   // Add generate function
   const handleGenerate = useCallback(() => {
-    console.log('🎲 GENERATE PRESSED');
+    logger.log('🎲 GENERATE PRESSED');
     
     // Track generate chords event
     if (typeof window !== 'undefined' && (window as any).gtag) {
@@ -588,19 +589,19 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     
     // Add small delay to ensure state has updated
     setTimeout(() => {
-      console.log('🔄 Post-generate chord state check:', selectedChords);
+      logger.log('🔄 Post-generate chord state check:', selectedChords);
     }, 50);
   }, [generateNew, emergencyReset, selectedChords]);
 
   const handleStop = useCallback(() => {
-    console.log('⏹️ STOP PRESSED');
+    logger.log('⏹️ STOP PRESSED');
     // Resetting the sequence active flag
     isSequenceActiveRef.current = false; // Prevents any new sequences from starting
     
     // Exit auto loop when stopping
     if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
       setIsLooping(false);
-      console.log('🔄 Exiting Auto Loop mode');
+      logger.log('🔄 Exiting Auto Loop mode');
     }
     
     emergencyReset();
@@ -609,13 +610,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // Auto Loop toggle function - only works if feature enabled
   const toggleLoop = useCallback(() => {
     if (!isFeatureEnabled('AUTO_LOOP')) {
-      console.log('🚫 Auto Loop feature disabled');
+      logger.log('🚫 Auto Loop feature disabled');
       return;
     }
     
     const newLoopState = !isLooping;
     setIsLooping(newLoopState);
-    console.log(`🔄 Auto Loop ${newLoopState ? 'ENABLED' : 'DISABLED'}`);
+    logger.log(`🔄 Auto Loop ${newLoopState ? 'ENABLED' : 'DISABLED'}`);
   }, [isLooping]);
 
 
@@ -625,7 +626,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   // RANDOM HARMONIZER - Select random chords from available options for each note
   // Prevents duplicate chords when 4 or fewer notes are selected
   const handleRandomHarmonize = useCallback(() => {
-    console.log('🎭 RANDOM HARMONIZER PRESSED');
+    logger.log('🎭 RANDOM HARMONIZER PRESSED');
 
     const randomChords: (Chord | null)[] = [];
     const usedChordNames = new Set<string>();
@@ -662,7 +663,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         // Fallback to all chords if no unique options available
         if (candidateChords.length === 0) {
           candidateChords = availableChords;
-          console.log(`⚠️ Position ${i + 1}: No unique chords left, allowing duplicate`);
+          logger.log(`⚠️ Position ${i + 1}: No unique chords left, allowing duplicate`);
         }
 
         // Pick a random chord from the candidates
@@ -670,14 +671,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
         const selectedChord = candidateChords[randomIndex];
         randomChords.push(selectedChord);
         usedChordNames.add(selectedChord.name);
-        console.log(`🎯 Position ${i + 1} (${noteForPosition}): Selected "${selectedChord.name}" from ${candidateChords.length} options`);
+        logger.log(`🎯 Position ${i + 1} (${noteForPosition}): Selected "${selectedChord.name}" from ${candidateChords.length} options`);
       } else {
         randomChords.push(null);
-        console.log(`❌ Position ${i + 1} (${noteForPosition}): No chords available`);
+        logger.log(`❌ Position ${i + 1} (${noteForPosition}): No chords available`);
       }
     }
 
-    console.log('🎯 Random chords selected:', randomChords.map(c => c?.name || 'None'));
+    logger.log('🎯 Random chords selected:', randomChords.map(c => c?.name || 'None'));
 
     // Update the chord selections
     onChordsChange?.(randomChords);
@@ -690,7 +691,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       emergencyReset(); // Always reset first to clear any existing audio
       setTimeout(() => {
         // Use the stored random chords directly instead of relying on prop updates
-        console.log('🎯 Playing with stored random chords:', randomChordsRef.current.map(c => c?.name || 'None'));
+        logger.log('🎯 Playing with stored random chords:', randomChordsRef.current.map(c => c?.name || 'None'));
         handlePlayWithChords(randomChordsRef.current);
       }, 100);
     }, 50);
@@ -707,7 +708,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     const tempoChanged = prevTempoRef.current !== tempo;
     const metronomeChanged = prevMetronomeRef.current !== withMetronome;
     
-    console.log('🔄 Tempo/Metronome effect triggered:', {
+    logger.log('🔄 Tempo/Metronome effect triggered:', {
       isPlaying,
       tempoChanged,
       metronomeChanged,
@@ -798,13 +799,13 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     newChords[noteIndex] = null;
     onChordsChange?.(newChords);
 
-    console.log(`🎹 Manual note ${noteIndex + 1} changed to: ${newNote}`);
+    logger.log(`🎹 Manual note ${noteIndex + 1} changed to: ${newNote}`);
   }, [notes, selectedChords, onNotesChange, onChordsChange]);
 
   // Toggle between random and manual mode
   const handleModeToggle = useCallback((mode: 'random' | 'manual') => {
     setInputMode(mode);
-    console.log(`🔄 Input mode changed to: ${mode}`);
+    logger.log(`🔄 Input mode changed to: ${mode}`);
   }, []);
 
   // Derive compact mode from panelMode prop

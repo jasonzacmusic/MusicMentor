@@ -1,3 +1,4 @@
+import { logger } from './logger';
 import { SplendidGrandPiano } from 'smplr';
 import Soundfont from 'soundfont-player';
 import { NOTE_FREQUENCIES } from './music-constants';
@@ -104,7 +105,7 @@ export class SampleEngine {
       this.arpeggioGainNode.gain.setValueAtTime(this.arpeggioVolume, this.audioContext.currentTime);
       
       this.isInitialized = true;
-      console.log('🎹 SampleEngine initialized');
+      logger.log('🎹 SampleEngine initialized');
     } catch (error) {
       console.error('Failed to initialize SampleEngine:', error);
       throw new Error('Web Audio API not supported');
@@ -119,14 +120,14 @@ export class SampleEngine {
     }
     
     this.currentComboId = comboId;
-    console.log(`🎼 Loading combo: ${combo.name}`);
+    logger.log(`🎼 Loading combo: ${combo.name}`);
     
     await Promise.all([
       this.loadInstrument(combo.blockChordInstrument),
       this.loadInstrument(combo.arpeggioInstrument)
     ]);
     
-    console.log(`✅ Combo loaded: ${combo.name}`);
+    logger.log(`✅ Combo loaded: ${combo.name}`);
   }
 
   private async loadInstrument(instrumentName: string): Promise<SoundfontInstrument | null> {
@@ -136,12 +137,12 @@ export class SampleEngine {
     
     if (instrumentName === 'splendid_grand_piano') {
       if (!this.grandPiano && this.audioContext) {
-        console.log('🎹 Loading Splendid Grand Piano...');
+        logger.log('🎹 Loading Splendid Grand Piano...');
         this.grandPiano = new SplendidGrandPiano(this.audioContext, {
           volume: 100
         });
         await this.grandPiano.load;
-        console.log('✅ Splendid Grand Piano loaded');
+        logger.log('✅ Splendid Grand Piano loaded');
       }
       return null;
     }
@@ -155,7 +156,7 @@ export class SampleEngine {
     }
     
     const loadPromise = (async () => {
-      console.log(`🎵 Loading instrument: ${instrumentName}`);
+      logger.log(`🎵 Loading instrument: ${instrumentName}`);
       try {
         const instrument = await Soundfont.instrument(
           this.audioContext as AudioContext,
@@ -167,7 +168,7 @@ export class SampleEngine {
           }
         );
         this.loadedInstruments.set(instrumentName, instrument);
-        console.log(`✅ Instrument loaded: ${instrumentName}`);
+        logger.log(`✅ Instrument loaded: ${instrumentName}`);
         return instrument;
       } catch (error) {
         console.error(`Failed to load instrument ${instrumentName}:`, error);
@@ -375,7 +376,7 @@ export class SampleEngine {
   }
 
   stopAll(): void {
-    console.log('SampleEngine.stopAll() called');
+    logger.log('SampleEngine.stopAll() called');
     
     this.activeNodes.forEach(node => {
       try {
@@ -394,7 +395,7 @@ export class SampleEngine {
       }
     }
     
-    console.log('SampleEngine.stopAll() complete');
+    logger.log('SampleEngine.stopAll() complete');
   }
 
   setMasterVolume(volume: number): void {

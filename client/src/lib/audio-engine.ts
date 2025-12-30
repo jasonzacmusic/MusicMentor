@@ -1,3 +1,4 @@
+import { logger } from './logger';
 import { NOTE_FREQUENCIES } from './music-constants';
 
 export class AudioEngine {
@@ -248,7 +249,7 @@ export class AudioEngine {
           return { note, interval };
         });
         
-        console.log(`🔍 Analyzing chord intervals from root ${rootNote}:`, noteIntervals);
+        logger.log(`🔍 Analyzing chord intervals from root ${rootNote}:`, noteIntervals);
         
         // Identify third and fifth by their intervals from the root
         // Third: 3 semitones (minor 3rd) or 4 semitones (major 3rd)
@@ -259,7 +260,7 @@ export class AudioEngine {
         if (thirdCandidate && fifthCandidate) {
           third = thirdCandidate.note;
           fifth = fifthCandidate.note;
-          console.log(`✅ Identified by intervals: Root=${root}, Third=${third} (${thirdCandidate.interval}st), Fifth=${fifth} (${fifthCandidate.interval}st)`);
+          logger.log(`✅ Identified by intervals: Root=${root}, Third=${third} (${thirdCandidate.interval}st), Fifth=${fifth} (${fifthCandidate.interval}st)`);
         } else {
           // Fallback: use positional order
           console.warn(`⚠️ Could not identify intervals, falling back to positional order`);
@@ -303,7 +304,7 @@ export class AudioEngine {
       const notesToPlay = Math.min(arpeggioPattern.length, maxNotesForDuration);
       const truncatedPattern = arpeggioPattern.slice(0, notesToPlay);
 
-      console.log(`🎸 Arpeggio: ${root}-${third}-${fifth} at ${tempo} BPM, ${arpeggioSpeed === 2 ? '16th' : '8th'} notes, ${notesToPlay}/${arpeggioPattern.length} notes`);
+      logger.log(`🎸 Arpeggio: ${root}-${third}-${fifth} at ${tempo} BPM, ${arpeggioSpeed === 2 ? '16th' : '8th'} notes, ${notesToPlay}/${arpeggioPattern.length} notes`);
 
       // Schedule notes with EXACT beat-aligned timing - no drift possible
       const promises = truncatedPattern.map((item, index) => {
@@ -538,7 +539,7 @@ export class AudioEngine {
   }
 
   stopAll(): void {
-    console.log('AudioEngine.stopAll() called - stopping', this.activeOscillators.size, 'oscillators');
+    logger.log('AudioEngine.stopAll() called - stopping', this.activeOscillators.size, 'oscillators');
     
     // Stop all active oscillators immediately
     this.activeOscillators.forEach(oscillator => {
@@ -565,7 +566,7 @@ export class AudioEngine {
       }
     }
     
-    console.log('AudioEngine.stopAll() complete');
+    logger.log('AudioEngine.stopAll() complete');
   }
 
   setMasterVolume(volume: number): void {

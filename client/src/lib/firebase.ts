@@ -1,3 +1,4 @@
+import { logger } from './logger';
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
@@ -24,7 +25,7 @@ let analytics: any = null;
 if (typeof window !== 'undefined' && import.meta.env.PROD) {
   try {
     analytics = getAnalytics(app);
-    console.log('Firebase Analytics initialized');
+    logger.log('Firebase Analytics initialized');
   } catch (error) {
     console.warn('Firebase Analytics failed to initialize:', error);
   }
