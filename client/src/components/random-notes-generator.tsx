@@ -118,13 +118,15 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
   }, [onPlayingIndexChange]);
 
-  // Load instrument combo using shared promise - only depends on comboId
+  // Load instrument combo using shared promise - depends on comboId and version
+  // Also sync state on mount to handle hot reload correctly
   useEffect(() => {
     let cancelled = false;
     
     const loadCombo = async () => {
       // Check if already loaded with this combo
       if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
+        logger.log(`♻️ Instruments already loaded, syncing state`);
         setIsLoadingInstruments(false);
         comboLoadedRef.current = true;
         return;
@@ -149,6 +151,24 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     
     return () => { cancelled = true; };
   }, [selectedComboId]);
+  
+  // Sync loading state on mount and when sampleEngine version changes (handles HMR)
+  useEffect(() => {
+    const syncLoadingState = () => {
+      if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
+        if (isLoadingInstruments) {
+          logger.log(`🔄 Syncing loading state: already loaded`);
+          setIsLoadingInstruments(false);
+          comboLoadedRef.current = true;
+        }
+      }
+    };
+    
+    // Check immediately and also after a small delay (for HMR timing issues)
+    syncLoadingState();
+    const timer = setTimeout(syncLoadingState, 100);
+    return () => clearTimeout(timer);
+  }, [sampleEngine.version, selectedComboId, isLoadingInstruments]);
 
   // Update volumes when sliders change
   useEffect(() => {
