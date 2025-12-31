@@ -312,7 +312,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       
       // Clear all scheduled timeouts
       if (loopSchedulerRef.current) {
-        cancelAnimationFrame(loopSchedulerRef.current);
+        clearInterval(loopSchedulerRef.current as unknown as number);
         loopSchedulerRef.current = null;
       }
       playingIndexTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
@@ -401,9 +401,9 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     playingIndexTimeoutsRef.current.forEach(t => clearTimeout(t));
     playingIndexTimeoutsRef.current.clear();
 
-    // Cancel seamless loop scheduler (requestAnimationFrame)
+    // Cancel seamless loop scheduler (setInterval)
     if (loopSchedulerRef.current) {
-      cancelAnimationFrame(loopSchedulerRef.current);
+      clearInterval(loopSchedulerRef.current as unknown as number);
       loopSchedulerRef.current = null;
       logger.log('🔄 Cancelled seamless loop scheduler');
     }
@@ -531,7 +531,9 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     }
 
     isSequenceActiveRef.current = true;
-    const lookAheadTime = 0.1; // Schedule 100ms ahead
+    // Increased lookahead for more reliable scheduling (prevents dropouts)
+    const lookAheadTime = 0.5; // Schedule 500ms ahead
+    const schedulerInterval = 50; // Check every 50ms (more frequent = more reliable)
     const ctx = sampleEngine.audioContext || audioEngine.audioContext!;
     let nextStartTime = ctx.currentTime + 0.05;
 
@@ -539,10 +541,15 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     let endTime = scheduleSequence(nextStartTime, chordsToUse);
     scheduledEndTimeRef.current = endTime;
 
-    // Continuous scheduling loop
+    // Use setInterval for more reliable timing than requestAnimationFrame
+    // (requestAnimationFrame is throttled when tab is in background)
     const scheduleAhead = () => {
       if (!isSequenceActiveRef.current) {
         logger.log('🛑 Loop scheduler stopped');
+        if (loopSchedulerRef.current) {
+          clearInterval(loopSchedulerRef.current as unknown as number);
+          loopSchedulerRef.current = null;
+        }
         return;
       }
 
@@ -564,16 +571,17 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
         onPlayingIndexChangeRef.current?.(null);
         playingIndexTimeoutsRef.current.forEach(t => clearTimeout(t));
         playingIndexTimeoutsRef.current.clear();
+        if (loopSchedulerRef.current) {
+          clearInterval(loopSchedulerRef.current as unknown as number);
+          loopSchedulerRef.current = null;
+        }
         logger.log('✅ Sequence complete (non-looping)');
         return;
       }
-
-      // Continue the scheduler
-      loopSchedulerRef.current = requestAnimationFrame(scheduleAhead);
     };
 
-    // Start the scheduling loop
-    loopSchedulerRef.current = requestAnimationFrame(scheduleAhead);
+    // Start the scheduling loop with setInterval for reliable timing
+    loopSchedulerRef.current = setInterval(scheduleAhead, schedulerInterval) as unknown as number;
   }, [scheduleSequence]);
 
   // PLAY FUNCTION WITH SPECIFIC CHORDS - Uses DAW-style seamless pre-scheduling
@@ -866,7 +874,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     return () => {
       // Cancel seamless loop scheduler
       if (loopSchedulerRef.current) {
-        cancelAnimationFrame(loopSchedulerRef.current);
+        clearInterval(loopSchedulerRef.current as unknown as number);
         loopSchedulerRef.current = null;
       }
       if (loopIntervalRef.current) {

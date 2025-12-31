@@ -387,9 +387,11 @@ export class SampleEngine {
     const beatDuration = 60 / tempo;
     
     const beatsInDuration = Math.floor(durationSec / beatDuration);
+    // Schedule all block chords synchronously (no await) for precise timing
     for (let beat = 0; beat < beatsInDuration; beat++) {
       const chordTime = baseStartTime + (beat * beatDuration);
-      await this.playBlockChord([root, third, fifth], beatDuration * 1000 * 0.9, chordTime, 3);
+      // Fire and forget - don't await to avoid timing drift
+      this.playBlockChord([root, third, fifth], beatDuration * 1000 * 0.9, chordTime, 3);
     }
     
     const arpeggioPattern = [
@@ -411,11 +413,12 @@ export class SampleEngine {
     // Calculate how many arpeggio notes fit in the full duration (supports 1x, 2x, 4x cycles)
     const maxNotesForDuration = Math.floor(durationSec / noteDurationSec);
     
-    // Loop through the arpeggio pattern to fill the entire duration
+    // Schedule all arpeggio notes synchronously (no await) for precise timing
     for (let i = 0; i < maxNotesForDuration; i++) {
       const item = arpeggioPattern[i % arpeggioPattern.length]; // Loop pattern
       const noteStartTime = baseStartTime + (i * noteDurationSec);
-      await this.playArpeggioNote(item.note, noteDurationMs, item.octave, noteStartTime);
+      // Fire and forget - don't await to avoid timing drift
+      this.playArpeggioNote(item.note, noteDurationMs, item.octave, noteStartTime);
     }
   }
 
