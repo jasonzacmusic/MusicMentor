@@ -286,6 +286,7 @@ function HomeContent() {
 
                 {/* Essential Controls */}
                 <RandomNotesGenerator
+                  notes={activeNotes}
                   onNotesChange={handleNotesChange}
                   onChordsChange={setSelectedChords}
                   selectedChords={selectedChords}
