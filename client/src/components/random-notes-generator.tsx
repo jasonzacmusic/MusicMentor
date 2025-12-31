@@ -76,10 +76,14 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
 
-  // Track loading state - start with false to show Play button immediately
-  // The effect will set to true only if actually loading
-  const [isLoadingInstruments, setIsLoadingInstruments] = useState(false);
-  const comboLoadedRef = useRef(sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId);
+  // Derive loading state from sampleEngine - this is the source of truth
+  // Use a polling approach to ensure we always have the correct state
+  const [loadingVersion, setLoadingVersion] = useState(0);
+  
+  // Check loading state - derived from sampleEngine's current state
+  const isLoadingInstruments = !sampleEngine.loaded || 
+    sampleEngine.loadedComboId !== selectedComboId || 
+    sampleEngine.isLoading;
 
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
@@ -117,57 +121,42 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
   }, [onPlayingIndexChange]);
 
-  // Load instrument combo using shared promise - depends on comboId and version
-  // Also sync state on mount to handle hot reload correctly
+  // Load instrument combo and trigger re-render when done
   useEffect(() => {
-    let cancelled = false;
-    
     const loadCombo = async () => {
       // Check if already loaded with this combo
       if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
-        logger.log(`♻️ Instruments already loaded, syncing state`);
-        setIsLoadingInstruments(false);
-        comboLoadedRef.current = true;
+        logger.log(`♻️ Instruments already loaded`);
+        setLoadingVersion(v => v + 1); // Trigger re-render to update derived state
         return;
       }
       
-      setIsLoadingInstruments(true);
       try {
         await sampleEngine.ensureLoaded(selectedComboId);
-        if (!cancelled) {
-          comboLoadedRef.current = true;
-          setIsLoadingInstruments(false);
-          logger.log(`✅ Loaded instrument combo: ${selectedComboId}`);
-        }
+        logger.log(`✅ Loaded instrument combo: ${selectedComboId}`);
+        setLoadingVersion(v => v + 1); // Trigger re-render to update derived state
       } catch (error) {
         console.error('Failed to load instrument combo:', error);
-        if (!cancelled) {
-          setIsLoadingInstruments(false);
-        }
+        setLoadingVersion(v => v + 1); // Trigger re-render even on error
       }
     };
     loadCombo();
-    
-    return () => { cancelled = true; };
   }, [selectedComboId]);
   
-  // Sync loading state on mount and when sampleEngine version changes (handles HMR)
+  // Poll for loading state changes to handle HMR and edge cases
   useEffect(() => {
-    const syncLoadingState = () => {
-      if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
-        if (isLoadingInstruments) {
-          logger.log(`🔄 Syncing loading state: already loaded`);
-          setIsLoadingInstruments(false);
-          comboLoadedRef.current = true;
-        }
-      }
-    };
+    // Initial check
+    setLoadingVersion(v => v + 1);
     
-    // Check immediately and also after a small delay (for HMR timing issues)
-    syncLoadingState();
-    const timer = setTimeout(syncLoadingState, 100);
-    return () => clearTimeout(timer);
-  }, [sampleEngine.version, selectedComboId, isLoadingInstruments]);
+    // Poll every 500ms while instruments might be loading
+    const interval = setInterval(() => {
+      if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId && !sampleEngine.isLoading) {
+        setLoadingVersion(v => v + 1);
+      }
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, [selectedComboId]);
 
   // Update volumes when sliders change
   useEffect(() => {
@@ -318,9 +307,6 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
       onNotesChange?.(newNotes);
       onChordsChange?.(Array(noteCount).fill(null));
       logger.log(`🎲 Auto-regenerated notes for ${skillLevel} mode:`, newNotes);
-
-      // Update loaded ref
-      comboLoadedRef.current = sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId;
 
       prevSkillLevelRef.current = skillLevel;
     }

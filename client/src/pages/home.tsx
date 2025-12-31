@@ -60,29 +60,17 @@ function HomeContent() {
     return null;
   }, [skillLevel, diatonicKey, diatonicScale, diatonicMode]);
 
-  // Reset notes ONLY when switching TO diatonic mode - let RandomNotesGenerator handle other modes
+  // Reset chords when switching skill levels - RandomNotesGenerator handles notes for all modes
   const prevSkillLevelRef = useRef(skillLevel);
   useEffect(() => {
-    // Only apply diatonic note reset when switching INTO diatonic mode
-    if (skillLevel === 'diatonic' && diatonicScaleInfo) {
-      // When in diatonic mode, use notes from the diatonic scale
-      const diatonicNotes = diatonicScaleInfo.notes.slice(0, noteCount);
-      // Pad with additional scale notes if needed
-      while (diatonicNotes.length < noteCount) {
-        diatonicNotes.push(diatonicScaleInfo.notes[diatonicNotes.length % diatonicScaleInfo.notes.length]);
-      }
-      setActiveNotes(diatonicNotes);
-      setSelectedNote(diatonicNotes[0]);
-      setSelectedChords(Array(noteCount).fill(null));
-      setInversionModes(Array(noteCount).fill('auto'));
-    } else if (prevSkillLevelRef.current === 'diatonic' && skillLevel !== 'diatonic') {
-      // Only reset chords when LEAVING diatonic mode, let RandomNotesGenerator handle notes
+    if (prevSkillLevelRef.current !== skillLevel) {
+      // Reset chords when skill level changes
       setSelectedChords(Array(noteCount).fill(null));
       setInversionModes(Array(noteCount).fill('auto'));
     }
-    // Note: For non-diatonic modes, RandomNotesGenerator is the source of truth for notes
+    // Note: RandomNotesGenerator is the source of truth for notes in ALL modes
     prevSkillLevelRef.current = skillLevel;
-  }, [skillLevel, diatonicScaleInfo, noteCount]);
+  }, [skillLevel, noteCount]);
 
   // Derive panel mode from width
   const panelMode = getPanelMode(panelWidth);
@@ -128,12 +116,8 @@ function HomeContent() {
 
   const handleNoteCountChange = (count: number) => {
     setNoteCount(count);
-    setActiveNotes(prev => {
-      if (prev.length >= count) return prev.slice(0, count);
-      const padded = [...prev];
-      while (padded.length < count) padded.push('C');
-      return padded;
-    });
+    // Note: RandomNotesGenerator will call handleNotesChange with unique notes
+    // We just update the count here and reset chords
     setSelectedChords(Array(count).fill(null));
     setInversionModes(Array(count).fill('auto'));
   };
