@@ -76,11 +76,11 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
 
-  // Simple loading state with direct management
-  const [isLoadingInstruments, setIsLoadingInstruments] = useState(() => {
-    // Check initial state - if already loaded, start as false
-    return !(sampleEngine.loaded && sampleEngine.loadedComboId === 'orchestral-piano');
-  });
+  // Loading state - always start as true and let the effect set it to false when loaded
+  const [isLoadingInstruments, setIsLoadingInstruments] = useState(true);
+  
+  // Track if we've attempted to load
+  const loadAttemptedRef = useRef(false);
 
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
@@ -118,51 +118,56 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     onPlayingIndexChangeRef.current = onPlayingIndexChange;
   }, [onPlayingIndexChange]);
 
-  // Load instrument combo - simple and direct
+  // Load instrument combo on mount and when combo changes
   useEffect(() => {
     let isMounted = true;
+    loadAttemptedRef.current = true;
     
-    const loadCombo = async () => {
-      // Check if already loaded with this combo
-      if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
-        logger.log(`♻️ Instruments already loaded for ${selectedComboId}`);
-        if (isMounted) setIsLoadingInstruments(false);
-        return;
-      }
-      
-      // Set loading to true before starting
-      if (isMounted) setIsLoadingInstruments(true);
-      
-      try {
-        await sampleEngine.ensureLoaded(selectedComboId);
+    logger.log(`🎵 Loading effect triggered - combo: ${selectedComboId}, loaded: ${sampleEngine.loaded}, loadedCombo: ${sampleEngine.loadedComboId}`);
+    
+    // Check if already loaded - if so, immediately set loading to false
+    if (sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId) {
+      logger.log(`♻️ Instruments already loaded for ${selectedComboId}`);
+      setIsLoadingInstruments(false);
+      return;
+    }
+    
+    // Start loading
+    setIsLoadingInstruments(true);
+    logger.log(`🎵 Starting to load instruments...`);
+    
+    sampleEngine.ensureLoaded(selectedComboId)
+      .then(() => {
         logger.log(`✅ Loaded instrument combo: ${selectedComboId}`);
         if (isMounted) setIsLoadingInstruments(false);
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error('Failed to load instrument combo:', error);
+        // On error, still set to false so user can retry
         if (isMounted) setIsLoadingInstruments(false);
-      }
-    };
-    
-    loadCombo();
+      });
     
     return () => { isMounted = false; };
   }, [selectedComboId]);
   
-  // Periodic sync to catch any edge cases (HMR, race conditions)
+  // Safety: Check every 200ms if instruments are loaded but state is wrong
   useEffect(() => {
-    const syncState = () => {
-      const shouldBeLoading = !(sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId && !sampleEngine.isLoading);
-      if (!shouldBeLoading && isLoadingInstruments) {
-        logger.log(`🔄 Sync: Instruments loaded, updating state`);
+    const checkLoaded = () => {
+      const isActuallyLoaded = sampleEngine.loaded && 
+        sampleEngine.loadedComboId === selectedComboId && 
+        !sampleEngine.isLoading;
+      
+      if (isActuallyLoaded && isLoadingInstruments) {
+        logger.log(`🔧 Safety sync: Setting loading to false`);
         setIsLoadingInstruments(false);
       }
     };
     
-    // Check immediately on mount
-    syncState();
+    // Check immediately
+    checkLoaded();
     
-    // Then check periodically
-    const interval = setInterval(syncState, 300);
+    // Then check frequently
+    const interval = setInterval(checkLoaded, 200);
     return () => clearInterval(interval);
   }, [selectedComboId, isLoadingInstruments]);
 

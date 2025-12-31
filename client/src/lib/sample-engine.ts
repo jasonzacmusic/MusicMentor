@@ -98,18 +98,27 @@ export class SampleEngine {
   }
   
   async ensureLoaded(comboId: string): Promise<void> {
+    logger.log(`🔄 ensureLoaded called - comboId: ${comboId}, loaded: ${this.comboLoaded}, currentCombo: ${this.currentComboId}, hasPromise: ${!!this.comboLoadingPromise}`);
+    
     if (this.comboLoaded && this.currentComboId === comboId) {
+      logger.log(`✅ Already loaded, returning immediately`);
       return;
     }
     
     if (this.comboLoadingPromise && this.currentComboId === comboId) {
+      logger.log(`⏳ Loading in progress, returning existing promise`);
       return this.comboLoadingPromise;
     }
     
+    logger.log(`🚀 Starting new load for ${comboId}`);
     this.comboLoadingPromise = (async () => {
       try {
         await this.initialize();
         await this.loadCombo(comboId);
+        logger.log(`✅ ensureLoaded complete for ${comboId}`);
+      } catch (err) {
+        logger.log(`❌ ensureLoaded error:`, err);
+        throw err;
       } finally {
         this.comboLoadingPromise = null;
         this.loadVersion++;
@@ -120,13 +129,23 @@ export class SampleEngine {
   }
 
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    logger.log(`🔧 initialize called - isInitialized: ${this.isInitialized}`);
+    if (this.isInitialized) {
+      logger.log(`✅ Already initialized, skipping`);
+      return;
+    }
 
     try {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      logger.log(`🔧 AudioContext created, state: ${this.audioContext.state}`);
       
+      // Don't block on resume - it requires user interaction
+      // Just try to resume, but don't wait if it's suspended
       if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+        logger.log(`🔧 AudioContext suspended, attempting resume (non-blocking)`);
+        this.audioContext.resume().catch(() => {
+          logger.log(`⚠️ AudioContext resume failed (will retry on user interaction)`);
+        });
       }
       
       this.masterGainNode = this.audioContext.createGain();
@@ -476,4 +495,39 @@ export class SampleEngine {
   }
 }
 
-export const sampleEngine = new SampleEngine();
+// Persist sampleEngine across HMR to prevent losing loaded state
+declare global {
+  interface Window {
+    __sampleEngine?: SampleEngine;
+    __sampleEngineVersion?: number;
+  }
+}
+
+// Current module version - increment on each HMR
+const MODULE_VERSION = Date.now();
+
+// Use existing instance if available (survives HMR), otherwise create new
+export const sampleEngine: SampleEngine = (() => {
+  if (typeof window !== 'undefined' && window.__sampleEngine) {
+    const engine = window.__sampleEngine;
+    
+    // Reset stuck promise on HMR (when module version changes)
+    if (window.__sampleEngineVersion !== MODULE_VERSION) {
+      logger.log('♻️ Reusing SampleEngine, resetting stuck promise if any');
+      // Clear any stuck loading promise that may have been interrupted by HMR
+      (engine as any).comboLoadingPromise = null;
+      window.__sampleEngineVersion = MODULE_VERSION;
+    } else {
+      logger.log('♻️ Reusing existing SampleEngine instance');
+    }
+    
+    return engine;
+  }
+  
+  const engine = new SampleEngine();
+  if (typeof window !== 'undefined') {
+    window.__sampleEngine = engine;
+    window.__sampleEngineVersion = MODULE_VERSION;
+  }
+  return engine;
+})();
