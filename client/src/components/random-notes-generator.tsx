@@ -224,19 +224,26 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
     return newNotes;
   }, [diatonicNotes]);
 
-  // Regenerate notes when noteCount changes
+  // Track previous noteCount to detect changes
+  const prevNoteCountRef = useRef(noteCount);
+  
+  // Regenerate notes when noteCount changes - works for both random and manual modes
   useEffect(() => {
-    // Only regenerate if we're in random mode
-    if (inputMode === 'random') {
+    // Only run when noteCount actually changes
+    if (prevNoteCountRef.current !== noteCount) {
+      logger.log(`🔄 Note count changed from ${prevNoteCountRef.current} to ${noteCount}`);
+      prevNoteCountRef.current = noteCount;
+      
+      // Generate new unique notes for the new count
       const baseNote = notes[0] || undefined;
       const newNotes = generateUniqueNotes(noteCount, baseNote);
 
       setNotes(newNotes);
       onNotesChange?.(newNotes);
       onChordsChange?.(Array(noteCount).fill(null));
-      logger.log(`🔄 Note count changed to ${noteCount}, regenerated unique notes:`, newNotes);
+      logger.log(`🔄 Generated ${noteCount} unique notes:`, newNotes);
     }
-  }, [noteCount]); // Only depend on noteCount
+  }, [noteCount, generateUniqueNotes, onNotesChange, onChordsChange]);
 
   const generateNew = useCallback(() => {
     const newNotes = generateUniqueNotes(noteCount);
