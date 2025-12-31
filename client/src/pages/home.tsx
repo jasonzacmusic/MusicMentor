@@ -30,7 +30,7 @@ function getPanelMode(width: number): 'icon' | 'compact' | 'normal' {
 function HomeContent() {
   const [selectedNote, setSelectedNote] = useState('C');
   const [noteCount, setNoteCount] = useState(4);
-  const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A', 'G']);
+  const [activeNotes, setActiveNotes] = useState<string[]>(['C', 'E', 'A', 'G']); // Will be synced from RandomNotesGenerator on mount
   const [selectedChords, setSelectedChords] = useState<(Chord | null)[]>([null, null, null, null]);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('beginner');
   const [inversionModes, setInversionModes] = useState<('auto' | 'root' | 'first' | 'second')[]>(['auto', 'auto', 'auto', 'auto']);
@@ -373,6 +373,7 @@ function HomeContent() {
                 )}
 
                 <RandomNotesGenerator
+                  notes={activeNotes}
                   onNotesChange={handleNotesChange}
                   onChordsChange={setSelectedChords}
                   selectedChords={selectedChords}
@@ -412,6 +413,7 @@ function HomeContent() {
         <div className="lg:hidden mb-2">
           <div className="bg-card rounded-lg border border-border p-2.5">
             <RandomNotesGenerator
+              notes={activeNotes}
               onNotesChange={handleNotesChange}
               onChordsChange={setSelectedChords}
               selectedChords={selectedChords}

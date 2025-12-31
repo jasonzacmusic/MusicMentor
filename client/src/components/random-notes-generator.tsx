@@ -18,6 +18,7 @@ import { VALID_NOTES_FOR_SELECTION } from '@/lib/music-constants';
 type PanelMode = 'icon' | 'compact' | 'normal';
 
 interface RandomNotesGeneratorProps {
+  notes?: string[]; // Controlled notes prop - if provided, component uses this instead of internal state
   onNotesChange?: (notes: string[]) => void;
   onChordsChange?: (chords: (Chord | null)[]) => void;
   selectedChords?: (Chord | null)[];
@@ -42,13 +43,21 @@ const BEAT_PATTERNS: Record<number, number[]> = {
   5: [1.5, 1.5, 1.5, 1.5, 2]
 };
 
-export default function RandomNotesGenerator({ onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange, onPlayingIndexChange, panelMode = 'normal', diatonicNotes, diatonicKey, diatonicScale, diatonicMode }: RandomNotesGeneratorProps) {
+export default function RandomNotesGenerator({ notes: controlledNotes, onNotesChange, onChordsChange, selectedChords = [null, null, null, null], inversionModes = ['auto', 'auto', 'auto', 'auto'], skillLevel = 'beginner', noteCount = 4, onNoteCountChange, onPlayingIndexChange, panelMode = 'normal', diatonicNotes, diatonicKey, diatonicScale, diatonicMode }: RandomNotesGeneratorProps) {
   // Use diatonic notes if provided, otherwise use all valid notes
   const availableNotesForSelection = diatonicNotes && diatonicNotes.length > 0
     ? diatonicNotes.map(note => ({ value: note, label: note }))
     : VALID_NOTES_FOR_SELECTION;
 
-  const [notes, setNotes] = useState<string[]>(['Bb', 'D', 'G', 'F']); // Default to 4 notes
+  // Internal state for uncontrolled mode
+  const [internalNotes, setInternalNotes] = useState<string[]>(['C', 'E', 'A', 'G']);
+  
+  // Use controlled notes if provided, otherwise use internal state
+  const notes = controlledNotes || internalNotes;
+  const setNotes = controlledNotes ? (newNotes: string[]) => {
+    // In controlled mode, just call the callback - parent manages state
+    onNotesChange?.(newNotes);
+  } : setInternalNotes;
   const [inputMode, setInputMode] = useState<'random' | 'manual'>('random');
   const [tempo, setTempo] = useState(120);
   const tempoRef = useRef(120); // Ref for real-time tempo access during playback
