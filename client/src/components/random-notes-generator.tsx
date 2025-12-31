@@ -85,8 +85,12 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
 
-  // Loading state - always start as true and let the effect set it to false when loaded
-  const [isLoadingInstruments, setIsLoadingInstruments] = useState(true);
+  // Loading state - check actual engine state on init to avoid false loading screen
+  const [isLoadingInstruments, setIsLoadingInstruments] = useState(() => {
+    // If engine is already loaded with the right combo, start as false
+    const alreadyLoaded = sampleEngine.loaded && sampleEngine.loadedComboId === 'orchestral-piano';
+    return !alreadyLoaded;
+  });
   
   // Track if we've attempted to load
   const loadAttemptedRef = useRef(false);
@@ -159,7 +163,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     return () => { isMounted = false; };
   }, [selectedComboId]);
   
-  // Safety: Check every 200ms if instruments are loaded but state is wrong
+  // Safety: Check frequently if instruments are loaded but state is wrong
   useEffect(() => {
     const checkLoaded = () => {
       const isActuallyLoaded = sampleEngine.loaded && 
@@ -172,11 +176,11 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       }
     };
     
-    // Check immediately
+    // Check immediately on mount
     checkLoaded();
     
-    // Then check frequently
-    const interval = setInterval(checkLoaded, 200);
+    // Check more frequently (50ms) for faster response
+    const interval = setInterval(checkLoaded, 50);
     return () => clearInterval(interval);
   }, [selectedComboId, isLoadingInstruments]);
 
@@ -608,13 +612,27 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       return;
     }
 
+    // If instruments aren't loaded yet, wait for them (with timeout)
+    if (!sampleEngine.loaded || sampleEngine.loadedComboId !== selectedComboId) {
+      logger.log('⏳ Waiting for instruments to load before playing...');
+      try {
+        await Promise.race([
+          sampleEngine.ensureLoaded(selectedComboId),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Load timeout')), 5000))
+        ]);
+      } catch (error) {
+        logger.log('❌ Failed to load instruments for playback:', error);
+        return;
+      }
+    }
+
     setIsPlaying(true);
 
     // Use the DAW-style seamless loop system
     // It handles both single play and looping via isLoopingRef
     await startSeamlessLoop(selectedChords);
 
-  }, [isPlaying, emergencyReset, startSeamlessLoop, selectedChords]);
+  }, [isPlaying, emergencyReset, startSeamlessLoop, selectedChords, selectedComboId]);
 
   // REMOVED OLD CONFLICTING AUDIO FUNCTIONS
 
@@ -937,16 +955,13 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
               <Button
                 onClick={handlePlay}
                 size="sm"
-                disabled={isLoadingInstruments}
                 className={`w-9 h-9 p-0 ${
                   isPlaying
                     ? 'bg-destructive hover:bg-destructive/90'
                     : 'bg-primary hover:bg-primary/90'
                 }`}
               >
-                {isLoadingInstruments ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : isPlaying ? (
+                {isPlaying ? (
                   <Square className="w-4 h-4" />
                 ) : (
                   <Play className="w-4 h-4" />
@@ -1100,16 +1115,13 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
             <Button
               onClick={handlePlay}
               size="sm"
-              disabled={isLoadingInstruments}
               className={`flex-1 h-9 text-sm font-semibold ${
                 isPlaying
                   ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
                   : 'bg-primary hover:bg-primary/90 text-primary-foreground'
               }`}
             >
-              {isLoadingInstruments ? (
-                <span className="animate-pulse">Loading...</span>
-              ) : isPlaying ? (
+              {isPlaying ? (
                 <>
                   <Square className="w-3.5 h-3.5 mr-1.5" />
                   Stop
@@ -1313,16 +1325,13 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
               <Button
                 onClick={handlePlay}
                 size="sm"
-                disabled={isLoadingInstruments}
                 className={`flex-1 h-7 text-[10px] font-semibold ${
                   isPlaying
                     ? 'bg-destructive hover:bg-destructive/90'
                     : 'bg-primary hover:bg-primary/90'
                 }`}
               >
-                {isLoadingInstruments ? (
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : isPlaying ? (
+                {isPlaying ? (
                   <Square className="w-3 h-3" />
                 ) : (
                   <Play className="w-3 h-3" />
