@@ -76,10 +76,9 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
   const [blockChordVolume, setBlockChordVolume] = useState(0.5);
   const [arpeggioVolume, setArpeggioVolume] = useState(0.7);
 
-  // Track loading state in component state for reliable re-renders
-  const [isLoadingInstruments, setIsLoadingInstruments] = useState(
-    !(sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId)
-  );
+  // Track loading state - start with false to show Play button immediately
+  // The effect will set to true only if actually loading
+  const [isLoadingInstruments, setIsLoadingInstruments] = useState(false);
   const comboLoadedRef = useRef(sampleEngine.loaded && sampleEngine.loadedComboId === selectedComboId);
 
   // Scheduled loop tracking for seamless looping
@@ -1006,7 +1005,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-foreground">Notes</label>
             <div className="flex rounded-md overflow-hidden border border-border">
-              {[1, 2, 3, 4, 5].map((count) => (
+              {[1, 2, 3, 4, 5, 6].map((count) => (
                 <button
                   key={count}
                   onClick={() => onNoteCountChange?.(count)}
@@ -1055,7 +1054,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
           {inputMode === 'manual' && (
             <div className="bg-muted/30 rounded-md p-2 border border-border">
               <div className={`grid gap-1 ${
-                noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : 'grid-cols-5'
+                noteCount <= 3 ? 'grid-cols-3' : noteCount === 4 ? 'grid-cols-4' : noteCount === 5 ? 'grid-cols-5' : 'grid-cols-6'
               }`}>
                 {Array.from({ length: noteCount }, (_, index) => (
                   <Select
@@ -1355,7 +1354,7 @@ export default function RandomNotesGenerator({ onNotesChange, onChordsChange, se
 
         {/* Notes Row */}
         <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((count) => (
+          {[1, 2, 3, 4, 5, 6].map((count) => (
             <Tooltip key={count}>
               <TooltipTrigger asChild>
                 <button

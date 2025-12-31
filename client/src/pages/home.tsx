@@ -495,12 +495,13 @@ function HomeContent() {
             {/* Chord Grid - Responsive, no scroll on desktop, dynamic sizing based on panel state */}
             <div
               ref={chordGridRef}
-              className={`flex-1 grid gap-1 min-h-0 auto-rows-fr relative ${
+              className={`flex-1 grid gap-1 min-h-0 auto-rows-fr relative overflow-y-auto ${
                 noteCount === 1 ? 'grid-cols-1' :
                 noteCount === 2 ? 'grid-cols-2' :
                 noteCount === 3 ? 'grid-cols-3' :
                 noteCount === 4 ? 'grid-cols-2 lg:grid-cols-4' :
-                'grid-cols-3 lg:grid-cols-5'
+                noteCount === 5 ? 'grid-cols-3 lg:grid-cols-5' :
+                'grid-cols-3 lg:grid-cols-6'
               } ${isPanelCollapsed ? 'lg:gap-3' : 'lg:gap-2'}`}
             >
               {/* Global Mascot Overlay */}
