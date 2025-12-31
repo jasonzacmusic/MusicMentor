@@ -700,22 +700,11 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     // Resetting the sequence active flag
     isSequenceActiveRef.current = false; // Prevents any new sequences from starting
     
-    // Exit auto loop when stopping
-    if (isFeatureEnabled('AUTO_LOOP') && isLooping) {
-      setIsLooping(false);
-      logger.log('🔄 Exiting Auto Loop mode');
-    }
-    
     emergencyReset();
-  }, [emergencyReset, isLooping]);
+  }, [emergencyReset]);
 
-  // Auto Loop toggle function - only works if feature enabled
+  // Auto Loop toggle function
   const toggleLoop = useCallback(() => {
-    if (!isFeatureEnabled('AUTO_LOOP')) {
-      logger.log('🚫 Auto Loop feature disabled');
-      return;
-    }
-    
     const newLoopState = !isLooping;
     setIsLooping(newLoopState);
     logger.log(`🔄 Auto Loop ${newLoopState ? 'ENABLED' : 'DISABLED'}`);
@@ -892,11 +881,8 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
           setWithMetronome(prev => !prev);
           break;
         case 'KeyL':
-          // Only enable keyboard shortcut if feature is enabled
-          if (isFeatureEnabled('AUTO_LOOP')) {
-            event.preventDefault();
-            toggleLoop();
-          }
+          event.preventDefault();
+          toggleLoop();
           break;
         case 'KeyR':
           event.preventDefault();
@@ -1136,17 +1122,15 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
               )}
             </Button>
 
-            {isFeatureEnabled('AUTO_LOOP') && (
-              <Button
-                onClick={toggleLoop}
-                variant={isLooping ? "default" : "outline"}
-                size="sm"
-                className="h-9 px-4 text-sm"
-                data-testid="button-auto-loop"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </Button>
-            )}
+            <Button
+              onClick={toggleLoop}
+              variant={isLooping ? "default" : "outline"}
+              size="sm"
+              className="h-9 px-4 text-sm"
+              data-testid="button-auto-loop"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
           </div>
 
           <Button
@@ -1309,9 +1293,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
           <div className="flex flex-wrap gap-1.5 justify-center text-[10px] text-muted-foreground">
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">Space</kbd> Play</span>
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">M</kbd> Metro</span>
-            {isFeatureEnabled('AUTO_LOOP') && (
-              <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">L</kbd> Loop</span>
-            )}
+            <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">L</kbd> Loop</span>
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">R</kbd> Gen</span>
           </div>
         </div>
@@ -1350,21 +1332,19 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
             <TooltipContent>{isPlaying ? 'Stop (Space)' : 'Play (Space)'}</TooltipContent>
           </Tooltip>
 
-          {isFeatureEnabled('AUTO_LOOP') && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={toggleLoop}
-                  variant={isLooping ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                >
-                  <Repeat className="w-3 h-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isLooping ? 'Loop On' : 'Loop Off'}</TooltipContent>
-            </Tooltip>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={toggleLoop}
+                variant={isLooping ? "default" : "outline"}
+                size="sm"
+                className="h-7 w-7 p-0"
+              >
+                <Repeat className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isLooping ? 'Loop On' : 'Loop Off'}</TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Notes Row */}

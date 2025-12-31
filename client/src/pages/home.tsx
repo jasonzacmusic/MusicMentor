@@ -481,7 +481,7 @@ function HomeContent() {
             {/* Chord Grid - Responsive, no scroll on desktop, dynamic sizing based on panel state */}
             <div
               ref={chordGridRef}
-              className={`flex-1 grid gap-1 min-h-0 auto-rows-fr relative overflow-y-auto ${
+              className={`flex-1 grid gap-1 min-h-0 auto-rows-fr relative overflow-y-auto pt-8 lg:pt-12 ${
                 noteCount === 1 ? 'grid-cols-1' :
                 noteCount === 2 ? 'grid-cols-2' :
                 noteCount === 3 ? 'grid-cols-3' :
