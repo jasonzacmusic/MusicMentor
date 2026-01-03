@@ -950,25 +950,74 @@ export default function ChordSkillSelector({
             </button>
           </div>
 
+          {/* Single SVG with all branch lines */}
+          <svg 
+            className="absolute pointer-events-none overflow-visible"
+            style={{ 
+              left: '50%', 
+              top: '50%', 
+              width: '250px', 
+              height: '250px',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 5
+            }}
+          >
+            <defs>
+              <linearGradient id={`vineGrad-${noteIndex}-default`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#4b5563" stopOpacity="0.4" />
+                <stop offset="50%" stopColor="#6b7280" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#4b5563" stopOpacity="0.4" />
+              </linearGradient>
+              <linearGradient id={`vineGrad-${noteIndex}-selected`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
+                <stop offset="50%" stopColor="#4ade80" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#22c55e" stopOpacity="0.4" />
+              </linearGradient>
+            </defs>
+            {availableChords.map((chord, index) => {
+              const numChords = availableChords.length;
+              let angle: number;
+              if (numChords <= 3) {
+                angle = 270 + (index * 120);
+              } else if (numChords === 4) {
+                const angles = [270, 0, 90, 180];
+                angle = angles[index] || 0;
+              } else if (numChords === 5) {
+                angle = 270 + (index * 72);
+              } else {
+                angle = 270 + (index * (360 / numChords));
+              }
+              const x = Math.cos(angle * Math.PI / 180) * treeRadius;
+              const y = Math.sin(angle * Math.PI / 180) * treeRadius;
+              const isSelected = selectedChord?.name === chord.name;
+              return (
+                <path
+                  key={index}
+                  d={`M 125 125 Q ${125 + x * 0.5} ${125 + y * 0.5 + 6} ${125 + x * 0.65} ${125 + y * 0.65}`}
+                  fill="none"
+                  stroke={`url(#vineGrad-${noteIndex}-${isSelected ? 'selected' : 'default'})`}
+                  strokeWidth={isSelected ? 4 : 3}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+          </svg>
+
           {availableChords.map((chord, index) => {
             // Calculate angles based on number of chords for better spacing
             let angle: number;
             const numChords = availableChords.length;
 
             if (numChords <= 3) {
-              // For 3 or fewer chords, space them at 120-degree intervals starting from top
               const angleStep = 120;
               angle = 270 + (index * angleStep);
             } else if (numChords === 4) {
-              // For 4 chords, space at 90-degree intervals
               const angles = [270, 0, 90, 180];
               angle = angles[index] || 0;
             } else if (numChords === 5) {
-              // For 5 chords, space at 72-degree intervals
               const angleStep = 72;
               angle = 270 + (index * angleStep);
             } else {
-              // For 6+ chords, evenly space around the circle
               const angleStep = 360 / numChords;
               angle = 270 + (index * angleStep);
             }
@@ -980,45 +1029,15 @@ export default function ChordSkillSelector({
             const colorScheme = getChordColorScheme(chord.type, colorPreset);
 
             return (
-              <div key={index} className="absolute inset-0">
-                {/* Vine/rope connector - positioned relative to tree center */}
-                <svg 
-                  className="absolute pointer-events-none overflow-visible"
-                  style={{ 
-                    left: '50%', 
-                    top: '50%', 
-                    width: '200px', 
-                    height: '200px',
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 5
-                  }}
-                >
-                  <defs>
-                    <linearGradient id={`vineGrad-${noteIndex}-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor={isSelected ? '#22c55e' : '#4b5563'} stopOpacity="0.4" />
-                      <stop offset="50%" stopColor={isSelected ? '#4ade80' : '#6b7280'} stopOpacity="0.8" />
-                      <stop offset="100%" stopColor={isSelected ? '#22c55e' : '#4b5563'} stopOpacity="0.4" />
-                    </linearGradient>
-                  </defs>
-                  {/* Draw branch from center (100,100) towards chord button */}
-                  <path
-                    d={`M 100 100 Q ${100 + x * 0.5} ${100 + y * 0.5 + 8} ${100 + x * 0.6} ${100 + y * 0.6}`}
-                    fill="none"
-                    stroke={`url(#vineGrad-${noteIndex}-${index})`}
-                    strokeWidth={isSelected ? 4 : 3}
-                    strokeLinecap="round"
-                  />
-                </svg>
-
-                {/* Chord button positioned at angle from center */}
-                <div
-                  className="absolute z-30"
-                  style={{
-                    left: `calc(50% + ${x}px)`,
-                    top: `calc(50% + ${y}px)`,
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                >
+              <div
+                key={index}
+                className="absolute z-30"
+                style={{
+                  left: `calc(50% + ${x}px)`,
+                  top: `calc(50% + ${y}px)`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
                   {isSelected && (
                     <>
                       <div className="absolute inset-0 -m-2 rounded-full bg-gradient-to-r from-emerald-400/40 via-teal-300/50 to-emerald-400/40 animate-spin" style={{ animationDuration: '3s' }} />
@@ -1069,7 +1088,6 @@ export default function ChordSkillSelector({
                       </span>
                     )}
                   </button>
-                </div>
               </div>
             );
           })}
