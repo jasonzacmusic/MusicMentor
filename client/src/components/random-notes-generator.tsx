@@ -656,43 +656,45 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     }
   };
 
-  // SIMPLIFIED METRONOME - Schedule at specific time
+  // SIMPLIFIED METRONOME - Schedule at specific time using sampleEngine's AudioContext for sync
   const scheduleMetronomeClick = (time: number) => {
     try {
-      if (audioEngine.audioContext && audioEngine.masterGainNode) {
-        const oscillator = audioEngine.audioContext.createOscillator();
-        const gainNode = audioEngine.audioContext.createGain();
+      // Use sampleEngine's AudioContext for metronome to ensure sync with samples
+      const ctx = sampleEngine.audioContext || audioEngine.audioContext;
+      if (!ctx) return;
+      
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioEngine.masterGainNode);
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
 
-        oscillator.frequency.setValueAtTime(800, time);
-        oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(800, time);
+      oscillator.type = 'square';
 
-        const clickDuration = 0.05;
+      const clickDuration = 0.05;
 
-        gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
-        gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
+      gainNode.gain.setValueAtTime(0, time);
+      gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
+      gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
 
-        // Track metronome oscillators in audio engine for proper stopping
-        audioEngine.activeOscillators.add(oscillator);
+      // Track metronome oscillators in audio engine for proper stopping
+      audioEngine.activeOscillators.add(oscillator);
 
-        try {
-          oscillator.start(time);
-          oscillator.stop(time + clickDuration);
-        } catch (error) {
-          console.error('Error with metronome click:', error);
-          audioEngine.activeOscillators.delete(oscillator);
-        }
-        
-        // Remove from tracking when it ends
-        oscillator.addEventListener('ended', () => {
-          audioEngine.activeOscillators.delete(oscillator);
-        });
-        
-        logger.log(`🥁 Metronome click scheduled at ${time.toFixed(3)}`);
+      try {
+        oscillator.start(time);
+        oscillator.stop(time + clickDuration);
+      } catch (error) {
+        console.error('Error with metronome click:', error);
+        audioEngine.activeOscillators.delete(oscillator);
       }
+      
+      // Remove from tracking when it ends
+      oscillator.addEventListener('ended', () => {
+        audioEngine.activeOscillators.delete(oscillator);
+      });
+      
+      logger.log(`🥁 Metronome click scheduled at ${time.toFixed(3)}`);
     } catch (error) {
       console.error('Metronome scheduling error:', error);
     }

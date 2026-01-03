@@ -651,10 +651,12 @@ export default function ChordSkillSelector({
         }
       }
 
+      console.log(`🌳 Diatonic chords for ${baseNote} in ${diatonicKey} ${diatonicScale}: ${triadsAsChords.length} triads`, triadsAsChords.map(c => c.name));
       setAvailableChords(triadsAsChords);
       setDiatonicSeventhChords(diatonicChords.seventhChords);
     } else {
       const chords = getChordsForNoteBySkill(baseNote, skillLevel);
+      console.log(`🌳 Chords for ${baseNote} in ${skillLevel} mode: ${chords.length} chords`, chords.map(c => c.name));
       setAvailableChords(chords);
       setDiatonicSeventhChords([]);
     }
@@ -966,9 +968,9 @@ export default function ChordSkillSelector({
               const angleStep = 72;
               angle = 270 + (index * angleStep);
             } else {
-              // For 6 chords, use the original layout
-              const angles = [270, 330, 30, 90, 150, 210];
-              angle = angles[index] || 0;
+              // For 6+ chords, evenly space around the circle
+              const angleStep = 360 / numChords;
+              angle = 270 + (index * angleStep);
             }
 
             const x = Math.cos(angle * Math.PI / 180) * treeRadius;
@@ -978,8 +980,8 @@ export default function ChordSkillSelector({
             const colorScheme = getChordColorScheme(chord.type, colorPreset);
 
             return (
-              <div key={index} className="absolute">
-                {/* Vine/rope connector */}
+              <div key={index} className="absolute inset-0">
+                {/* Vine/rope connector - positioned relative to tree center */}
                 <svg 
                   className="absolute pointer-events-none overflow-visible"
                   style={{ 
@@ -998,8 +1000,9 @@ export default function ChordSkillSelector({
                       <stop offset="100%" stopColor={isSelected ? '#22c55e' : '#4b5563'} stopOpacity="0.4" />
                     </linearGradient>
                   </defs>
+                  {/* Draw branch from center (100,100) towards chord button */}
                   <path
-                    d={`M 100 100 Q ${100 + x * 0.5} ${100 + y * 0.5 + 10} ${100 + x * 0.55} ${100 + y * 0.55}`}
+                    d={`M 100 100 Q ${100 + x * 0.5} ${100 + y * 0.5 + 8} ${100 + x * 0.6} ${100 + y * 0.6}`}
                     fill="none"
                     stroke={`url(#vineGrad-${noteIndex}-${index})`}
                     strokeWidth={isSelected ? 4 : 3}
@@ -1007,6 +1010,7 @@ export default function ChordSkillSelector({
                   />
                 </svg>
 
+                {/* Chord button positioned at angle from center */}
                 <div
                   className="absolute z-30"
                   style={{
