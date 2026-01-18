@@ -899,10 +899,20 @@ export default function ChordSkillSelector({
       );
     }
 
-    const treeSize = expandedView ? 'w-72 h-72' : 'w-64 h-64';
-    const treeRadius = expandedView ? 100 : 90;
-    const centerSize = expandedView ? 'w-24 h-24' : 'w-20 h-20';
-    const chordButtonSize = expandedView ? 'w-16 h-16' : 'w-14 h-14';
+    // Mobile-responsive sizing: smaller on mobile, normal on desktop
+    const treeSize = expandedView ? 'w-40 h-40 sm:w-56 sm:h-56 lg:w-72 lg:h-72' : 'w-36 h-36 sm:w-52 sm:h-52 lg:w-64 lg:h-64';
+    const centerSize = expandedView ? 'w-14 h-14 sm:w-18 sm:h-18 lg:w-24 lg:h-24' : 'w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20';
+    const chordButtonSize = expandedView ? 'w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16' : 'w-9 h-9 sm:w-11 sm:h-11 lg:w-14 lg:h-14';
+    
+    // Use window width to determine tree radius (needs to be a number, not class)
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 640);
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+    const treeRadius = isMobile ? 55 : (expandedView ? 100 : 90);
     
     const mascotContext = useMascot();
     const currentAnimal = mascotContext.animal;
@@ -924,10 +934,10 @@ export default function ChordSkillSelector({
             />
           )}
 
-          <div className={`absolute w-56 h-56 rounded-full border transition-all duration-300 ${
+          <div className={`absolute w-32 h-32 sm:w-44 sm:h-44 lg:w-56 lg:h-56 rounded-full border transition-all duration-300 ${
             isPlaying ? 'border-emerald-400/50 shadow-lg shadow-emerald-500/20' : 'border-slate-700/30'
           }`} style={{ zIndex: 2 }} />
-          <div className={`absolute w-48 h-48 rounded-full border transition-all duration-300 ${
+          <div className={`absolute w-28 h-28 sm:w-36 sm:h-36 lg:w-48 lg:h-48 rounded-full border transition-all duration-300 ${
             isPlaying ? 'border-emerald-400/30' : 'border-slate-700/20'
           }`} style={{ zIndex: 2 }} />
           
@@ -944,64 +954,70 @@ export default function ChordSkillSelector({
                 }`}
               title={selectedChord ? 'Click to clear selection' : baseNote}
             >
-              <span className={`${expandedView ? 'text-3xl' : 'text-2xl'} font-bold tracking-tight drop-shadow-md ${
+              <span className={`${isMobile ? 'text-lg' : (expandedView ? 'text-3xl' : 'text-2xl')} font-bold tracking-tight drop-shadow-md ${
                 isPlaying ? 'text-white' : 'text-white'
               }`}>{baseNote}</span>
             </button>
           </div>
 
-          {/* Single SVG with all branch lines */}
-          <svg 
-            className="absolute pointer-events-none overflow-visible"
-            style={{ 
-              left: '50%', 
-              top: '50%', 
-              width: '250px', 
-              height: '250px',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 5
-            }}
-          >
-            <defs>
-              <linearGradient id={`vineGrad-${noteIndex}-default`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#4b5563" stopOpacity="0.4" />
-                <stop offset="50%" stopColor="#6b7280" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#4b5563" stopOpacity="0.4" />
-              </linearGradient>
-              <linearGradient id={`vineGrad-${noteIndex}-selected`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
-                <stop offset="50%" stopColor="#4ade80" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity="0.4" />
-              </linearGradient>
-            </defs>
-            {availableChords.map((chord, index) => {
-              const numChords = availableChords.length;
-              let angle: number;
-              if (numChords <= 3) {
-                angle = 270 + (index * 120);
-              } else if (numChords === 4) {
-                const angles = [270, 0, 90, 180];
-                angle = angles[index] || 0;
-              } else if (numChords === 5) {
-                angle = 270 + (index * 72);
-              } else {
-                angle = 270 + (index * (360 / numChords));
-              }
-              const x = Math.cos(angle * Math.PI / 180) * treeRadius;
-              const y = Math.sin(angle * Math.PI / 180) * treeRadius;
-              const isSelected = selectedChord?.name === chord.name;
-              return (
-                <path
-                  key={index}
-                  d={`M 125 125 Q ${125 + x * 0.5} ${125 + y * 0.5 + 6} ${125 + x * 0.65} ${125 + y * 0.65}`}
-                  fill="none"
-                  stroke={`url(#vineGrad-${noteIndex}-${isSelected ? 'selected' : 'default'})`}
-                  strokeWidth={isSelected ? 4 : 3}
-                  strokeLinecap="round"
-                />
-              );
-            })}
-          </svg>
+          {/* Single SVG with all branch lines - dynamically sized */}
+          {(() => {
+            const svgSize = treeRadius * 2.5;
+            const center = svgSize / 2;
+            return (
+              <svg 
+                className="absolute pointer-events-none overflow-visible"
+                style={{ 
+                  left: '50%', 
+                  top: '50%', 
+                  width: `${svgSize}px`, 
+                  height: `${svgSize}px`,
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 5
+                }}
+              >
+                <defs>
+                  <linearGradient id={`vineGrad-${noteIndex}-default`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#4b5563" stopOpacity="0.4" />
+                    <stop offset="50%" stopColor="#6b7280" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#4b5563" stopOpacity="0.4" />
+                  </linearGradient>
+                  <linearGradient id={`vineGrad-${noteIndex}-selected`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
+                    <stop offset="50%" stopColor="#4ade80" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#22c55e" stopOpacity="0.4" />
+                  </linearGradient>
+                </defs>
+                {availableChords.map((chord, index) => {
+                  const numChords = availableChords.length;
+                  let angle: number;
+                  if (numChords <= 3) {
+                    angle = 270 + (index * 120);
+                  } else if (numChords === 4) {
+                    const angles = [270, 0, 90, 180];
+                    angle = angles[index] || 0;
+                  } else if (numChords === 5) {
+                    angle = 270 + (index * 72);
+                  } else {
+                    angle = 270 + (index * (360 / numChords));
+                  }
+                  const x = Math.cos(angle * Math.PI / 180) * treeRadius;
+                  const y = Math.sin(angle * Math.PI / 180) * treeRadius;
+                  const isSelected = selectedChord?.name === chord.name;
+                  return (
+                    <path
+                      key={index}
+                      d={`M ${center} ${center} Q ${center + x * 0.5} ${center + y * 0.5 + 4} ${center + x * 0.65} ${center + y * 0.65}`}
+                      fill="none"
+                      stroke={`url(#vineGrad-${noteIndex}-${isSelected ? 'selected' : 'default'})`}
+                      strokeWidth={isSelected ? (isMobile ? 2 : 4) : (isMobile ? 1.5 : 3)}
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+              </svg>
+            );
+          })()}
 
           {availableChords.map((chord, index) => {
             // Calculate angles based on number of chords for better spacing
@@ -1065,15 +1081,15 @@ export default function ChordSkillSelector({
                   >
                     {chord.romanNumeral ? (
                       <div className="flex flex-col items-center gap-0">
-                        <span className={`${expandedView ? 'text-[11px]' : 'text-[10px]'} font-bold text-center leading-tight drop-shadow-md opacity-80`}>
+                        <span className={`${isMobile ? 'text-[7px]' : (expandedView ? 'text-[11px]' : 'text-[10px]')} font-bold text-center leading-tight drop-shadow-md opacity-80`}>
                           {chord.romanNumeral}
                         </span>
-                        <span className={`${expandedView ? 'text-[13px]' : 'text-[12px]'} font-bold text-center leading-tight drop-shadow-md`}>
+                        <span className={`${isMobile ? 'text-[8px]' : (expandedView ? 'text-[13px]' : 'text-[12px]')} font-bold text-center leading-tight drop-shadow-md`}>
                           {formatJazzChord(chord.rootNote, chord.type)}
                         </span>
                       </div>
                     ) : (
-                      <span className={`${expandedView ? 'text-[14px]' : 'text-[13px]'} font-bold text-center leading-tight drop-shadow-md`}>
+                      <span className={`${isMobile ? 'text-[9px]' : (expandedView ? 'text-[14px]' : 'text-[13px]')} font-bold text-center leading-tight drop-shadow-md`}>
                         {formatJazzChord(chord.rootNote, chord.type)}
                       </span>
                     )}
@@ -1093,56 +1109,63 @@ export default function ChordSkillSelector({
           })}
         </div>
 
-        <div className="mt-2 flex flex-col items-center">
+        {/* Info card and piano - hidden on mobile to save space */}
+        <div className="mt-1 sm:mt-2 flex flex-col items-center">
           {selectedChord ? (
             <>
-              <div className={`mb-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+              <div className={`mb-1 sm:mb-2 px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-300 ${
                 isPlaying 
                   ? 'bg-gradient-to-r from-emerald-600/80 to-teal-600/80 border border-emerald-400/50 shadow-lg shadow-emerald-500/30'
                   : 'bg-gradient-to-r from-slate-800/80 to-slate-900/80 border border-slate-600/30 shadow-md'
               }`}>
-                <h4 className="text-base font-bold text-white text-center tracking-wide">
+                <h4 className="text-xs sm:text-base font-bold text-white text-center tracking-wide">
                   {formatJazzChord(selectedChord.rootNote, selectedChord.type)}
                   {selectedChord.inversion !== undefined && selectedChord.inversion > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 text-[10px] font-bold">
+                    <span className="ml-1 sm:ml-1.5 px-1 sm:px-1.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 text-[8px] sm:text-[10px] font-bold">
                       {selectedChord.inversion === 1 ? '1st' : '2nd'}
                     </span>
                   )}
                 </h4>
-                <div className="text-[9px] text-slate-400 text-center uppercase tracking-wide">
+                <div className="hidden sm:block text-[9px] text-slate-400 text-center uppercase tracking-wide">
                   {CHORD_NAMES[selectedChord.type] || selectedChord.type}
                 </div>
-                <div className="text-xs text-slate-300 text-center font-medium mt-0.5">
+                <div className="hidden sm:block text-xs text-slate-300 text-center font-medium mt-0.5">
                   {sortNotesByPitch(selectedChord.notes, selectedChord.octaves).join(' → ')}
                 </div>
               </div>
-              <PianoKeyboard
-                highlightedNotes={selectedChord.notes}
-                startNote={getPianoStartNote(selectedChord.notes[0])}
-                compact={true}
-                onKeyPress={(note) => {}}
-              />
+              {/* Piano hidden on mobile */}
+              <div className="hidden sm:block">
+                <PianoKeyboard
+                  highlightedNotes={selectedChord.notes}
+                  startNote={getPianoStartNote(selectedChord.notes[0])}
+                  compact={true}
+                  onKeyPress={(note) => {}}
+                />
+              </div>
             </>
           ) : (
             <>
-              <div className={`mb-2 px-4 py-1.5 rounded-lg transition-all duration-300 ${
+              <div className={`mb-1 sm:mb-2 px-2 sm:px-4 py-1 sm:py-1.5 rounded-lg transition-all duration-300 ${
                 isPlaying 
                   ? 'bg-gradient-to-r from-slate-700/80 to-slate-800/80 border border-slate-500/50 shadow-lg shadow-slate-500/20'
                   : 'bg-gradient-to-r from-slate-800/60 to-slate-900/60 border border-slate-700/30 shadow-md'
               }`}>
-                <h4 className="text-sm font-semibold text-slate-300 text-center tracking-wide">
+                <h4 className="text-xs sm:text-sm font-semibold text-slate-300 text-center tracking-wide">
                   {baseNote}
                 </h4>
-                <div className="text-xs text-slate-500 text-center">
+                <div className="hidden sm:block text-xs text-slate-500 text-center">
                   Single note
                 </div>
               </div>
-              <PianoKeyboard
-                highlightedNotes={[baseNote]}
-                startNote={getPianoStartNote(baseNote)}
-                compact={true}
-                onKeyPress={(note) => {}}
-              />
+              {/* Piano hidden on mobile */}
+              <div className="hidden sm:block">
+                <PianoKeyboard
+                  highlightedNotes={[baseNote]}
+                  startNote={getPianoStartNote(baseNote)}
+                  compact={true}
+                  onKeyPress={(note) => {}}
+                />
+              </div>
             </>
           )}
         </div>
