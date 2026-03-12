@@ -53,7 +53,8 @@ export class MemStorage implements IStorage {
     const session: PracticeSession = { 
       ...insertSession, 
       id,
-      sessionDate: new Date()
+      sessionDate: new Date(),
+      userId: insertSession.userId ?? null,
     };
     this.practiceSessions.set(id, session);
     return session;
@@ -84,7 +85,14 @@ export class MemStorage implements IStorage {
 
   async createUserPreferences(insertPreferences: InsertUserPreferences): Promise<UserPreferences> {
     const id = this.currentPreferencesId++;
-    const preferences: UserPreferences = { ...insertPreferences, id };
+    const preferences: UserPreferences = { 
+      ...insertPreferences, 
+      id,
+      userId: insertPreferences.userId ?? null,
+      favoriteKey: insertPreferences.favoriteKey ?? null,
+      defaultTempo: insertPreferences.defaultTempo ?? null,
+      practiceGoal: insertPreferences.practiceGoal ?? null,
+    };
     this.userPreferences.set(id, preferences);
     return preferences;
   }

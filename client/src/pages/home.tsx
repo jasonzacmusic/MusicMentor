@@ -114,43 +114,47 @@ function HomeContent() {
     mascotContext.setIsPlaying(currentPlayingIndex !== null);
   }, [currentPlayingIndex]);
 
-  const handleNoteCountChange = (count: number) => {
+  const handleNoteCountChange = useCallback((count: number) => {
     setNoteCount(count);
     // Note: RandomNotesGenerator will call handleNotesChange with unique notes
     // We just update the count here and reset chords
     setSelectedChords(Array(count).fill(null));
     setInversionModes(Array(count).fill('auto'));
-  };
+  }, []);
 
-  const handleNotesChange = (notes: string[]) => {
+  const handleNotesChange = useCallback((notes: string[]) => {
     setActiveNotes(notes);
     setSelectedNote(notes[0]);
     setSelectedChords(Array(notes.length).fill(null));
     setInversionModes(Array(notes.length).fill('auto'));
-  };
+  }, []);
 
-  const handleInversionChange = (mode: 'auto' | 'root' | 'first' | 'second', noteIndex: number) => {
-    const newModes = [...inversionModes];
-    newModes[noteIndex] = mode;
-    setInversionModes(newModes);
-  };
+  const handleInversionChange = useCallback((mode: 'auto' | 'root' | 'first' | 'second', noteIndex: number) => {
+    setInversionModes(prev => {
+      const newModes = [...prev];
+      newModes[noteIndex] = mode;
+      return newModes;
+    });
+  }, []);
 
-  const handleChordSelect = (chord: Chord | null, noteIndex: number) => {
-    const newSelectedChords = [...selectedChords];
-    newSelectedChords[noteIndex] = chord;
-    setSelectedChords(newSelectedChords);
-  };
+  const handleChordSelect = useCallback((chord: Chord | null, noteIndex: number) => {
+    setSelectedChords(prev => {
+      const newSelectedChords = [...prev];
+      newSelectedChords[noteIndex] = chord;
+      return newSelectedChords;
+    });
+  }, []);
 
-  const handlePlayingIndexChange = (index: number | null) => {
+  const handlePlayingIndexChange = useCallback((index: number | null) => {
     setCurrentPlayingIndex(index);
-  };
+  }, []);
 
-  const handleAnchorUpdate = (anchor: ChordAnchor) => {
+  const handleAnchorUpdate = useCallback((anchor: ChordAnchor) => {
     mascotContext.registerAnchor(anchor);
     if (anchor.chordId) {
       mascotContext.setCurrentAnchor(anchor);
     }
-  };
+  }, [mascotContext]);
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">

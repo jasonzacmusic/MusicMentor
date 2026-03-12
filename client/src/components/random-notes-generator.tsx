@@ -302,14 +302,15 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
   const prevSkillLevelRef = useRef(skillLevel);
 
   // Stop playback and reset when skill level changes
+  // NOTE: selectedComboId intentionally excluded - instrument changes should NOT reset notes
   useEffect(() => {
     if (prevSkillLevelRef.current !== skillLevel) {
       logger.log(`🔄 Skill level changed from ${prevSkillLevelRef.current} to ${skillLevel}, resetting playback and regenerating notes`);
-      
+
       // Stop any ongoing playback
       isSequenceActiveRef.current = false;
       setIsPlaying(false);
-      
+
       // Clear all scheduled timeouts
       if (loopSchedulerRef.current) {
         clearInterval(loopSchedulerRef.current as unknown as number);
@@ -321,19 +322,19 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       activeTimeoutsRef.current.clear();
       scheduledTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       scheduledTimeoutsRef.current.clear();
-      
+
       // Stop all audio
       sampleEngine.stopAll();
       audioEngine.stopAll();
-      
+
       // Reset playing index
       onPlayingIndexChangeRef.current?.(null);
-      
+
       // Clear all chord refs to prevent stale data
       prevChordsRef.current = Array(noteCount).fill(null);
       randomChordsRef.current = Array(noteCount).fill(null);
       currentChordsRef.current = Array(noteCount).fill(null);
-      
+
       // Auto-regenerate new notes for the new skill level
       const newNotes = generateUniqueNotes(noteCount);
       setNotes(newNotes);
@@ -344,7 +345,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       prevSkillLevelRef.current = skillLevel;
     }
     skillLevelRef.current = skillLevel;
-  }, [skillLevel, selectedComboId, noteCount, generateUniqueNotes, onNotesChange, onChordsChange]);
+  }, [skillLevel, noteCount, generateUniqueNotes, onNotesChange, onChordsChange, setNotes]);
 
   // Function to apply chord inversions with proper pitch ordering
   const applyInversion = (notes: string[], mode: string) => {
@@ -415,12 +416,15 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       logger.log('🔄 Cleared loop interval');
     }
 
-    // Cancel all scheduled timeouts immediately
-    activeTimeoutsRef.current.forEach(timeout => {
-      clearTimeout(timeout);
-    });
+    // Cancel all scheduled timeouts immediately - clear ALL timeout Sets
+    activeTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
     activeTimeoutsRef.current.clear();
+    scheduledTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    scheduledTimeoutsRef.current.clear();
     logger.log('🔄 Cancelled all scheduled audio');
+
+    // Reset scheduled end time to prevent stale references
+    scheduledEndTimeRef.current = 0;
 
     // Stop all oscillators and samples immediately
     audioEngine.stopAll();
@@ -543,6 +547,9 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
 
     // Use setInterval for more reliable timing than requestAnimationFrame
     // (requestAnimationFrame is throttled when tab is in background)
+    // Track if we're currently scheduling to prevent race conditions
+    let isScheduling = false;
+
     const scheduleAhead = () => {
       if (!isSequenceActiveRef.current) {
         logger.log('🛑 Loop scheduler stopped');
@@ -553,19 +560,26 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
         return;
       }
 
+      // Prevent concurrent scheduling (race condition fix)
+      if (isScheduling) return;
+
       const currentTime = (sampleEngine.audioContext || audioEngine.audioContext!).currentTime;
-      const timeUntilEnd = scheduledEndTimeRef.current - currentTime;
+      const scheduledEnd = scheduledEndTimeRef.current; // Capture current value
+      const timeUntilEnd = scheduledEnd - currentTime;
 
       // If we're within lookAhead time of the end, schedule next iteration
-      if (isLoopingRef.current && timeUntilEnd < lookAheadTime) {
-        nextStartTime = scheduledEndTimeRef.current;
+      if (isLoopingRef.current && timeUntilEnd < lookAheadTime && timeUntilEnd > 0) {
+        isScheduling = true;
+        nextStartTime = scheduledEnd;
         endTime = scheduleSequence(nextStartTime, currentChordsRef.current);
         scheduledEndTimeRef.current = endTime;
+        isScheduling = false;
         logger.log(`🔄 Seamless loop: scheduled next at ${nextStartTime.toFixed(3)}`);
       }
 
       // Check if we should stop (non-looping mode and sequence ended)
-      if (!isLoopingRef.current && currentTime >= scheduledEndTimeRef.current) {
+      // Use small buffer (50ms) to account for timing precision
+      if (!isLoopingRef.current && currentTime >= scheduledEnd - 0.05) {
         isSequenceActiveRef.current = false;
         setIsPlaying(false);
         onPlayingIndexChangeRef.current?.(null);

@@ -6,6 +6,7 @@ export class AudioEngine {
   public masterGainNode: GainNode | null = null;
   private isInitialized = false;
   public activeOscillators: Set<OscillatorNode> = new Set();
+  private gainResetTimeout: ReturnType<typeof setTimeout> | null = null;
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -165,18 +166,31 @@ export class AudioEngine {
       this.activeOscillators.delete(subOsc);
     };
 
-    fundamentalOsc.addEventListener('ended', removeOscillators);
+    // Track cleanup completion for all oscillators
+    let oscillatorsEnded = 0;
+    const totalOscillators = 4;
 
     return new Promise<void>((resolve) => {
       // Set a timeout to ensure promise resolves even if onended fails
       const timeout = setTimeout(() => {
+        removeOscillators();
         resolve();
       }, duration + 1000); // Resolve after duration + 1 second buffer
 
-      fundamentalOsc.onended = () => {
-        clearTimeout(timeout);
-        resolve();
+      const handleOscillatorEnd = () => {
+        oscillatorsEnded++;
+        if (oscillatorsEnded >= totalOscillators) {
+          clearTimeout(timeout);
+          removeOscillators();
+          resolve();
+        }
       };
+
+      // Register end handlers for all oscillators (using only addEventListener, not both)
+      fundamentalOsc.addEventListener('ended', handleOscillatorEnd);
+      harmonic2Osc.addEventListener('ended', handleOscillatorEnd);
+      harmonic3Osc.addEventListener('ended', handleOscillatorEnd);
+      subOsc.addEventListener('ended', handleOscillatorEnd);
 
       try {
         // Start all piano oscillators simultaneously
@@ -556,10 +570,15 @@ export class AudioEngine {
     if (this.masterGainNode) {
       try {
         this.masterGainNode.gain.setValueAtTime(0, this.audioContext?.currentTime || 0);
-        setTimeout(() => {
+        // Clear any previous timeout to prevent multiple resets
+        if (this.gainResetTimeout) {
+          clearTimeout(this.gainResetTimeout);
+        }
+        this.gainResetTimeout = setTimeout(() => {
           if (this.masterGainNode) {
             this.masterGainNode.gain.setValueAtTime(0.4, this.audioContext?.currentTime || 0); // Piano volume
           }
+          this.gainResetTimeout = null;
         }, 100);
       } catch (error) {
         console.error('Error resetting master gain:', error);

@@ -232,19 +232,23 @@ export class SampleEngine {
           instrumentName as any,
           {
             soundfont: 'MusyngKite',
-            format: 'mp3',
+            format: 'ogg',  // OGG is 15-20% smaller than MP3
             destination: this.audioContext!.destination
           }
         );
         this.loadedInstruments.set(instrumentName, instrument);
+        // Clear loading promise after successful load to prevent memory leak
+        this.loadingPromises.delete(instrumentName);
         logger.log(`✅ Instrument loaded: ${instrumentName}`);
         return instrument;
       } catch (error) {
         console.error(`Failed to load instrument ${instrumentName}:`, error);
+        // Clear loading promise on error too
+        this.loadingPromises.delete(instrumentName);
         return null;
       }
     })();
-    
+
     this.loadingPromises.set(instrumentName, loadPromise);
     return loadPromise;
   }
