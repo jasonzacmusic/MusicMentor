@@ -219,6 +219,17 @@ export default function ChordSkillSelector({
     '7sus4': false, 'Minor(Maj7)': false, 'Minor 7b5': false, 'Add 9': false, 'Minor Add 9': false
   });
 
+  // Must be at top level - cannot be inside if(treeLayout) conditional
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  const mascotContext = useMascot();
+  const currentAnimal = mascotContext.animal;
+
   const isIntermediateMode = skillLevel === 'intermediate';
   const triads = availableChords.filter(c => c.category === 'triad' || !c.parentType);
   const majorBranches = availableChords.filter(c => c.parentType === 'major');
@@ -393,19 +404,8 @@ export default function ChordSkillSelector({
     const treeSize = expandedView ? 'w-40 h-40 sm:w-56 sm:h-56 lg:w-72 lg:h-72' : 'w-36 h-36 sm:w-52 sm:h-52 lg:w-64 lg:h-64';
     const centerSize = expandedView ? 'w-14 h-14 sm:w-18 sm:h-18 lg:w-24 lg:h-24' : 'w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20';
     const chordButtonSize = expandedView ? 'w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16' : 'w-9 h-9 sm:w-11 sm:h-11 lg:w-14 lg:h-14';
-    
-    // Use window width to determine tree radius (needs to be a number, not class)
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-      const checkMobile = () => setIsMobile(window.innerWidth < 640);
-      checkMobile();
-      window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+
     const treeRadius = isMobile ? 55 : (expandedView ? 100 : 90);
-    
-    const mascotContext = useMascot();
-    const currentAnimal = mascotContext.animal;
 
     return (
       <div className="flex flex-col items-center w-full">

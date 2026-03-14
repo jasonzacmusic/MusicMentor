@@ -16,6 +16,13 @@ npm run check    # TypeScript type checking
 npm run db:push  # Push Drizzle ORM migrations to PostgreSQL
 ```
 
+There are no automated tests in this project.
+
+## Environment Variables
+
+- `DATABASE_URL` — Neon PostgreSQL connection string (required for production; dev falls back to in-memory storage)
+- `VITE_GOOGLE_API_KEY` — Firebase API key for Analytics (optional; analytics only initialize in production)
+
 ## Architecture
 
 **Three-layer TypeScript stack:**
@@ -41,6 +48,8 @@ shared/           Drizzle ORM schema + Zod validation
 - `lib/scale-theory.ts` - Scale modes and diatonic analysis
 - `lib/guitar-chords.ts` - 324 chord shapes (12 roots × 9 types × 3 voicings)
 - `lib/sample-engine.ts` - Instrument sample loading (smplr, soundfont-player)
+- `lib/feature-flags.ts` - Toggle features (e.g. `AUTO_LOOP`) without modifying core logic
+- `lib/analytics.ts` - Firebase Analytics event tracking wrappers (no-ops in dev)
 
 **Data flow:** UI components → useAudio hook → Web Audio API / sample engine → API calls via TanStack Query → Express routes → PostgreSQL (Drizzle ORM)
 
@@ -67,3 +76,8 @@ The app implements comprehensive music theory:
 - **Diatonic harmonization** in all 7 modes (Ionian through Locrian)
 - **Guitar voicings:** Open, Barre, Alternative positions for each chord
 - **Audio:** Polyphonic synthesis + sampled instruments (piano, guitar, strings, brass)
+
+**Skill levels** (core UI state in `pages/home.tsx`):
+- `beginner` — selects chords from chromatic root notes
+- `intermediate` / `advanced` — expanded chord type options
+- `diatonic` — harmonizes chords within a chosen key, scale, and mode
