@@ -2,11 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "chord-trees",
-  "build": {
-    "env": {
-      "NODE_VERSION": "24"
-    }
-  },
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "installCommand": "npm install",
