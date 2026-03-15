@@ -324,9 +324,9 @@ export default function ChordSkillSelector({
                             onClick={() => handleSelectChord(chord)}
                             title={`${chord.rootNote} ${CHORD_NAMES[chord.type] || chord.type} - ${baseNote} is ${roleLabel}`}
                             className={`group relative rounded font-medium transition-all border
-                              ${isPriority ? 'px-2 py-1 text-[11px]' : 'px-1.5 py-0.5 text-[9px]'}
-                              ${isSelected 
-                                ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md scale-105` 
+                              ${isPriority ? 'px-2 py-1.5' : 'px-1.5 py-1'}
+                              ${isSelected
+                                ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text} shadow-md scale-105`
                                 : isPriority
                                   ? `bg-slate-700/80 border-slate-500/50 text-white hover:bg-slate-600/80 hover:scale-105`
                                   : `bg-slate-800/60 border-slate-600/40 text-slate-300 hover:bg-slate-700/60 hover:scale-102`
@@ -334,12 +334,21 @@ export default function ChordSkillSelector({
                               ${isPlaying && isSelected ? 'animate-pulse' : ''}`}
                             data-testid={`chord-chip-${chord.rootNote}-${chord.type}`}
                           >
-                            <span className="font-bold">{jazzName}</span>
-                            <span className={`ml-1 px-1 py-0 rounded text-[7px] ${
-                              isSelected ? 'bg-white/25' : 'bg-slate-600/60'
-                            }`}>
-                              {roleLabel}
-                            </span>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`text-[7px] font-mono tracking-tight leading-none ${
+                                isSelected ? 'text-white/80' : 'text-slate-400'
+                              }`}>
+                                {chord.notes.join(' ')}
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                <span className={`font-bold ${isPriority ? 'text-[11px]' : 'text-[9px]'}`}>{jazzName}</span>
+                                <span className={`px-0.5 rounded text-[6px] ${
+                                  isSelected ? 'bg-white/25' : 'bg-slate-600/60'
+                                }`}>
+                                  {roleLabel}
+                                </span>
+                              </div>
+                            </div>
                           </button>
                         );
                       })}

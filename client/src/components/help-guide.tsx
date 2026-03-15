@@ -90,16 +90,6 @@ export function HelpGuide() {
                 </ul>
               </Section>
               
-              <Section title="Advanced Mode" icon={<Zap className="h-4 w-4 text-purple-500" />}>
-                <p>Full harmonic palette!</p>
-                <ul className="list-disc list-inside space-y-1 mt-2">
-                  <li>Access to <strong>extended chords</strong>: 9ths, 11ths, 13ths, altered chords</li>
-                  <li>Jazz voicings and complex harmonies</li>
-                  <li>Shows chord function labels</li>
-                  <li>Best for: Jazz students, advanced theory, composition</li>
-                </ul>
-              </Section>
-              
               <Section title="Diatonic Mode" icon={<BookOpen className="h-4 w-4 text-amber-500" />}>
                 <p>Scale-based harmony with theory notation!</p>
                 <ul className="list-disc list-inside space-y-1 mt-2">

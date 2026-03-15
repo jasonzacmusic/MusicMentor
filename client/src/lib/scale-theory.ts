@@ -298,10 +298,10 @@ function buildChordNotes(root: string, intervals: number[], scaleNotes: string[]
     let foundNote = scaleNotes.find(n => getSemitone(n) === targetSemitone);
     
     if (!foundNote) {
-      const options = SEMITONE_TO_NOTES[targetSemitone];
-      foundNote = options?.find(n => !FORBIDDEN_NOTES.includes(n)) || options?.[0] || '';
+      // Use key-aware accidental preference (flat keys → flats, sharp keys → sharps)
+      foundNote = preferredAccidental(key, targetSemitone, '');
     }
-    
+
     notes.push(sanitizeNote(foundNote, key));
   }
   
