@@ -9,10 +9,6 @@
   "regions": ["iad1"],
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
       "source": "/((?!api|assets|favicon|og-image|manifest|robots|sitemap|apple-touch).*)",
       "destination": "/index.html"
     }
