@@ -1149,12 +1149,16 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
           event.preventDefault();
           handleGenerate();
           break;
+        case 'KeyH':
+          event.preventDefault();
+          handleRandomHarmonize();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, handleGenerate]);
+  }, [isPlaying, withMetronome, handlePlay, handleStop, toggleLoop, handleGenerate, handleRandomHarmonize]);
 
   // Update replit.md with the bug fixes
   useEffect(() => {
@@ -1609,6 +1613,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">M</kbd> Metro</span>
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">L</kbd> Loop</span>
             <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">R</kbd> Gen</span>
+            <span><kbd className="px-1 py-0.5 bg-muted rounded font-mono text-foreground">H</kbd> Harm</span>
           </div>
         </div>
       </div>

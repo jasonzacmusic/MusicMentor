@@ -487,16 +487,14 @@ export default function ChordSkillSelector({
                 }}
               >
                 <defs>
-                  <linearGradient id={`vineGrad-${noteIndex}-default`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#4b5563" stopOpacity="0.4" />
-                    <stop offset="50%" stopColor="#6b7280" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#4b5563" stopOpacity="0.4" />
-                  </linearGradient>
-                  <linearGradient id={`vineGrad-${noteIndex}-selected`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
-                    <stop offset="50%" stopColor="#4ade80" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#22c55e" stopOpacity="0.4" />
-                  </linearGradient>
+                  <radialGradient id={`vineGrad-${noteIndex}-default`} cx={center} cy={center} r={treeRadius * 0.9} gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#4b5563" stopOpacity="0.15" />
+                    <stop offset="100%" stopColor="#6b7280" stopOpacity="0.8" />
+                  </radialGradient>
+                  <radialGradient id={`vineGrad-${noteIndex}-selected`} cx={center} cy={center} r={treeRadius * 0.9} gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#4ade80" stopOpacity="0.9" />
+                  </radialGradient>
                 </defs>
                 {availableChords.map((chord, index) => {
                   const numChords = availableChords.length;
