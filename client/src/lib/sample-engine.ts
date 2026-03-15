@@ -75,7 +75,12 @@ export class SampleEngine {
   private blockChordVolume: number = 0.5;
   private arpeggioVolume: number = 0.7;
   private compressorNode: DynamicsCompressorNode | null = null;
-  private recordingDest: MediaStreamAudioDestinationNode | null = null;
+
+  // PCM recording via ScriptProcessorNode (produces proper WAV-ready samples)
+  private scriptProcessor: ScriptProcessorNode | null = null;
+  private silentGain: GainNode | null = null;
+  private recordingChunks: Float32Array[] = [];
+  private isRecordingPCM: boolean = false;
 
   public activeNodes: Set<any> = new Set();
 
@@ -487,27 +492,51 @@ export class SampleEngine {
     }
   }
 
-  /** Tap the compressor output into a MediaStreamDestination for recording.
-   *  Returns the MediaStream to feed into a MediaRecorder.
-   */
-  startRecording(): MediaStream | null {
-    if (!this.audioContext || !this.compressorNode) return null;
-    try {
-      this.recordingDest = this.audioContext.createMediaStreamDestination();
-      this.compressorNode.connect(this.recordingDest);
-      return this.recordingDest.stream;
-    } catch (e) {
-      logger.log('Recording start failed:', e);
-      return null;
-    }
+  /** Start capturing raw PCM from the compressor output. */
+  startPCMRecording(): void {
+    if (!this.audioContext || !this.compressorNode) return;
+    this.recordingChunks = [];
+    this.isRecordingPCM = true;
+
+    this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 2, 2);
+    this.silentGain = this.audioContext.createGain();
+    this.silentGain.gain.value = 0; // silent tap — doesn't add to output
+
+    this.scriptProcessor.onaudioprocess = (e) => {
+      if (!this.isRecordingPCM) return;
+      const L = e.inputBuffer.getChannelData(0);
+      const R = e.inputBuffer.getChannelData(1);
+      const mono = new Float32Array(L.length);
+      for (let i = 0; i < L.length; i++) mono[i] = (L[i] + R[i]) * 0.5;
+      this.recordingChunks.push(mono);
+    };
+
+    this.compressorNode.connect(this.scriptProcessor);
+    this.scriptProcessor.connect(this.silentGain);
+    this.silentGain.connect(this.audioContext.destination);
+    logger.log('🎙️ PCM recording started');
   }
 
-  /** Disconnect the recording tap. */
-  stopRecording(): void {
-    if (this.recordingDest && this.compressorNode) {
-      try { this.compressorNode.disconnect(this.recordingDest); } catch (_) {}
-      this.recordingDest = null;
+  /** Stop PCM capture and return all collected samples + sample rate. */
+  stopPCMRecording(): { samples: Float32Array; sampleRate: number } {
+    this.isRecordingPCM = false;
+    if (this.scriptProcessor && this.compressorNode) {
+      try { this.compressorNode.disconnect(this.scriptProcessor); } catch (_) {}
+      try { this.scriptProcessor.disconnect(); } catch (_) {}
+      this.scriptProcessor = null;
     }
+    if (this.silentGain) {
+      try { this.silentGain.disconnect(); } catch (_) {}
+      this.silentGain = null;
+    }
+    const sampleRate = this.audioContext?.sampleRate ?? 44100;
+    const totalLen = this.recordingChunks.reduce((s, c) => s + c.length, 0);
+    const samples = new Float32Array(totalLen);
+    let offset = 0;
+    for (const chunk of this.recordingChunks) { samples.set(chunk, offset); offset += chunk.length; }
+    this.recordingChunks = [];
+    logger.log(`🎙️ PCM recording stopped — ${samples.length} samples @ ${sampleRate}Hz`);
+    return { samples, sampleRate };
   }
 
   dispose(): void {

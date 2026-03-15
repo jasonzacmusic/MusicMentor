@@ -34,6 +34,32 @@ interface RandomNotesGeneratorProps {
   diatonicMode?: number; // Mode number for diatonic mode
 }
 
+// ── WAV encoder ─────────────────────────────────────────────────────────────
+function encodeWAV(samples: Float32Array, sampleRate: number): ArrayBuffer {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const dataSize = samples.length * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const w = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+  w(0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); w(8, 'WAVE');
+  w(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * bitsPerSample / 8, true);
+  view.setUint16(32, bitsPerSample / 8, true); view.setUint16(34, bitsPerSample, true);
+  w(36, 'data'); view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    offset += 2;
+  }
+  return buffer;
+}
+
 // Beat duration patterns for different note counts (total: 8 beats)
 const BEAT_PATTERNS: Record<number, number[]> = {
   1: [8],
@@ -85,8 +111,6 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordLoops, setRecordLoops] = useState(2);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
 
   // Instrument combo selection
   const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
@@ -767,6 +791,23 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     logger.log(`🔄 Auto Loop ${newLoopState ? 'ENABLED' : 'DISABLED'}`);
   }, [isLooping]);
 
+  // ====== SHARED FILENAME BUILDER ======
+  const buildFilename = useCallback((ext: string) => {
+    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const bpm = `${tempoRef.current}bpm`;
+    const noteCount = `${notes.length}note${notes.length !== 1 ? 's' : ''}`;
+    let keyStr = '';
+    if (skillLevel === 'diatonic' && diatonicKey && diatonicScale) {
+      const scaleShort = diatonicScale === 'major' ? 'maj'
+        : diatonicScale === 'naturalMinor' ? 'min'
+        : diatonicScale === 'harmonicMinor' ? 'hmin'
+        : diatonicScale === 'melodicMinor' ? 'mmin'
+        : diatonicScale.slice(0, 3);
+      keyStr = `${diatonicKey}${scaleShort}_`;
+    }
+    return `ChordTrees_${keyStr}${bpm}_${noteCount}_${date}.${ext}`;
+  }, [notes.length, skillLevel, diatonicKey, diatonicScale]);
+
   // ====== MIDI EXPORT ======
   // Mirrors the sample engine's exact playback: block chords (Ch 1, oct 3) + arpeggio (Ch 2, oct 4)
   const handleMidiExport = useCallback(() => {
@@ -875,91 +916,57 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'chord-trees-progression.mid';
+    a.download = buildFilename('mid');
     a.click();
     URL.revokeObjectURL(url);
     logger.log('🎼 MIDI exported');
-  }, [notes, selectedChords]);
+  }, [notes, selectedChords, buildFilename]);
 
-  // ====== AUDIO EXPORT ======
+  // ====== AUDIO EXPORT (PCM → WAV — universally playable) ======
+  const saveWAV = useCallback(() => {
+    const { samples, sampleRate } = sampleEngine.stopPCMRecording();
+    setIsRecording(false);
+    if (samples.length === 0) return;
+    const wavBuffer = encodeWAV(samples, sampleRate);
+    const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = buildFilename('wav');
+    a.click();
+    URL.revokeObjectURL(url);
+    logger.log('🎙️ WAV exported');
+  }, [buildFilename]);
+
   const handleAudioExport = useCallback(async () => {
     if (isRecording) {
-      // Stop recording
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
+      emergencyReset();
+      saveWAV();
       return;
     }
 
-    // Start recording
-    const stream = sampleEngine.startRecording();
-    if (!stream) {
-      logger.log('❌ Could not start recording — audio engine not initialized');
-      return;
+    // Ensure engine is initialized before tapping it
+    if (!sampleEngine.audioContext) {
+      await sampleEngine.initialize();
     }
 
-    // Prefer MP4/M4A (universally playable), fall back to OGG then WebM
-    const mimeTypes = [
-      'audio/mp4',
-      'audio/ogg;codecs=opus',
-      'audio/webm;codecs=opus',
-      'audio/webm',
-    ];
-    const mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || 'audio/webm';
-    const ext = mimeType.startsWith('audio/mp4') ? 'm4a'
-              : mimeType.startsWith('audio/ogg') ? 'ogg'
-              : 'webm';
+    sampleEngine.startPCMRecording();
+    setIsRecording(true);
 
-    try {
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
-      recordedChunksRef.current = [];
+    // Calculate when to auto-stop
+    const cycles = chordCyclesRef.current;
+    const totalBeats = 8 * cycles;
+    const beatDuration = 60 / tempoRef.current;
+    const sequenceDuration = totalBeats * beatDuration * 1000; // ms per loop
+    const totalDuration = sequenceDuration * recordLoops + 400; // +400ms tail
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
-      };
+    await startSeamlessLoop(selectedChords);
 
-      recorder.onstop = () => {
-        sampleEngine.stopRecording();
-        setIsRecording(false);
-        emergencyReset();
-
-        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `chord-trees-audio.${ext}`;
-        a.click();
-        URL.revokeObjectURL(url);
-        logger.log(`🎙️ Audio exported as ${ext}`);
-      };
-
-      recorder.start(100);
-      setIsRecording(true);
-
-      // Calculate total duration (recordLoops iterations)
-      const cycles = chordCyclesRef.current;
-      const basePatterns = BEAT_PATTERNS[notes.length] || BEAT_PATTERNS[4];
-      const totalBeats = 8 * cycles;
-      const beatDuration = 60 / tempoRef.current;
-      const sequenceDuration = totalBeats * beatDuration * 1000; // ms
-      const totalDuration = sequenceDuration * recordLoops + 500; // +500ms buffer
-
-      // Start playback
-      await startSeamlessLoop(selectedChords);
-
-      // Stop after N loops
-      setTimeout(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-          mediaRecorderRef.current.stop();
-        }
-      }, totalDuration);
-    } catch (err) {
-      logger.log('❌ Recording error:', err);
-      sampleEngine.stopRecording();
-      setIsRecording(false);
-    }
-  }, [isRecording, emergencyReset, startSeamlessLoop, selectedChords, notes, recordLoops]);
+    setTimeout(() => {
+      emergencyReset();
+      saveWAV();
+    }, totalDuration);
+  }, [isRecording, emergencyReset, saveWAV, startSeamlessLoop, selectedChords, recordLoops]);
 
 
 
