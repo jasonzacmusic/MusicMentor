@@ -768,11 +768,14 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
   }, [isLooping]);
 
   // ====== MIDI EXPORT ======
+  // Mirrors the sample engine's exact playback: block chords (Ch 1, oct 3) + arpeggio (Ch 2, oct 4)
   const handleMidiExport = useCallback(() => {
     const ticksPerBeat = 480;
     const currentTempo = tempoRef.current;
     const microsPerBeat = Math.round(60_000_000 / currentTempo);
     const cycles = chordCyclesRef.current;
+    const arpeggioSpd = arpeggioSpeedRef.current; // 1 = 8th notes, 2 = 16th notes
+    const notesPerBeat = arpeggioSpd === 2 ? 4 : 2;
     const basePatterns = BEAT_PATTERNS[notes.length] || BEAT_PATTERNS[4];
     const beatDurations = basePatterns.map(d => d * cycles);
 
@@ -785,7 +788,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       return bytes;
     };
 
-    const noteToMidi = (note: string, octave = 4): number => {
+    const noteToMidi = (note: string, octave: number): number => {
       const map: Record<string, number> = {
         'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
         'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
@@ -794,22 +797,65 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       return (octave + 1) * 12 + (map[note] ?? 0);
     };
 
+    // Same root/third/fifth detection as sample engine
+    const getVoices = (chord: { notes: string[]; rootNote: string }) => {
+      const noteMap: Record<string, number> = {
+        'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4,
+        'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+      };
+      const cn = chord.notes.slice(0, 3);
+      const ri = noteMap[chord.rootNote] ?? 0;
+      const intervals = cn.map(n => ({ note: n, iv: ((noteMap[n] ?? 0) - ri + 12) % 12 }));
+      const third = intervals.find(n => n.iv === 3 || n.iv === 4)?.note ?? cn[1];
+      const fifth = intervals.find(n => n.iv === 6 || n.iv === 7 || n.iv === 8)?.note ?? cn[2];
+      return { root: chord.rootNote, third, fifth };
+    };
+
     interface MidiEv { tick: number; data: number[] }
     const events: MidiEv[] = [];
+
+    // Tempo meta event
     events.push({ tick: 0, data: [0xFF, 0x51, 0x03, (microsPerBeat >> 16) & 0xFF, (microsPerBeat >> 8) & 0xFF, microsPerBeat & 0xFF] });
 
     let tick = 0;
     for (let i = 0; i < notes.length; i++) {
       const chord = selectedChords[i];
-      const durTicks = Math.round(beatDurations[i] * ticksPerBeat);
+      const durationBeats = beatDurations[i];
+      const durTicks = Math.round(durationBeats * ticksPerBeat);
+      const beatTicks = ticksPerBeat;
+      const subNoteTicks = Math.round(ticksPerBeat / notesPerBeat);
+
       if (chord) {
-        const midiNotes = chord.notes.slice(0, 4).map(n => noteToMidi(n, 4));
-        midiNotes.forEach(mn => events.push({ tick, data: [0x90, mn, 80] }));
-        midiNotes.forEach(mn => events.push({ tick: tick + durTicks - 2, data: [0x80, mn, 0] }));
+        const { root, third, fifth } = getVoices(chord);
+
+        // ── BLOCK CHORDS (Ch 1, octave 3) — one hit per beat, 90% duration ──
+        const numBeats = Math.floor(durationBeats);
+        const blockOffTicks = Math.round(beatTicks * 0.9);
+        for (let b = 0; b < numBeats; b++) {
+          const bt = tick + b * beatTicks;
+          [root, third, fifth].forEach(n => {
+            const mn = noteToMidi(n, 3);
+            events.push({ tick: bt,                  data: [0x90, mn, 75] }); // Note On  ch1
+            events.push({ tick: bt + blockOffTicks,  data: [0x80, mn,  0] }); // Note Off ch1
+          });
+        }
+
+        // ── ARPEGGIO (Ch 2, octave 4) — pattern: 5th→root→3rd→root repeating ──
+        const arpPattern = [fifth, root, third, root, fifth, root, third, root];
+        const maxNotes = Math.floor(durationBeats * notesPerBeat);
+        for (let j = 0; j < maxNotes; j++) {
+          const arpNote = arpPattern[j % arpPattern.length];
+          const at = tick + j * subNoteTicks;
+          const mn = noteToMidi(arpNote, 4);
+          events.push({ tick: at,                      data: [0x91, mn, 90] }); // Note On  ch2
+          events.push({ tick: at + subNoteTicks - 2,   data: [0x81, mn,  0] }); // Note Off ch2
+        }
       }
       tick += durTicks;
     }
+
     events.push({ tick, data: [0xFF, 0x2F, 0x00] });
+    // Note offs (0x80/0x81) sort before note ons (0x90/0x91) at the same tick
     events.sort((a, b) => a.tick - b.tick || a.data[0] - b.data[0]);
 
     const trackData: number[] = [];
@@ -822,8 +868,8 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     const tpb = ticksPerBeat;
     const header = [0x4D,0x54,0x68,0x64, 0,0,0,6, 0,0, 0,1, (tpb>>8)&0xFF, tpb&0xFF];
     const tl = trackData.length;
-    const track = [0x4D,0x54,0x72,0x6B, (tl>>24)&0xFF,(tl>>16)&0xFF,(tl>>8)&0xFF,tl&0xFF, ...trackData];
-    const midi = new Uint8Array([...header, ...track]);
+    const trackChunk = [0x4D,0x54,0x72,0x6B, (tl>>24)&0xFF,(tl>>16)&0xFF,(tl>>8)&0xFF,tl&0xFF, ...trackData];
+    const midi = new Uint8Array([...header, ...trackChunk]);
 
     const blob = new Blob([midi], { type: 'audio/midi' });
     const url = URL.createObjectURL(blob);
@@ -852,9 +898,17 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
       return;
     }
 
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm';
+    // Prefer MP4/M4A (universally playable), fall back to OGG then WebM
+    const mimeTypes = [
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/webm;codecs=opus',
+      'audio/webm',
+    ];
+    const mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || 'audio/webm';
+    const ext = mimeType.startsWith('audio/mp4') ? 'm4a'
+              : mimeType.startsWith('audio/ogg') ? 'ogg'
+              : 'webm';
 
     try {
       const recorder = new MediaRecorder(stream, { mimeType });
@@ -874,10 +928,10 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'chord-trees-audio.webm';
+        a.download = `chord-trees-audio.${ext}`;
         a.click();
         URL.revokeObjectURL(url);
-        logger.log('🎙️ Audio exported');
+        logger.log(`🎙️ Audio exported as ${ext}`);
       };
 
       recorder.start(100);
