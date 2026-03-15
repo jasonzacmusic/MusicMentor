@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getChordsForNoteBySkill, formatChordNotes, type Chord, type SkillLevel, getAllChordsContainingNote, type ChordMembership } from '@/lib/chord-theory';
-import { getDiatonicChordsContainingNote, type ScaleType, type DiatonicChord } from '@/lib/scale-theory';
+import { getDiatonicChordsContainingNote, getExtendedHarmonyForNote, type ScaleType, type DiatonicChord, type ChromaticChord, type ExtendedHarmony } from '@/lib/scale-theory';
 import { useAudio } from '@/hooks/use-audio';
 import PianoKeyboard from './piano-keyboard';
 import GuitarFretboard from './guitar-fretboard';
@@ -98,6 +98,9 @@ export default function ChordSkillSelector({
 }: ChordSkillSelectorProps) {
   const [availableChords, setAvailableChords] = useState<Chord[]>([]);
   const [diatonicSeventhChords, setDiatonicSeventhChords] = useState<DiatonicChord[]>([]);
+  const [extendedHarmony, setExtendedHarmony] = useState<ExtendedHarmony | null>(null);
+  const [showExtendedHarmony, setShowExtendedHarmony] = useState(false);
+  const [expandedExtSection, setExpandedExtSection] = useState<string | null>('secondary-dominant');
   const { playChord } = useAudio();
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const centerButtonRef = useRef<HTMLButtonElement>(null);
@@ -142,11 +145,19 @@ export default function ChordSkillSelector({
       console.log(`🌳 Diatonic chords for ${baseNote} in ${diatonicKey} ${diatonicScale}: ${triadsAsChords.length} triads`, triadsAsChords.map(c => c.name));
       setAvailableChords(triadsAsChords);
       setDiatonicSeventhChords(diatonicChords.seventhChords);
+      // Extended harmony (filtered to chords containing this note)
+      try {
+        const ext = getExtendedHarmonyForNote(baseNote, diatonicKey, diatonicScale, mode);
+        setExtendedHarmony(ext);
+      } catch (e) {
+        setExtendedHarmony(null);
+      }
     } else {
       const chords = getChordsForNoteBySkill(baseNote, skillLevel);
       console.log(`🌳 Chords for ${baseNote} in ${skillLevel} mode: ${chords.length} chords`, chords.map(c => c.name));
       setAvailableChords(chords);
       setDiatonicSeventhChords([]);
+      setExtendedHarmony(null);
     }
     // NOTE: Only depend on selectedSeventhChordName (not full selectedChord) to prevent
     // re-renders when selecting triads - only seventh chord changes matter for tree display
@@ -711,6 +722,103 @@ export default function ChordSkillSelector({
               })}
             </div>
           </div>
+        )}
+
+        {/* Extended Harmony — collapsible, diatonic mode only */}
+        {skillLevel === 'diatonic' && extendedHarmony && (
+          (() => {
+            const hasAny = (
+              extendedHarmony.secondaryDominants.length > 0 ||
+              extendedHarmony.borrowedChords.length > 0 ||
+              extendedHarmony.secondaryDiminished.length > 0 ||
+              extendedHarmony.tritoneSubstitutions.length > 0
+            );
+            if (!hasAny) return null;
+
+            const sections: { key: string; label: string; chords: ChromaticChord[]; color: string; badge: string }[] = [
+              { key: 'secondary-dominant', label: 'Sec. Dominant', chords: extendedHarmony.secondaryDominants, color: 'amber', badge: 'V/' },
+              { key: 'borrowed', label: 'Borrowed', chords: extendedHarmony.borrowedChords, color: 'purple', badge: 'b' },
+              { key: 'secondary-diminished', label: 'Sec. Dim', chords: extendedHarmony.secondaryDiminished, color: 'rose', badge: '°7' },
+              { key: 'tritone-sub', label: 'Tritone Sub', chords: extendedHarmony.tritoneSubstitutions, color: 'cyan', badge: 'TT' },
+            ].filter(s => s.chords.length > 0);
+
+            const colorMap: Record<string, { header: string; chip: string; chipSel: string; dot: string }> = {
+              amber:  { header: 'text-amber-300 border-amber-700/50',  chip: 'bg-amber-900/40 border-amber-600/50 text-amber-200 hover:bg-amber-800/60',  chipSel: 'bg-amber-600 border-amber-300 text-white', dot: 'bg-amber-400' },
+              purple: { header: 'text-purple-300 border-purple-700/50', chip: 'bg-purple-900/40 border-purple-600/50 text-purple-200 hover:bg-purple-800/60', chipSel: 'bg-purple-600 border-purple-300 text-white', dot: 'bg-purple-400' },
+              rose:   { header: 'text-rose-300 border-rose-700/50',   chip: 'bg-rose-900/40 border-rose-600/50 text-rose-200 hover:bg-rose-800/60',   chipSel: 'bg-rose-600 border-rose-300 text-white', dot: 'bg-rose-400' },
+              cyan:   { header: 'text-cyan-300 border-cyan-700/50',   chip: 'bg-cyan-900/40 border-cyan-600/50 text-cyan-200 hover:bg-cyan-800/60',   chipSel: 'bg-cyan-600 border-cyan-300 text-white', dot: 'bg-cyan-400' },
+            };
+
+            return (
+              <div className="mt-3 w-full">
+                {/* Toggle header */}
+                <button
+                  onClick={() => setShowExtendedHarmony(v => !v)}
+                  className="w-full flex items-center justify-between px-2 py-1 rounded-md bg-slate-800/60 border border-slate-700/40 hover:bg-slate-800/80 transition-all"
+                >
+                  <span className="text-[9px] uppercase tracking-widest text-slate-400 font-semibold flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 inline-block" />
+                    Extended Harmony
+                  </span>
+                  <span className="text-[9px] text-slate-500">{showExtendedHarmony ? '▲' : '▼'}</span>
+                </button>
+
+                {showExtendedHarmony && (
+                  <div className="mt-1.5 space-y-1.5">
+                    {sections.map(({ key, label, chords, color }) => {
+                      const c = colorMap[color];
+                      const isOpen = expandedExtSection === key;
+                      return (
+                        <div key={key} className="rounded-lg overflow-hidden border border-slate-700/30">
+                          <button
+                            onClick={() => setExpandedExtSection(isOpen ? null : key)}
+                            className={`w-full flex items-center justify-between px-2 py-1 text-left text-[9px] font-semibold uppercase tracking-wider border-b border-slate-700/20 ${c.header} bg-slate-900/40 hover:bg-slate-900/60 transition-all`}
+                          >
+                            <span className="flex items-center gap-1">
+                              <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                              {label}
+                            </span>
+                            <span className="text-slate-500 normal-case font-normal">{chords.length} chord{chords.length !== 1 ? 's' : ''} {isOpen ? '▲' : '▼'}</span>
+                          </button>
+                          {isOpen && (
+                            <div className="p-1.5 flex flex-wrap gap-1 bg-slate-900/20">
+                              {chords.map((chord, idx) => {
+                                const isSelected = selectedChord?.name === chord.name;
+                                const chordAsRegular: Chord = {
+                                  name: chord.name,
+                                  notes: chord.notes,
+                                  type: chord.type,
+                                  rootNote: chord.rootNote,
+                                  category: chord.category,
+                                  romanNumeral: chord.label,
+                                };
+                                return (
+                                  <button
+                                    key={idx}
+                                    ref={(el) => { if (el) chordButtonRefs.current.set(chord.name, el); }}
+                                    onClick={() => handleSelectChord(chordAsRegular)}
+                                    className={`flex flex-col items-center px-2 py-1 rounded-lg text-center transition-all duration-200 border text-[9px] font-medium
+                                      ${isSelected ? c.chipSel : c.chip}
+                                      ${isSelected ? 'scale-105 shadow-md' : 'opacity-75 hover:opacity-100'}`}
+                                    title={`${chord.name} — ${chord.label} → ${chord.targetRomanNumeral}`}
+                                    data-testid={`ext-chord-${chord.harmonyType}-${idx}`}
+                                  >
+                                    <span className="text-[8px] font-mono opacity-70 leading-none mb-0.5">{chord.label}</span>
+                                    <span className="font-bold text-[10px]">{chord.name}</span>
+                                    <span className="text-[7px] opacity-60 leading-none mt-0.5">{chord.notes.join(' ')}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()
         )}
 
         {selectedChord && (

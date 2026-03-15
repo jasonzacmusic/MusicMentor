@@ -74,7 +74,9 @@ export class SampleEngine {
   private currentComboId: string = 'orchestral-piano';
   private blockChordVolume: number = 0.5;
   private arpeggioVolume: number = 0.7;
-  
+  private compressorNode: DynamicsCompressorNode | null = null;
+  private recordingDest: MediaStreamAudioDestinationNode | null = null;
+
   public activeNodes: Set<any> = new Set();
 
   get initialized(): boolean {
@@ -163,7 +165,8 @@ export class SampleEngine {
       this.arpeggioGainNode.connect(this.masterGainNode);
       this.masterGainNode.connect(compressor);
       compressor.connect(this.audioContext.destination);
-      
+      this.compressorNode = compressor;
+
       this.masterGainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
       this.blockChordGainNode.gain.setValueAtTime(this.blockChordVolume, this.audioContext.currentTime);
       this.arpeggioGainNode.gain.setValueAtTime(this.arpeggioVolume, this.audioContext.currentTime);
@@ -481,6 +484,29 @@ export class SampleEngine {
         Math.max(0, Math.min(1, volume)),
         this.audioContext.currentTime
       );
+    }
+  }
+
+  /** Tap the compressor output into a MediaStreamDestination for recording.
+   *  Returns the MediaStream to feed into a MediaRecorder.
+   */
+  startRecording(): MediaStream | null {
+    if (!this.audioContext || !this.compressorNode) return null;
+    try {
+      this.recordingDest = this.audioContext.createMediaStreamDestination();
+      this.compressorNode.connect(this.recordingDest);
+      return this.recordingDest.stream;
+    } catch (e) {
+      logger.log('Recording start failed:', e);
+      return null;
+    }
+  }
+
+  /** Disconnect the recording tap. */
+  stopRecording(): void {
+    if (this.recordingDest && this.compressorNode) {
+      try { this.compressorNode.disconnect(this.recordingDest); } catch (_) {}
+      this.recordingDest = null;
     }
   }
 

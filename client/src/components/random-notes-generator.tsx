@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shuffle, Play, Square, RotateCcw, Edit3, Dices, Music, Volume2, Timer, Repeat, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Shuffle, Play, Square, RotateCcw, Edit3, Dices, Music, Volume2, Timer, Repeat, ChevronDown, ChevronUp, Zap, Download, Mic } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateRandomNotes, getChordFromNote, getChordsForNoteBySkill, type Chord, type SkillLevel, applyVoiceLeading } from '@/lib/chord-theory';
 import { getDiatonicChordsContainingNote, type ScaleType } from '@/lib/scale-theory';
@@ -71,6 +71,8 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
   const withMetronomeRef = useRef(false); // Ref for real-time metronome access
   const [metronomeMultiplier, setMetronomeMultiplier] = useState(1);
   const metronomeMultiplierRef = useRef(1); // Ref for real-time metronome speed access
+  const [metronomeVolume, setMetronomeVolume] = useState(0.3);
+  const metronomeVolumeRef = useRef(0.3);
 
   // Arpeggio speed: 1 = eighth notes (default), 2 = sixteenth notes
   const [arpeggioSpeed, setArpeggioSpeed] = useState(1);
@@ -79,6 +81,12 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
   // Chord cycles: how many times to repeat each chord's arpeggio pattern (1, 2, or 4)
   const [chordCycles, setChordCycles] = useState(2); // Default to 2 cycles
   const chordCyclesRef = useRef(2);
+
+  // Audio recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordLoops, setRecordLoops] = useState(2);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   // Instrument combo selection
   const [selectedComboId, setSelectedComboId] = useState('orchestral-piano');
@@ -114,6 +122,10 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
   useEffect(() => {
     metronomeMultiplierRef.current = metronomeMultiplier;
   }, [metronomeMultiplier]);
+
+  useEffect(() => {
+    metronomeVolumeRef.current = metronomeVolume;
+  }, [metronomeVolume]);
 
   useEffect(() => {
     isLoopingRef.current = isLooping;
@@ -690,8 +702,9 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
 
       const clickDuration = 0.05;
 
+      const vol = metronomeVolumeRef.current;
       gainNode.gain.setValueAtTime(0, time);
-      gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
+      gainNode.gain.linearRampToValueAtTime(vol, time + 0.01);
       gainNode.gain.linearRampToValueAtTime(0, time + clickDuration);
 
       // Track metronome oscillators in audio engine for proper stopping
@@ -753,6 +766,146 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     setIsLooping(newLoopState);
     logger.log(`🔄 Auto Loop ${newLoopState ? 'ENABLED' : 'DISABLED'}`);
   }, [isLooping]);
+
+  // ====== MIDI EXPORT ======
+  const handleMidiExport = useCallback(() => {
+    const ticksPerBeat = 480;
+    const currentTempo = tempoRef.current;
+    const microsPerBeat = Math.round(60_000_000 / currentTempo);
+    const cycles = chordCyclesRef.current;
+    const basePatterns = BEAT_PATTERNS[notes.length] || BEAT_PATTERNS[4];
+    const beatDurations = basePatterns.map(d => d * cycles);
+
+    const varLen = (value: number): number[] => {
+      if (value === 0) return [0];
+      const bytes: number[] = [];
+      bytes.unshift(value & 0x7F);
+      let v = value >> 7;
+      while (v > 0) { bytes.unshift((v & 0x7F) | 0x80); v >>= 7; }
+      return bytes;
+    };
+
+    const noteToMidi = (note: string, octave = 4): number => {
+      const map: Record<string, number> = {
+        'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
+        'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
+        'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+      };
+      return (octave + 1) * 12 + (map[note] ?? 0);
+    };
+
+    interface MidiEv { tick: number; data: number[] }
+    const events: MidiEv[] = [];
+    events.push({ tick: 0, data: [0xFF, 0x51, 0x03, (microsPerBeat >> 16) & 0xFF, (microsPerBeat >> 8) & 0xFF, microsPerBeat & 0xFF] });
+
+    let tick = 0;
+    for (let i = 0; i < notes.length; i++) {
+      const chord = selectedChords[i];
+      const durTicks = Math.round(beatDurations[i] * ticksPerBeat);
+      if (chord) {
+        const midiNotes = chord.notes.slice(0, 4).map(n => noteToMidi(n, 4));
+        midiNotes.forEach(mn => events.push({ tick, data: [0x90, mn, 80] }));
+        midiNotes.forEach(mn => events.push({ tick: tick + durTicks - 2, data: [0x80, mn, 0] }));
+      }
+      tick += durTicks;
+    }
+    events.push({ tick, data: [0xFF, 0x2F, 0x00] });
+    events.sort((a, b) => a.tick - b.tick || a.data[0] - b.data[0]);
+
+    const trackData: number[] = [];
+    let prevTick = 0;
+    for (const ev of events) {
+      trackData.push(...varLen(ev.tick - prevTick), ...ev.data);
+      prevTick = ev.tick;
+    }
+
+    const tpb = ticksPerBeat;
+    const header = [0x4D,0x54,0x68,0x64, 0,0,0,6, 0,0, 0,1, (tpb>>8)&0xFF, tpb&0xFF];
+    const tl = trackData.length;
+    const track = [0x4D,0x54,0x72,0x6B, (tl>>24)&0xFF,(tl>>16)&0xFF,(tl>>8)&0xFF,tl&0xFF, ...trackData];
+    const midi = new Uint8Array([...header, ...track]);
+
+    const blob = new Blob([midi], { type: 'audio/midi' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chord-trees-progression.mid';
+    a.click();
+    URL.revokeObjectURL(url);
+    logger.log('🎼 MIDI exported');
+  }, [notes, selectedChords]);
+
+  // ====== AUDIO EXPORT ======
+  const handleAudioExport = useCallback(async () => {
+    if (isRecording) {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      return;
+    }
+
+    // Start recording
+    const stream = sampleEngine.startRecording();
+    if (!stream) {
+      logger.log('❌ Could not start recording — audio engine not initialized');
+      return;
+    }
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+
+    try {
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+      recordedChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        sampleEngine.stopRecording();
+        setIsRecording(false);
+        emergencyReset();
+
+        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'chord-trees-audio.webm';
+        a.click();
+        URL.revokeObjectURL(url);
+        logger.log('🎙️ Audio exported');
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+
+      // Calculate total duration (recordLoops iterations)
+      const cycles = chordCyclesRef.current;
+      const basePatterns = BEAT_PATTERNS[notes.length] || BEAT_PATTERNS[4];
+      const totalBeats = 8 * cycles;
+      const beatDuration = 60 / tempoRef.current;
+      const sequenceDuration = totalBeats * beatDuration * 1000; // ms
+      const totalDuration = sequenceDuration * recordLoops + 500; // +500ms buffer
+
+      // Start playback
+      await startSeamlessLoop(selectedChords);
+
+      // Stop after N loops
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      }, totalDuration);
+    } catch (err) {
+      logger.log('❌ Recording error:', err);
+      sampleEngine.stopRecording();
+      setIsRecording(false);
+    }
+  }, [isRecording, emergencyReset, startSeamlessLoop, selectedChords, notes, recordLoops]);
 
 
 
@@ -1280,6 +1433,21 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
             )}
           </div>
 
+          {withMetronome && (
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-3 h-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground w-12">Click Vol</span>
+              <Slider
+                value={[Math.round(metronomeVolume * 100)]}
+                onValueChange={(v) => setMetronomeVolume(v[0] / 100)}
+                min={0} max={100} step={5}
+                className="flex-1"
+                data-testid="slider-metronome-volume"
+              />
+              <span className="text-[10px] text-muted-foreground w-7 text-right">{Math.round(metronomeVolume * 100)}%</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <label className="text-xs text-foreground">Arpeggio</label>
             <div className="flex rounded-md overflow-hidden border border-border">
@@ -1323,6 +1491,50 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
                   data-testid={`button-cycles-${cycles}`}
                 >
                   {cycles}x
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* === EXPORT SECTION === */}
+        <div className="pt-3 space-y-2 border-t border-border">
+          <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+            <Download className="w-3.5 h-3.5" />
+            Export
+          </label>
+          <Button
+            onClick={handleMidiExport}
+            variant="outline"
+            size="sm"
+            className="w-full h-8 text-xs"
+            data-testid="button-midi-export"
+            title="Download MIDI file of current progression"
+          >
+            <Download className="w-3.5 h-3.5 mr-2" />
+            Download MIDI
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleAudioExport}
+              variant={isRecording ? 'destructive' : 'outline'}
+              size="sm"
+              className={`flex-1 h-8 text-xs ${isRecording ? 'animate-pulse' : ''}`}
+              data-testid="button-audio-export"
+              title={isRecording ? 'Stop recording and download' : 'Record and download audio'}
+            >
+              <Mic className="w-3.5 h-3.5 mr-2" />
+              {isRecording ? 'Stop & Save' : 'Record Audio'}
+            </Button>
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <span>×</span>
+              {[1,2,4].map(n => (
+                <button
+                  key={n}
+                  onClick={() => setRecordLoops(n)}
+                  className={`w-6 h-6 rounded text-[9px] font-medium transition-colors ${recordLoops === n ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                >
+                  {n}
                 </button>
               ))}
             </div>

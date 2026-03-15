@@ -97,11 +97,11 @@ export function HelpGuide() {
                   <li>See only chords that belong to that scale</li>
                   <li>Roman numeral notation (I, ii, iii, IV, V, vi, vii°)</li>
                   <li>Triads in tree + seventh chords below</li>
-                  <li>Best for: Theory exams, classical training, understanding keys</li>
+                  <li><strong>Extended Harmony</strong> — Secondary Dominants (V/V), Borrowed chords (bVII), Secondary Diminished, Tritone Subs</li>
+                  <li>Best for: Theory exams, classical training, advanced songwriting</li>
                 </ul>
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-2 text-sm">
-                  <strong>Tip:</strong> In Diatonic mode, the notes shown are from your selected scale. 
-                  Each note displays chords from that key that contain it.
+                  <strong>Tip:</strong> Tap "Extended Harmony" below the seventh chords panel to reveal chromatic chords like V/V (secondary dominant) and bVII (borrowed from parallel minor).
                 </div>
               </Section>
             </TabsContent>
@@ -140,8 +140,10 @@ export function HelpGuide() {
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Tempo</strong> — Adjust playback speed (40-200 BPM)</li>
                   <li><strong>Note Count</strong> — Choose 1-5 notes to work with</li>
-                  <li><strong>Metronome</strong> — Add click track during playback</li>
+                  <li><strong>Metronome</strong> — Add click track with adjustable volume</li>
                   <li><strong>Arpeggio Speed</strong> — Change how chords are broken up</li>
+                  <li><strong>Download MIDI</strong> — Export progression as a .mid file for your DAW</li>
+                  <li><strong>Record Audio</strong> — Capture and download as WebM audio (choose 1×, 2×, or 4× loops)</li>
                 </ul>
               </Section>
             </TabsContent>

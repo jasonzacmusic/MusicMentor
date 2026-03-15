@@ -727,6 +727,231 @@ function harmonizeSeventhsFromNotes(scaleNotes: string[], key: string): Diatonic
   return sevenths;
 }
 
+// ============================================================
+// EXTENDED / CHROMATIC HARMONY
+// ============================================================
+
+export interface ChromaticChord extends Chord {
+  /** Human-readable label shown on the chip, e.g. "V/V", "bVII", "°7/ii" */
+  label: string;
+  /** 0-indexed diatonic degree this chord is tonicising / approaching */
+  targetDegree: number;
+  /** Roman numeral string of the target diatonic chord */
+  targetRomanNumeral: string;
+  /** Which category of extended harmony this belongs to */
+  harmonyType: 'secondary-dominant' | 'borrowed' | 'secondary-diminished' | 'tritone-sub';
+}
+
+export interface ExtendedHarmony {
+  secondaryDominants: ChromaticChord[];
+  borrowedChords: ChromaticChord[];
+  secondaryDiminished: ChromaticChord[];
+  tritoneSubstitutions: ChromaticChord[];
+}
+
+/** Build a chord from a root semitone + interval array, using key-aware accidentals */
+function buildChromaticChord(
+  rootSemitone: number,
+  intervals: number[],
+  key: string
+): { rootNote: string; notes: string[] } {
+  const rootNote = preferredAccidental(key, rootSemitone, '');
+  const notes: string[] = [rootNote];
+  for (let i = 1; i < intervals.length; i++) {
+    const targetSemitone = (rootSemitone + intervals[i]) % 12;
+    notes.push(preferredAccidental(key, targetSemitone, ''));
+  }
+  return { rootNote, notes };
+}
+
+/**
+ * Compute all extended harmony for a key/scale/mode combination:
+ * secondary dominants, borrowed chords, secondary diminished, tritone substitutions.
+ */
+export function getExtendedHarmony(
+  key: string,
+  scaleType: ScaleType,
+  mode: number = 1
+): ExtendedHarmony {
+  const harmonized = harmonizeScaleWithMode(key, scaleType, mode);
+  const triads = harmonized.triads;
+  const modeKey = harmonized.key;
+
+  const secondaryDominants: ChromaticChord[] = [];
+  const secondaryDiminished: ChromaticChord[] = [];
+  const tritoneSubstitutions: ChromaticChord[] = [];
+  const borrowedChords: ChromaticChord[] = [];
+
+  const tonicSemitone = getSemitone(modeKey);
+
+  // ====== SECONDARY DOMINANTS ======
+  // V7 of each diatonic chord (except I and diminished chords)
+  for (let i = 1; i < triads.length; i++) {
+    const target = triads[i];
+    if (target.type === 'diminished') continue;
+
+    const targetSemitone = getSemitone(target.rootNote);
+    const secDomSemitone = (targetSemitone + 7) % 12; // P5 above = dominant root
+
+    const dom7Intervals = CHORD_INTERVALS['dominant7'];
+    const { rootNote, notes } = buildChromaticChord(secDomSemitone, dom7Intervals, modeKey);
+    const symbol = CHORD_SYMBOLS['dominant7'] ?? '7';
+    const targetRoman = target.romanNumeral || '';
+    const label = `V/${targetRoman}`;
+
+    secondaryDominants.push({
+      name: `${rootNote}${symbol}`,
+      notes,
+      type: 'dominant7',
+      rootNote,
+      category: 'seventh',
+      label,
+      targetDegree: i,
+      targetRomanNumeral: targetRoman,
+      harmonyType: 'secondary-dominant',
+    });
+  }
+
+  // ====== SECONDARY DIMINISHED ======
+  // dim7 a half-step below each diatonic chord (except I)
+  for (let i = 1; i < triads.length; i++) {
+    const target = triads[i];
+    const targetSemitone = getSemitone(target.rootNote);
+    const dimSemitone = (targetSemitone + 11) % 12; // half-step below
+
+    const dim7Intervals = CHORD_INTERVALS['diminished7'];
+    const { rootNote, notes } = buildChromaticChord(dimSemitone, dim7Intervals, modeKey);
+    const symbol = CHORD_SYMBOLS['diminished7'] ?? '°7';
+    const targetRoman = target.romanNumeral || '';
+    const label = `°7/${targetRoman}`;
+
+    secondaryDiminished.push({
+      name: `${rootNote}${symbol}`,
+      notes,
+      type: 'diminished7',
+      rootNote,
+      category: 'seventh',
+      label,
+      targetDegree: i,
+      targetRomanNumeral: targetRoman,
+      harmonyType: 'secondary-diminished',
+    });
+  }
+
+  // ====== TRITONE SUBSTITUTIONS ======
+  // A dom7 a tritone away from each secondary dominant
+  for (const secDom of secondaryDominants) {
+    const rootSemitone = getSemitone(secDom.rootNote);
+    const tritoneRootSemitone = (rootSemitone + 6) % 12;
+
+    const dom7Intervals = CHORD_INTERVALS['dominant7'];
+    const { rootNote, notes } = buildChromaticChord(tritoneRootSemitone, dom7Intervals, modeKey);
+    const symbol = CHORD_SYMBOLS['dominant7'] ?? '7';
+    const label = `Sub(${secDom.label})`;
+
+    tritoneSubstitutions.push({
+      name: `${rootNote}${symbol}`,
+      notes,
+      type: 'dominant7',
+      rootNote,
+      category: 'seventh',
+      label,
+      targetDegree: secDom.targetDegree,
+      targetRomanNumeral: secDom.targetRomanNumeral,
+      harmonyType: 'tritone-sub',
+    });
+  }
+
+  // ====== BORROWED CHORDS ======
+  const isMajorFlavored = ['major', 'lydian', 'mixolydian'].includes(scaleType);
+
+  if (isMajorFlavored) {
+    // Borrow from parallel natural minor: bVII, bVI, bIII, iv
+    const toBorrow = [
+      { label: 'bVII', rootOffset: 10, type: 'major',  deg: 6 },
+      { label: 'bVI',  rootOffset:  8, type: 'major',  deg: 5 },
+      { label: 'bIII', rootOffset:  3, type: 'major',  deg: 2 },
+      { label: 'iv',   rootOffset:  5, type: 'minor',  deg: 3 },
+    ];
+    for (const b of toBorrow) {
+      const rootSemitone = (tonicSemitone + b.rootOffset) % 12;
+      const intervals = CHORD_INTERVALS[b.type];
+      const { rootNote, notes } = buildChromaticChord(rootSemitone, intervals, modeKey);
+      const symbol = CHORD_SYMBOLS[b.type] ?? '';
+      borrowedChords.push({
+        name: `${rootNote}${symbol}`,
+        notes,
+        type: b.type,
+        rootNote,
+        category: 'triad',
+        label: b.label,
+        targetDegree: b.deg,
+        targetRomanNumeral: b.label,
+        harmonyType: 'borrowed',
+      });
+    }
+  } else {
+    // Minor-flavored: borrow from parallel major: IV, VI, VII
+    const toBorrow = [
+      { label: 'IV',  rootOffset: 5,  type: 'major', deg: 3 },
+      { label: 'VI',  rootOffset: 9,  type: 'major', deg: 5 },
+      { label: 'VII', rootOffset: 11, type: 'major', deg: 6 },
+    ];
+    for (const b of toBorrow) {
+      const rootSemitone = (tonicSemitone + b.rootOffset) % 12;
+      const intervals = CHORD_INTERVALS[b.type];
+      const { rootNote, notes } = buildChromaticChord(rootSemitone, intervals, modeKey);
+      const symbol = CHORD_SYMBOLS[b.type] ?? '';
+      borrowedChords.push({
+        name: `${rootNote}${symbol}`,
+        notes,
+        type: b.type,
+        rootNote,
+        category: 'triad',
+        label: b.label,
+        targetDegree: b.deg,
+        targetRomanNumeral: b.label,
+        harmonyType: 'borrowed',
+      });
+    }
+  }
+
+  return { secondaryDominants, borrowedChords, secondaryDiminished, tritoneSubstitutions };
+}
+
+/**
+ * Filter extended harmony chords to only those containing the target note.
+ * Used by chord-skill-selector in diatonic mode.
+ */
+export function getExtendedHarmonyForNote(
+  targetNote: string,
+  key: string,
+  scaleType: ScaleType,
+  mode: number = 1
+): ExtendedHarmony {
+  const extended = getExtendedHarmony(key, scaleType, mode);
+
+  const noteToSemitone = (note: string): number => {
+    const map: Record<string, number> = {
+      'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
+      'E': 4, 'Fb': 4, 'E#': 5, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
+      'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11, 'Cb': 11, 'B#': 0
+    };
+    return map[note] ?? 0;
+  };
+
+  const targetSemitone = noteToSemitone(targetNote);
+  const filterByNote = (chords: ChromaticChord[]): ChromaticChord[] =>
+    chords.filter(c => c.notes.some(n => noteToSemitone(n) === targetSemitone));
+
+  return {
+    secondaryDominants: filterByNote(extended.secondaryDominants),
+    borrowedChords: filterByNote(extended.borrowedChords),
+    secondaryDiminished: filterByNote(extended.secondaryDiminished),
+    tritoneSubstitutions: filterByNote(extended.tritoneSubstitutions),
+  };
+}
+
 // Helper to find suspended chords from given notes
 function findSuspendedFromNotes(scaleNotes: string[], key: string): DiatonicChord[] {
   const suspended: DiatonicChord[] = [];
