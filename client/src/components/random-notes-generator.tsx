@@ -97,6 +97,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
 
   // Scheduled loop tracking for seamless looping
   const scheduledEndTimeRef = useRef<number>(0);
+  const sequenceStartTimeRef = useRef<number>(0);
   const loopSchedulerRef = useRef<number | null>(null);
   const playingIndexTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
   const onPlayingIndexChangeRef = useRef(onPlayingIndexChange);
@@ -510,6 +511,7 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
     }
 
     scheduleMetronomeClicks(startTime, totalBeats, currentTempo);
+    sequenceStartTimeRef.current = startTime;
 
     const sequenceEndTime = startTime + (totalBeats * beatDuration);
     logger.log(`🎵 Scheduled sequence: ${currentNoteCount} positions, ${totalBeats} beats (${cycles}x cycles), ends at ${sequenceEndTime.toFixed(3)}`);
@@ -867,9 +869,12 @@ export default function RandomNotesGenerator({ notes: controlledNotes, onNotesCh
         const clickInterval = beatDuration / clicksPerBeat;
         const totalClicks = Math.floor(remainingBeats * clicksPerBeat);
         
-        // Start from the next beat boundary
-        const timeSinceStart = currentTime % beatDuration;
-        const nextBeatStart = currentTime + (beatDuration - timeSinceStart);
+        // Align to the sequence's beat grid (not the AudioContext's global clock)
+        const timeSinceSequenceStart = currentTime - sequenceStartTimeRef.current;
+        const timeSinceLastBeat = timeSinceSequenceStart % beatDuration;
+        const nextBeatStart = timeSinceLastBeat < 0.005
+          ? currentTime
+          : currentTime + (beatDuration - timeSinceLastBeat);
         
         for (let i = 0; i < totalClicks; i++) {
           const clickTime = nextBeatStart + (i * clickInterval);
